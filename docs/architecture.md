@@ -151,7 +151,7 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
 Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(from Kind, to Kind, Direction)`),
 **Pipeline** (`ConversionChain`).
 
-- `Converter::convert(mixed $value): mixed`, `lossless(): bool`, `extraRules(): list<mixed>` (e.g. `numeric`). A
+- `Converter::convert(mixed $value, mixed $subject = null): mixed`, `lossless(): bool`, `extraRules(): list<mixed>` (e.g. `numeric`). A
   converter receives a normalized value of its source type; any other value passes through unchanged.
 - `Converters` is an immutable instance (no static state): `register(Kind $from, Kind $to, Direction, $factory)`
   stores a factory `(TypeDefinition $from, TypeDefinition $to): ?Converter`, so a converter is built for the two
@@ -162,6 +162,10 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
   `BackedToEnum` is the one converter that validates instead of passing a foreign value through: it throws
   `ConversionException`. `Cast::round()` / `floor()` / `ceil()` are named constructors of explicit converters.
 - A user closure (`down:` / `up:`) becomes a `ClosureConverter`, always considered explicit (so never `conversion-lossy`).
+  `ExplicitConverter` marks the converters an author may give to `was()` (`ClosureConverter`, the `Rounding` of
+  `Cast`); `Change` stores them, never a bare closure. Only a `ClosureConverter` reads the subject (the one closure
+  signature); built-ins and casts ignore it. A float → int conversion out of the int range throws (`Floats::toInt()`,
+  `model.md` D44).
 - Plans hold **one direction**, the one of the declaration kind (`model.md` D27): `down` for responses, `up` for
   requests.
 - `ConversionChain` is built once per `(field, revision, direction)` at compilation and only **references**

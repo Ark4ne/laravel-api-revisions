@@ -29,4 +29,10 @@ final class ConversionExceptionTest extends TestCase
             ConversionException::invalidEnumValue(Priority::class, 3.0)->getMessage(),
         );
     }
+
+    public function test_out_of_int_range_names_the_float(): void
+    {
+        self::assertSame('1.0E+20 is outside the int range.', ConversionException::outOfIntRange(1.0e20)->getMessage());
+        self::assertSame('INF is outside the int range.', ConversionException::outOfIntRange(INF)->getMessage());
+    }
 }

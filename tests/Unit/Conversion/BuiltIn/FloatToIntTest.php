@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Unit\Conversion\BuiltIn;
 
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\FloatToInt;
+use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\TestCase;
 
@@ -30,5 +31,13 @@ final class FloatToIntTest extends TestCase
     {
         self::assertFalse((new FloatToInt())->lossless());
         self::assertSame([], (new FloatToInt())->extraRules());
+    }
+
+    public function test_a_float_outside_the_int_range_throws(): void
+    {
+        $this->expectException(ConversionException::class);
+        $this->expectExceptionMessage('1.0E+20 is outside the int range.');
+
+        (new FloatToInt())->convert(1.0e20);
     }
 }

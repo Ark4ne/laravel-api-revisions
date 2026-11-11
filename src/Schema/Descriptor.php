@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Schema;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Conversion\ClosureConverter;
+use Ark4ne\ApiRevisions\Conversion\ExplicitConverter;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
@@ -302,16 +304,22 @@ abstract class Descriptor
 
     /**
      * Up to `$revision` included, the field had another `name`, another type (`schema`, its source never read), or
-     * both, than in the next newer shape (model.md §4.2); `down` / `up` convert between the two `($value, $subject)`
-     * when the pair is not automatic. Ordered by revision whatever the call order. Throws
-     * `DefinitionException::invalidHistory()` on the head, on a revision already changed or for an empty name,
-     * `DefinitionException::sourceInHistory()` for a `schema` with a source, a lifetime, a history or a default.
+     * both, than in the next newer shape (model.md §4.2); `down` / `up` convert between the two when the automatic
+     * conversion is not the one wanted: a closure `($value, $subject)` (kept as a `ClosureConverter`) or a `Cast`.
+     * Ordered by revision whatever the call order. Throws `DefinitionException::invalidHistory()` on the head, on a
+     * revision already changed or for an empty name, `DefinitionException::sourceInHistory()` for a `schema` with a
+     * source, a lifetime, a history or a default.
      *
      * @param non-empty-string|null $name
      * @param Descriptor<mixed>|null $schema
      */
-    public function was(Revision $revision, ?string $name = null, ?Descriptor $schema = null, ?Closure $down = null, ?Closure $up = null): static
-    {
+    public function was(
+        Revision $revision,
+        ?string $name = null,
+        ?Descriptor $schema = null,
+        Closure|ExplicitConverter|null $down = null,
+        Closure|ExplicitConverter|null $up = null,
+    ): static {
         // @phpstan-ignore identical.alwaysFalse (checked at run time: declarations are application code)
         if ($name === '') {
             throw DefinitionException::emptyHistoryName($revision);
@@ -323,9 +331,18 @@ abstract class Descriptor
             throw DefinitionException::sourceInHistory($revision);
         }
         $clone = clone $this;
-        $clone->history = $this->history->withChange(new Change($revision, $name, $schema, $down, $up));
+        $change = new Change($revision, $name, $schema, self::explicit($down), self::explicit($up));
+        $clone->history = $this->history->withChange($change);
 
         return $clone;
+    }
+
+    /**
+     * A closure given to `was()` as a `ClosureConverter`; a cast as it is.
+     */
+    private static function explicit(Closure|ExplicitConverter|null $conversion): ?ExplicitConverter
+    {
+        return $conversion instanceof Closure ? new ClosureConverter($conversion) : $conversion;
     }
 
     /**

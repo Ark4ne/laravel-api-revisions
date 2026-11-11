@@ -14,7 +14,7 @@ final class BoolToString implements Converter
     /**
      * A value of another type (never a normalized one) is returned as it is.
      */
-    public function convert(mixed $value): mixed
+    public function convert(mixed $value, mixed $subject = null): mixed
     {
         return is_bool($value) ? ($value ? '1' : '0') : $value;
     }

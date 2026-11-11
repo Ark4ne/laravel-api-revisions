@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Test\Unit\Schema;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Conversion\Cast;
+use Ark4ne\ApiRevisions\Conversion\ClosureConverter;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
@@ -384,7 +386,8 @@ final class DescriptorTest extends TestCase
         self::assertSame(ApiRevision::Winter25, $change->revision);
         self::assertSame('state', $change->name);
         self::assertInstanceOf(IntSchema::class, $change->schema);
-        self::assertSame($down, $change->down);
+        self::assertInstanceOf(ClosureConverter::class, $change->down);
+        self::assertSame($down, $change->down->closure);
         self::assertNull($change->up);
     }
 
@@ -501,8 +504,30 @@ final class DescriptorTest extends TestCase
     {
         $down = static fn(string $value): string => strtoupper($value);
 
-        self::assertSame($down, (new StringSchema())->was(ApiRevision::Winter25, down: $down)->history()->changes[0]->down);
+        $change = (new StringSchema())->was(ApiRevision::Winter25, down: $down)->history()->changes[0];
+
+        self::assertInstanceOf(ClosureConverter::class, $change->down);
+        self::assertSame($down, $change->down->closure);
         self::assertCount(1, (new StringSchema())->was(ApiRevision::Winter25, up: $down)->history()->changes);
+    }
+
+    public function test_a_was_closure_receives_the_subject(): void
+    {
+        $down = static fn(int $cents, string $currency): string => $currency . ' ' . $cents;
+
+        $change = (new IntSchema())->was(ApiRevision::Winter25, schema: new StringSchema(), down: $down)->history()->changes[0];
+
+        self::assertSame('EUR 1250', $change->down?->convert(1250, 'EUR'));
+    }
+
+    public function test_a_was_keeps_a_cast_as_it_is(): void
+    {
+        $round = Cast::round();
+
+        $change = (new IntSchema())->was(ApiRevision::Winter25, schema: new FloatSchema(), up: $round)->history()->changes[0];
+
+        self::assertSame($round, $change->up);
+        self::assertNull($change->down);
     }
 
     public function test_a_was_of_another_enum_than_the_lifetime_throws(): void

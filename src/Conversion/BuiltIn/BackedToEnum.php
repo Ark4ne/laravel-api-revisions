@@ -28,7 +28,7 @@ final class BackedToEnum implements Converter
      * Unlike the other converters, it validates: any value that is not a lossless backed value of a case throws
      * `ConversionException::invalidEnumValue()`.
      */
-    public function convert(mixed $value): mixed
+    public function convert(mixed $value, mixed $subject = null): mixed
     {
         $backed = match (true) {
             $this->backing === Kind::Int && is_int($value), $this->backing === Kind::String && is_string($value) => $value,

@@ -23,7 +23,7 @@ final class EnumToBacked implements Converter
     /**
      * A value of another type (never a normalized one) is returned as it is.
      */
-    public function convert(mixed $value): mixed
+    public function convert(mixed $value, mixed $subject = null): mixed
     {
         if (!$value instanceof BackedEnum) {
             return $value;

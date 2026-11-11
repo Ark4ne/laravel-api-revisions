@@ -14,7 +14,7 @@ final class NumericStringToFloat implements Converter
     /**
      * A value of another type (never a normalized one) is returned as it is.
      */
-    public function convert(mixed $value): mixed
+    public function convert(mixed $value, mixed $subject = null): mixed
     {
         return is_string($value) ? (float) $value : $value;
     }

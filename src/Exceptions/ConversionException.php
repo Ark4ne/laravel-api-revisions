@@ -24,4 +24,12 @@ final class ConversionException extends RuntimeException implements RevisionsExc
     {
         return new self(sprintf('%s is not a value of the enum %s.', var_export($value, true), $enum));
     }
+
+    /**
+     * A float → int conversion of a float the int range cannot hold (beyond ±2^63, `INF`, `NaN`, model.md D44).
+     */
+    public static function outOfIntRange(float $value): self
+    {
+        return new self(sprintf('%s is outside the int range.', var_export($value, true)));
+    }
 }

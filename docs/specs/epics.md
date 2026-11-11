@@ -524,6 +524,18 @@ maps a `ConversionException` to a value error under `strict_values`.
 
 Tests: `test_cast_round_rounds_half_up`, `test_a_closure_converter_is_explicit`.
 
+**Done** (2026-11-12): `Conversion\ExplicitConverter` (marker of the converters an author gives to `was()`, never
+`conversion-lossy`), `Conversion\ClosureConverter` (calls its closure `($value, $subject)` through `Support\Invoke`;
+lossy, no rule), `Conversion\Cast::round()` / `floor()` / `ceil()` returning a `Conversion\Rounding` (float → int, PHP
+`round()` half away from zero), `Support\Floats::toInt()`, `ConversionException::outOfIntRange()`. Decision taken
+with the maintainer: **D44** (a float → int conversion out of the int range, `INF`, `NaN` throws; applied to the
+built-in `FloatToInt` too). Coverage 99.85 %, Infection MSI 98 % (the escaped mutants are the known equivalent ones of
+`Floats::toString()`). Deviations: `Converter::convert()` takes `mixed $subject = null` (every built-in updated; only
+a closure reads it); `Descriptor::was()` accepts `Closure|ExplicitConverter` for `down:` / `up:` and wraps a closure,
+so `Change::$down` / `$up` are `?ExplicitConverter`, never a bare closure. Follow-ups: chains (US 4.3) reference an
+explicit step by its `was` index and direction and pass the subject to `convert()`; the projection (US 6.1) maps
+`outOfIntRange()` to a value error like `invalidEnumValue()`.
+
 #### US 4.3 — Conversion chains · M · depends US 4.2
 
 - `ConversionChain` per `(field, revision, direction)`: the ordered steps between consecutive shapes; each step is
@@ -1030,7 +1042,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | todo |
 | US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |
 | US 4.1 | Converters and directions | M | 2.1 | M1 | done |
-| US 4.2 | Explicit casts and closures | S | 4.1 | M1 | todo |
+| US 4.2 | Explicit casts and closures | S | 4.1 | M1 | done |
 | US 4.3 | Conversion chains | M | 4.2 | M1 | todo |
 | US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | todo |
 | US 5.1 | Probe and compiler | M | 3.4 | M1 | todo |

@@ -34,4 +34,25 @@ final class FloatsTest extends TestCase
             ini_set('precision', (string) $previous);
         }
     }
+
+    /**
+     * @return iterable<string, array{float, ?int}>
+     */
+    public static function ints(): iterable
+    {
+        yield 'truncated toward zero' => [-12.7, -12];
+        yield 'lowest int' => [-(2.0 ** 63), PHP_INT_MIN];
+        yield 'highest float below 2^63' => [9.2233720368547748E18, 9223372036854774784];
+        yield '2^63' => [2.0 ** 63, null];
+        yield 'below -2^63' => [-1.0e19, null];
+        yield 'infinity' => [INF, null];
+        yield 'negative infinity' => [-INF, null];
+        yield 'not a number' => [NAN, null];
+    }
+
+    #[DataProvider('ints')]
+    public function test_to_int_gives_the_int_or_null_outside_the_int_range(float $value, ?int $expected): void
+    {
+        self::assertSame($expected, Floats::toInt($value));
+    }
 }

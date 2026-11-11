@@ -237,7 +237,8 @@ need: **it is the author's call** (D25). Pairs that may lose information without
 
 - On the request side, the rules of the older shape get what its type implies (`integer`, `numeric`, the enum
   values), so an automatic up conversion only sees valid input.
-- Explicit casts remain available: `Cast::round()`, `Cast::floor()`, `Cast::ceil()`.
+- Explicit casts remain available: `Cast::round()`, `Cast::floor()`, `Cast::ceil()`. A float → int conversion of a
+  float outside the int range throws `ConversionException` (D44).
 - **One direction per declaration kind** (D27): a response is only ever projected down, a request only ever upgraded
   up. The shape of a response plans and checks the `down` conversions only, the shape of a request the `up` ones only.
   A descriptor shared by both declares `down:` and `up:`; each side uses its own.
@@ -672,5 +673,6 @@ returns the declared type.
 | D41 | Enums and their backing: `enum → string` always (`->value` as string, lossless); `enum → int` only for an int-backed enum (otherwise no automatic conversion: a closure is required, `conversion-missing`); `string / int → enum` reads the value as the backing type when lossless (`'3'` for an int-backed enum, `3` for a string-backed one), else `ConversionException::invalidEnumValue()` (US 4.1) | **Decided** (2026-11-11) |
 | D42 | The `TypeRegistry` of custom types is **static**, like Laravel's macros: the application registers its types at boot (`TypeRegistry::register('money', MoneySchema::class)`), `Schema::__callStatic()` serves them, `TypeRegistry::flush()` empties it for tests; names are case-sensitive, as for macros; the third allowed global state (US 2.5) | **Decided** (2026-11-11) |
 | D43 | A `was()` newer than the field's `until` is dead (the field no longer exists after its `until`; a `was(until)` is valid, it describes the last revision the field exists in): check code `history-after-until`, an **error**, mirror of `history-before-since` (Q17) | **Decided** (2026-11-11) |
+| D44 | A float → int conversion (the automatic `FloatToInt`, `Cast::round()` / `floor()` / `ceil()`) of a float outside the int range once truncated or rounded (beyond ±2^63, `INF`, `NaN`) throws `ConversionException::outOfIntRange()`: a value error on the response side, a validation error on the request side, never a float in an `int` field nor a silent clamp (US 4.2) | **Decided** (2026-11-12) |
 
 "Proposed" decisions are applied by default until decided.

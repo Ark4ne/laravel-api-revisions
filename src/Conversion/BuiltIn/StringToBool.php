@@ -14,7 +14,7 @@ final class StringToBool implements Converter
     /**
      * A value of another type (never a normalized one) is returned as it is.
      */
-    public function convert(mixed $value): mixed
+    public function convert(mixed $value, mixed $subject = null): mixed
     {
         return is_string($value) ? filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true : $value;
     }

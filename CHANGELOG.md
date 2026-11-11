@@ -56,6 +56,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (`builtIn()`, `register()` with a factory receiving both types, `find()`, `key()`), with the built-ins of model.md
   §5 in both directions (`Conversion\BuiltIn\*`: int ↔ float / string / bool, float → string / int, bool → string /
   int, string → bool, enum ↔ backed value, D40, D41); `Exceptions\ConversionException::invalidEnumValue()`.
+  `Converter::convert($value, $subject = null)`: only a closure reads the subject.
+- Explicit conversions: the `Conversion\ExplicitConverter` marker (never warned `conversion-lossy`),
+  `Conversion\ClosureConverter` (a `down:` / `up:` closure `($value, $subject)`) and `Conversion\Cast::round()`,
+  `floor()`, `ceil()` (float → int, a `Conversion\Rounding`). A float → int conversion (`FloatToInt` included) of
+  a float outside the int range throws `ConversionException::outOfIntRange()` (model.md D44).
 - Custom types: `Schema\TypeRegistry` (`register($name, MoneySchema::class)` at boot, `has()`, `make()`, `flush()`;
   static like Laravel's macros, model.md D42) served by `Schema::__callStatic()` (`Schema::money('total')`);
   `TypeDefinition::custom($name, $fragment)` (`Kind::Custom`, the name the type declares, its JSON Schema fragment in
@@ -64,7 +69,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - PHPStan extension (`extension.neon`, registered for `phpstan/extension-installer`): the custom types mapped in
   `apiRevisions.types` are static methods of `Schema` typed with their class and their constructor's parameters
   (`PHPStan\CustomTypesExtension`).
-- History: `Descriptor::was(Revision, name:, schema:, down:, up:)` adds a `Schema\Change` to the field's
+- History: `Descriptor::was(Revision, name:, schema:, down:, up:)` (`down:` / `up:` a closure, kept as a
+  `ClosureConverter`, or a `Cast`) adds a `Schema\Change` to the field's
   `Schema\History` (its lifetime and its changes, newest first whatever the call order; `Descriptor::history()`);
   no effect on the head type. `DefinitionException::invalidHistory()` (a `was()` on the head, twice on a revision),
   `emptyHistoryName()`, `emptyChange()` (a `was()` changing nothing) and `sourceInHistory()` (a `schema:`, its items

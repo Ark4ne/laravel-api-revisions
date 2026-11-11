@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Unit\Schema;
 
+use Ark4ne\ApiRevisions\Conversion\ClosureConverter;
 use Ark4ne\ApiRevisions\Schema\Change;
 use Ark4ne\ApiRevisions\Schema\IntSchema;
 use Test\Fixtures\ApiRevision;
@@ -14,7 +15,7 @@ final class ChangeTest extends TestCase
     public function test_a_change_keeps_its_arguments_and_leaves_the_others_to_the_newer_shape(): void
     {
         $schema = new IntSchema();
-        $down = static fn(int $cents): float => $cents / 100;
+        $down = new ClosureConverter(static fn(int $cents): float => $cents / 100);
 
         $change = new Change(ApiRevision::Winter25, schema: $schema, down: $down);
 
