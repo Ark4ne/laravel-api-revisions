@@ -200,7 +200,7 @@ abstract class Descriptor
 
     /**
      * Keeps the field only when the subject has the key (dotted paths allowed; its own key by default, resolved by the
-     * projection, epics.md Q15), checked before the source. The field becomes conditional (optional in the export).
+     * projection, model.md D37), checked before the source. The field becomes conditional (optional in the export).
      */
     public function whenHas(?string $key = null): static
     {

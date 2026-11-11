@@ -138,8 +138,7 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
 - `DescribesSchema` (implemented by a rule object) and `Revisioned` (implemented by a declaring class) are the two
   contracts of this layer an application implements. `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
-  and refuses keywords that are not JSON-ready (Definitions stay serializable); precedence in the export is
-  `epics.md` Q14.
+  and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
 - Conditions are **declared, never run** by the Schema layer: `when()` keeps the closure, `whenHas()` a `Presence`
   (a value: `null` for the field's own key, or a path). The projection evaluates presences before the source and
   conditions after normalization (`model.md` §6.4); the Laravel layer adds `whenLoaded()` the same way.

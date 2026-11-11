@@ -14,7 +14,7 @@ final readonly class Presence
 {
     /**
      * @param list<string>|null $path the key or dotted path checked; `null` for the field's own key, resolved by the
-     *                                projection (epics.md Q15)
+     *                                projection (model.md D37)
      */
     private function __construct(
         public ?array $path,
