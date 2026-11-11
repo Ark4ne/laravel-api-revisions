@@ -538,6 +538,7 @@ discovered classes, so a forgotten path is visible.
 | `conversion-lossy` | **warning**: a lossy-capable automatic conversion without closure (§5) | all |
 | `name-collision` | two fields under the same name in one revision | all |
 | `required-since-without-default` | `required()->since(R)` without `default:` | requests |
+| `schema-override` | **warning**: a `DescribesSchema` keyword overrides a keyword of the field's type (`type`, `format`, `minimum`, `enum`…) with another value (D36) | all |
 | `native-condition` | a Laravel `MissingValue` / `MergeValue` in a declaration | all |
 | `eager-value` | a plain value instead of a descriptor (typed `any`, the same in every revision) | responses |
 | `unknown-resource` | `Schema::resource()` on a class that is not `Revisioned` | all |
@@ -649,7 +650,7 @@ returns the declared type.
 | D33 | Dates: a string parsed by `DateTimeImmutable` without warning (`2026-02-30` refused, never rolled over) nor surrounding blanks, relative strings accepted, read in the default timezone unless it names one; an int timestamp in UTC. Enums: an int-backed enum reads its value as `int` does (`'3'`, `3.0`); a refused value keeps its backed value as lenient cast (Q13) | **Decided** (2026-11-11) |
 | D34 | Composites (list, object): their `normalize()` only checks the container (an iterable; an array or object subject). The projection then runs every item or child through its own pipeline, in the shape of `R`; the composite's `when()` and `down:` receive that result (a list of projected items, an `array<string, mixed>` of projected children) and `serialize()` the serialized children (an empty object is `{}`). An object without source reads its children on the parent's subject (`Source::parent()`) | **Decided** (2026-11-11) |
 | D35 | In lenient mode a refused list or object renders `null` (no sensible cast, as for dates) | **Decided** (2026-11-11) |
-| D36 | A rule implementing `DescribesSchema` enriches the type of **any** descriptor (`Schema::rule()` and `rules()`); its keywords are merged in declaration order after those of the type, a later one wins; keywords that are not JSON-ready (scalars, arrays, nulls) throw `DefinitionException::invalidJsonSchema()`. Which side wins when a keyword contradicts the typed ones (`type`, `minimum`, `enum`…) is decided with US 10.1 (Q14) | **Decided** (2026-11-11) |
+| D36 | A rule implementing `DescribesSchema` enriches the type of **any** descriptor (`Schema::rule()` and `rules()`); its keywords are merged in declaration order after those of the type, a later one wins; keywords that are not JSON-ready (scalars, arrays, nulls) throw `DefinitionException::invalidJsonSchema()`. The rule keywords apply **last, in order**, over the typed ones too: a rule giving `type: integer` on a `string()` exports `integer`, a declaration inconsistent by its author's choice; the check reports it (`schema-override`) (Q14) | **Decided** (2026-11-11) |
 | D37 | `whenHas()` without key checks the source path when the source is a key or dotted path, the head declared key otherwise (closure source, parent subject); never the name at an older revision (Q15) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.

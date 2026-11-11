@@ -693,7 +693,9 @@ Tests: `test_a_diagnostic_names_its_class_field_and_revision`, `test_the_checker
 - Spike M0 findings to address: F8, F10 (§3.1).
 
 Tests: one passing and one failing declaration per code, e.g.
-`test_a_required_field_added_later_without_default_is_reported`, `test_a_lossy_conversion_without_cast_is_reported`.
+`test_a_required_field_added_later_without_default_is_reported`, `test_a_lossy_conversion_without_cast_is_reported`,
+`test_a_rule_keyword_overriding_the_type_is_reported` (`schema-override`, D36: compare the exported keywords of the
+type with `TypeDefinition::$jsonSchema`).
 
 #### US 9.3 — `revision:check` and the PHPUnit assertion · S · depends US 9.2, US 8.1
 
@@ -725,8 +727,7 @@ Tests: `test_a_field_leaking_into_a_locked_revision_fails_the_check`, `test_movi
 - Object children are exported with their own required / nullable / history (the field definitions of US 3.4),
   not only their `TypeDefinition` (from US 2.3).
 - `TypeDefinition::$jsonSchema` (the keywords of the `DescribesSchema` rules, US 2.4) is merged into the exported
-  type (D36); decide which side wins when a rule keyword contradicts the typed ones (Q14), and whether the
-  check (US 9.2) reports it.
+  type, **after** the typed keywords: a rule keyword wins even when it contradicts them (D36).
 
 Tests: `test_each_revision_exports_its_own_schema`, `test_a_projected_document_matches_the_schema_of_its_revision`.
 
@@ -883,7 +884,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | **Decided** (2026-11-11): D30: application timezone for the headers |
 | Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | **Decided** (2026-11-11): D31: the configured `default` when it is a fixed revision, set by the Laravel provider |
 | Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | **Decided** (2026-11-11): D32 |
-| Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36; the contradiction case stays to settle with US 10.1 |
+| Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36: rule keywords apply last, in order, even over the typed ones; the check warns (`schema-override`) |
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
 | Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
 
