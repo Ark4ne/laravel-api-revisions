@@ -289,7 +289,7 @@ Goal: type changes convert automatically when lossless, explicitly otherwise, in
 - Spike M0 findings to address: F2 (Q4) (§3.1).
 
 Tests: one per row of the table of `model.md` §5 and per direction, e.g.
-`test_int_to_float_is_automatic`, `test_float_to_int_has_no_automatic_converter`,
+`test_int_to_float_is_automatic`, `test_float_to_int_is_automatic_and_flagged_lossy`,
 `test_numeric_string_to_float_requires_the_numeric_rule`, `test_an_unknown_enum_value_throws_a_conversion_exception`.
 
 #### US 4.2 — Explicit casts and closures · S · depends US 4.1
