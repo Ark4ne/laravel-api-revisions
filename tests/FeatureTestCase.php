@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test;
 
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Ark4ne\ApiRevisions\Support\Memo;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +26,7 @@ abstract class FeatureTestCase extends BaseTestCase
     {
         Memo::flush();
         RevisionScope::provider(null);
+        TypeRegistry::flush();
 
         parent::tearDown();
     }

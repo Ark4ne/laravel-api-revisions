@@ -157,4 +157,36 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::invalidGroupKey('')->getMessage(),
         );
     }
+
+    public function test_unknown_type_names_the_type(): void
+    {
+        self::assertSame(
+            "Unknown type 'money': register it with TypeRegistry::register('money', …).",
+            DefinitionException::unknownType('money')->getMessage(),
+        );
+    }
+
+    public function test_invalid_type_name_names_the_type(): void
+    {
+        self::assertSame(
+            "Invalid type name 'string': a custom type needs a PHP method name that Schema does not already declare.",
+            DefinitionException::invalidTypeName('string')->getMessage(),
+        );
+    }
+
+    public function test_invalid_custom_type_names_the_type_and_the_class(): void
+    {
+        self::assertSame(
+            "The custom type 'money' must extend Ark4ne\\ApiRevisions\\Schema\\Descriptor, got stdClass.",
+            DefinitionException::invalidCustomType('money', 'stdClass')->getMessage(),
+        );
+    }
+
+    public function test_invalid_type_fragment_names_the_type(): void
+    {
+        self::assertSame(
+            "The JSON Schema fragment of the custom type 'money' must hold scalars, arrays and nulls only.",
+            DefinitionException::invalidTypeFragment('money')->getMessage(),
+        );
+    }
 }

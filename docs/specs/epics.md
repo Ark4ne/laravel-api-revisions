@@ -26,7 +26,7 @@ Sizes: **S** ≤ 1 day, **M** 2–3 days, **L** 4–5 days. Story ids are stable
 5. `composer test:coverage` ≥ 90 %; Infection MSI ≥ 80 % on the new classes.
 6. `CHANGELOG.md` updated under `[Unreleased]` for every public change.
 7. `docs/architecture.md` / `model.md` updated when the story adds a rule, a pattern or changes a decision.
-8. No static state outside `Support\Memo` and `RevisionScope::provider()`.
+8. No static state outside `Support\Memo`, `RevisionScope::provider()` and `Schema\TypeRegistry` (D42).
 9. §8 updated: status `done`, and a **Done** note under the story (what was built, deviations, follow-ups).
 
 ---
@@ -328,6 +328,19 @@ documentation and its conversions everywhere.*
 
 Tests: `test_a_registered_type_is_available_on_schema`, `test_an_unknown_type_throws`.
 
+**Done** (2026-11-11): `Schema\TypeRegistry` (static, decided with the maintainer: **D42**; `register()` checks the
+name is a PHP method name `Schema` does not declare and the class extends `Descriptor`, `has()`, `make()` with
+positional or named arguments, `flush()` called by both test bases), `Schema::__callStatic()`,
+`TypeDefinition::custom($name, $fragment)` (`$name`, `$fragment` kept apart from the rule keywords of `$jsonSchema`,
+so `schema-override` (US 9.2) and the shared export (US 10.2) still see each side; empty name and non JSON-ready
+fragment refused), `Support\Json::isReady()`, the fixtures `Money` / `MoneySchema` (rules through
+`declaredRules()`). The registered name is the factory's (case-sensitive, like Laravel's macros); the type's own
+name is the one `custom()` declares; abstract classes are refused. `CustomTypeTest` tests the behaviour of a custom
+type end to end on the fixture (no class of its own). Coverage 100 %, Infection MSI 100 %. Deviations: the converters of a custom type stay in US 4.4 (story criterion "optionally");
+`Schema::money()` is unknown to PHPStan in applications (US 2.7 appended); the Laravel layer registers nothing yet:
+an application calls `TypeRegistry::register()` in its provider's `boot()` (a `types` configuration key could come
+with US 8.1).
+
 #### US 2.6 — Nested `Revisioned` classes · S · depends US 2.3, US 5.1
 
 *As an application developer, I want a field to be another resource (`'customer' => Schema::resource(CustomerResource::class)`),
@@ -341,6 +354,16 @@ so that nested objects follow their own history at the same revision.*
 
 Tests: `test_a_nested_resource_uses_its_own_shape_at_the_same_revision`, `test_a_resource_cycle_compiles`,
 `test_a_non_revisioned_class_is_refused`.
+
+#### US 2.7 — Custom types seen by PHPStan · S · depends US 2.5
+
+*As an application developer, I want `Schema::money()` typed by PHPStan, so that a custom type is as safe as a
+built-in one.*
+
+- A PHPStan extension shipped with the package (`DynamicStaticMethodReturnTypeExtension` / `MethodsClassReflectionExtension`
+  on `Schema`) reading a name → class map from the application's PHPStan configuration; documented in the README.
+
+Tests: `tests/Types/CustomTypeTypes.php` asserts `Schema::money()` is a `MoneySchema`; an unknown name is reported.
 
 ---
 
@@ -972,8 +995,9 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.2 | Dates and enums | S | 2.1 | M1 | done |
 | US 2.3 | Lists and objects | M | 2.1 | M1 | done |
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | done |
-| US 2.5 | Custom types | M | 2.3, 4.1 | M1 | todo |
+| US 2.5 | Custom types | M | 2.3, 4.1 | M1 | done |
 | US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |
+| US 2.7 | Custom types seen by PHPStan | S | 2.5 | M1 | todo |
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
 | US 3.2 | Groups | S | 3.1 | M1 | done |
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | todo |

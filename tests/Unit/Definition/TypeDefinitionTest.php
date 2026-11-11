@@ -6,6 +6,8 @@ namespace Test\Unit\Definition;
 
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use stdClass;
 use Test\TestCase;
 
 final class TypeDefinitionTest extends TestCase
@@ -91,5 +93,33 @@ final class TypeDefinitionTest extends TestCase
 
         self::assertEquals($type, unserialize(serialize($type)));
         self::assertEquals($enum, unserialize(serialize($enum)));
+    }
+
+    public function test_a_custom_type_has_its_kind_and_name_and_every_wither_keeps_it(): void
+    {
+        $type = TypeDefinition::custom('money', ['type' => 'object'])->withDescription('Total')->withJsonSchema(['minProperties' => 2]);
+
+        self::assertSame(Kind::Custom, $type->kind);
+        self::assertSame('money', $type->name);
+        self::assertSame(['type' => 'object'], $type->fragment);
+        self::assertSame(['minProperties' => 2], $type->jsonSchema);
+        self::assertNull(TypeDefinition::of(Kind::String)->name);
+        self::assertSame([], TypeDefinition::of(Kind::String)->fragment);
+    }
+
+    public function test_a_custom_type_needs_a_name(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage("Invalid type name ''");
+
+        TypeDefinition::custom('');
+    }
+
+    public function test_a_custom_type_fragment_must_be_json_ready(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage("The JSON Schema fragment of the custom type 'money' must hold scalars, arrays and nulls only.");
+
+        TypeDefinition::custom('money', ['default' => new stdClass()]);
     }
 }

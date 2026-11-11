@@ -136,4 +136,17 @@ final class Schema
     {
         return Groups::until($revision, $fields);
     }
+
+    /**
+     * A custom type registered in the `TypeRegistry` (`Schema::money('total')`), built with the arguments given;
+     * `DefinitionException::unknownType()` otherwise.
+     *
+     * @param array<array-key, mixed> $arguments
+     *
+     * @return Descriptor<mixed>
+     */
+    public static function __callStatic(string $name, array $arguments): Descriptor
+    {
+        return TypeRegistry::make($name, $arguments);
+    }
 }

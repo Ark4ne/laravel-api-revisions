@@ -48,7 +48,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 
 | Layer | Folder | Content |
 | --- | --- | --- |
-| Support | `src/Support/` | Building blocks without internal dependency: `Undefined`, `Memo`, `Invoke`, `Floats`, `Diagnostics`, `Diagnostic`, `Severity` |
+| Support | `src/Support/` | Building blocks without internal dependency: `Undefined`, `Memo`, `Invoke`, `Floats`, `Json`, `Diagnostics`, `Diagnostic`, `Severity` |
 | Configuration | `src/Configuration/` | `Configuration`: typed, validated, readonly options of the core (date formats, `missingDefault`, `strictValues`) |
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
 | Definition | `src/Definition/` | Public immutable model: `Shape`, `FieldDefinition`, `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
@@ -290,7 +290,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot, `flush()` for tests, `model.md` D42) |
 | Facades and helpers | Only in `src/Laravel/` |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |

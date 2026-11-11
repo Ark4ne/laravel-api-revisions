@@ -56,6 +56,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (`builtIn()`, `register()` with a factory receiving both types, `find()`, `key()`), with the built-ins of model.md
   §5 in both directions (`Conversion\BuiltIn\*`: int ↔ float / string / bool, float → string / int, bool → string /
   int, string → bool, enum ↔ backed value, D40, D41); `Exceptions\ConversionException::invalidEnumValue()`.
+- Custom types: `Schema\TypeRegistry` (`register($name, MoneySchema::class)` at boot, `has()`, `make()`, `flush()`;
+  static like Laravel's macros, model.md D42) served by `Schema::__callStatic()` (`Schema::money('total')`);
+  `TypeDefinition::custom($name, $fragment)` (`Kind::Custom`, the name the type declares, its JSON Schema fragment in
+  `fragment`, apart from the rule keywords of `jsonSchema`); `DefinitionException::unknownType()`, `invalidTypeName()`,
+  `invalidCustomType()`, `invalidTypeFragment()`.
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.

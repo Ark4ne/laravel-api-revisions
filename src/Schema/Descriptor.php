@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Support\Json;
 use Ark4ne\ApiRevisions\Support\Undefined;
 use Closure;
 
@@ -103,7 +104,7 @@ abstract class Descriptor
         foreach ($this->declaredRules() as $rule) {
             if ($rule instanceof DescribesSchema) {
                 $keywords = $rule->toSchema();
-                if (!self::isJsonReady($keywords)) {
+                if (!Json::isReady($keywords)) {
                     throw DefinitionException::invalidJsonSchema($rule::class);
                 }
                 $jsonSchema = [...$jsonSchema, ...$keywords];
@@ -339,24 +340,6 @@ abstract class Descriptor
     public function declaredRules(): array
     {
         return $this->rules;
-    }
-
-    /**
-     * Scalars, nulls and arrays of them, at any depth: what a `TypeDefinition` may hold (serializable, closure-free).
-     */
-    private static function isJsonReady(mixed $value): bool
-    {
-        if (is_array($value)) {
-            foreach ($value as $item) {
-                if (!self::isJsonReady($item)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return $value === null || is_scalar($value);
     }
 
     /**

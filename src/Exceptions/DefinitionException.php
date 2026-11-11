@@ -147,6 +147,38 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * `Schema::<name>()` of a type not registered in the `TypeRegistry`.
+     */
+    public static function unknownType(string $name): self
+    {
+        return new self("Unknown type '{$name}': register it with TypeRegistry::register('{$name}', …).");
+    }
+
+    /**
+     * A custom type registered under a name `Schema` cannot serve: not a method name, or one of its own factories.
+     */
+    public static function invalidTypeName(string $name): self
+    {
+        return new self("Invalid type name '{$name}': a custom type needs a PHP method name that Schema does not already declare.");
+    }
+
+    /**
+     * A custom type whose JSON Schema fragment is not JSON-ready (scalars, arrays and nulls only).
+     */
+    public static function invalidTypeFragment(string $name): self
+    {
+        return new self("The JSON Schema fragment of the custom type '{$name}' must hold scalars, arrays and nulls only.");
+    }
+
+    /**
+     * A custom type whose class does not extend `Schema\Descriptor`.
+     */
+    public static function invalidCustomType(string $name, string $class): self
+    {
+        return new self("The custom type '{$name}' must extend Ark4ne\\ApiRevisions\\Schema\\Descriptor, got {$class}.");
+    }
+
+    /**
      * A presence key (`whenHas()`) empty, or with an empty segment.
      */
     public static function invalidPresenceKey(string $key): self

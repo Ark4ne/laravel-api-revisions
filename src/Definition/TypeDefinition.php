@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Definition;
 
+use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Support\Json;
 use BackedEnum;
 
 /**
@@ -19,6 +21,8 @@ final readonly class TypeDefinition
      * @param TypeDefinition|null $items the type of the items of a `List` kind
      * @param array<string, TypeDefinition> $children the types of the children of an `Object` kind, by key
      * @param array<string, mixed> $jsonSchema JSON Schema keywords given by the rules (`DescribesSchema`), JSON-ready
+     * @param non-empty-string|null $name the name a `Custom` kind declares (`money`); `null` for every other kind
+     * @param array<string, mixed> $fragment the JSON Schema of a `Custom` kind, JSON-ready (exported once, US 10.2)
      */
     private function __construct(
         public Kind $kind,
@@ -35,7 +39,27 @@ final readonly class TypeDefinition
         public ?TypeDefinition $items = null,
         public array $children = [],
         public array $jsonSchema = [],
+        public ?string $name = null,
+        public array $fragment = [],
     ) {}
+
+    /**
+     * The type of a custom type: `Kind::Custom`, the name it declares and its JSON Schema fragment
+     * (`DefinitionException::invalidTypeName()` for an empty name, `invalidTypeFragment()` unless JSON-ready).
+     *
+     * @param array<string, mixed> $fragment
+     */
+    public static function custom(string $name, array $fragment = []): self
+    {
+        if ($name === '') {
+            throw DefinitionException::invalidTypeName($name);
+        }
+        if (!Json::isReady($fragment)) {
+            throw DefinitionException::invalidTypeFragment($name);
+        }
+
+        return new self(Kind::Custom, name: $name, fragment: $fragment);
+    }
 
     public static function of(Kind $kind): self
     {

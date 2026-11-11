@@ -7,6 +7,7 @@ namespace Test;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
 use Ark4ne\ApiRevisions\Schema\InvalidValue;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Ark4ne\ApiRevisions\Support\Memo;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
@@ -22,6 +23,7 @@ abstract class TestCase extends BaseTestCase
     {
         Memo::flush();
         RevisionScope::provider(null);
+        TypeRegistry::flush();
 
         parent::tearDown();
     }

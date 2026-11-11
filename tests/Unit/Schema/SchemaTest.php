@@ -7,7 +7,9 @@ namespace Test\Unit\Schema;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Test\Fixtures\Enums\OrderStatus;
+use Test\Fixtures\MoneySchema;
 use Test\Fixtures\NonStrictDeclarations;
 use Test\TestCase;
 
@@ -51,6 +53,25 @@ final class SchemaTest extends TestCase
         self::assertSame(['array'], $schema->declaredRules());
         self::assertSame(['meta'], $schema->source()->path);
         self::assertTrue(Schema::rule([])->source()->isDeclaredKey());
+    }
+
+    public function test_a_registered_type_is_available_on_schema(): void
+    {
+        TypeRegistry::register('money', MoneySchema::class);
+
+        $schema = Schema::money('total', currency: 'EUR'); // @phpstan-ignore staticMethod.notFound
+
+        self::assertInstanceOf(MoneySchema::class, $schema);
+        self::assertSame(['total'], $schema->source()->path);
+        self::assertSame('money', $schema->toType()->name);
+    }
+
+    public function test_an_unknown_type_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage("Unknown type 'money'");
+
+        Schema::money(); // @phpstan-ignore staticMethod.notFound
     }
 
     public function test_an_evaluated_value_is_refused_even_without_strict_types(): void
