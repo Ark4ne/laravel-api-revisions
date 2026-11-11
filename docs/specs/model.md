@@ -359,8 +359,10 @@ raw subject data or on JSON.
 ### 6.4 History and sources
 
 - **The subject has one version: the current one.** A `was()` never has its own source: an older value is always
-  derived from the head value through the down chain. A `schema:` given with a source throws
-  `DefinitionException::sourceInHistory()`.
+  derived from the head value through the down chain. A `schema:` given (or holding items or children) with a source,
+  a lifetime, a history, a default or a condition throws `DefinitionException::sourceInHistory()` (an object without
+  source, which reads its parent's subject, is accepted). A `was()` without `name:`, `schema:`, `down:` nor `up:`
+  changes nothing and throws `DefinitionException::emptyChange()`.
 - A renamed field reads its **head** key (`status` is read for clients receiving `state`).
 - An older value that needs more than the head value: use the subject passed to `down:`, or declare the old field
   `until()` with its own source next to the new one.

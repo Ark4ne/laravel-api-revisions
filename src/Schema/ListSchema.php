@@ -46,6 +46,11 @@ final class ListSchema extends Descriptor
         return $this->items;
     }
 
+    protected function parts(): array
+    {
+        return [$this->items];
+    }
+
     /**
      * Minimum size.
      */

@@ -64,6 +64,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - PHPStan extension (`extension.neon`, registered for `phpstan/extension-installer`): the custom types mapped in
   `apiRevisions.types` are static methods of `Schema` typed with their class and their constructor's parameters
   (`PHPStan\CustomTypesExtension`).
+- History: `Descriptor::was(Revision, name:, schema:, down:, up:)` adds a `Schema\Change` to the field's
+  `Schema\History` (its lifetime and its changes, newest first whatever the call order; `Descriptor::history()`);
+  no effect on the head type. `DefinitionException::invalidHistory()` (a `was()` on the head, twice on a revision),
+  `emptyHistoryName()`, `emptyChange()` (a `was()` changing nothing) and `sourceInHistory()` (a `schema:`, its items
+  or children with a source, a lifetime, a history, a default or a condition).
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.

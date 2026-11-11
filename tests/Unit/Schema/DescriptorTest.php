@@ -9,7 +9,13 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Schema\Change;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
+use Ark4ne\ApiRevisions\Schema\FloatSchema;
+use Ark4ne\ApiRevisions\Schema\IntSchema;
+use Ark4ne\ApiRevisions\Schema\ListSchema;
+use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Schema\Presence;
 use Ark4ne\ApiRevisions\Schema\StringSchema;
 use Ark4ne\ApiRevisions\Support\Undefined;
@@ -18,6 +24,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use stdClass;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Revisions\IntRevision;
 use Test\Fixtures\Rules\PostcodeRule;
 use Test\TestCase;
 
@@ -363,5 +370,154 @@ final class DescriptorTest extends TestCase
         self::assertSame([], $grouped->repeatedBounds());
         self::assertSame(ApiRevision::Atlas, $schema->lifetime()->since);
         self::assertSame('own', $schema->default());
+    }
+
+    public function test_was_returns_a_new_descriptor(): void
+    {
+        $down = static fn(string $status): string => $status;
+        $schema = new StringSchema();
+
+        $changed = $schema->was(ApiRevision::Winter25, name: 'state', schema: new IntSchema(), down: $down);
+
+        self::assertSame([], $schema->history()->changes);
+        $change = $changed->history()->changes[0];
+        self::assertSame(ApiRevision::Winter25, $change->revision);
+        self::assertSame('state', $change->name);
+        self::assertInstanceOf(IntSchema::class, $change->schema);
+        self::assertSame($down, $change->down);
+        self::assertNull($change->up);
+    }
+
+    public function test_was_entries_are_ordered_by_revision_not_by_call(): void
+    {
+        $schema = (new StringSchema())
+            ->was(ApiRevision::Genesis, schema: new FloatSchema())
+            ->was(ApiRevision::Spring26, name: 'amount')
+            ->was(ApiRevision::Winter25, schema: new StringSchema());
+
+        self::assertSame(
+            [ApiRevision::Spring26, ApiRevision::Winter25, ApiRevision::Genesis],
+            array_map(static fn(Change $change): Revision => $change->revision, $schema->history()->changes),
+        );
+    }
+
+    public function test_was_on_the_head_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('the head has no older shape');
+
+        (new StringSchema())->was(ApiRevision::Atlas, name: 'state');
+    }
+
+    public function test_two_was_on_the_same_revision_throw(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('this revision already has a was()');
+
+        (new StringSchema())->was(ApiRevision::Winter25, name: 'state')->was(ApiRevision::Winter25, schema: new IntSchema());
+    }
+
+    public function test_was_with_an_empty_name_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage(sprintf('Invalid was(%s::Winter25): a name must not be empty.', ApiRevision::class));
+
+        (new StringSchema())->was(ApiRevision::Winter25, name: ''); // @phpstan-ignore argument.type
+    }
+
+    public function test_was_has_no_effect_on_the_head_type(): void
+    {
+        $schema = (new StringSchema('status'))->max(10)->nullable()->since(ApiRevision::Genesis);
+
+        $changed = $schema->was(ApiRevision::Winter25, name: 'state', schema: (new IntSchema())->min(1));
+
+        self::assertEquals($schema->toType(), $changed->toType());
+        self::assertSame($schema->source(), $changed->source());
+        self::assertTrue($changed->isNullable());
+        self::assertEquals($schema->lifetime(), $changed->lifetime());
+    }
+
+    public function test_the_lifetime_and_the_changes_live_in_the_history(): void
+    {
+        $schema = (new StringSchema())->was(ApiRevision::Winter25, name: 'state')->since(ApiRevision::Genesis)->until(ApiRevision::Spring26);
+
+        self::assertSame(ApiRevision::Genesis, $schema->history()->lifetime->since);
+        self::assertSame(ApiRevision::Spring26, $schema->lifetime()->until);
+        self::assertCount(1, $schema->history()->changes);
+    }
+
+    /**
+     * @return iterable<string, array{Closure(): Descriptor<mixed>}>
+     */
+    public static function schemasWithAHistory(): iterable
+    {
+        yield 'a key source' => [static fn(): Descriptor => new IntSchema('total_cents')];
+        yield 'a closure source' => [static fn(): Descriptor => new IntSchema(static fn(): int => 1)];
+        yield 'a lifetime' => [static fn(): Descriptor => (new IntSchema())->since(ApiRevision::Genesis)];
+        yield 'an until' => [static fn(): Descriptor => (new IntSchema())->until(ApiRevision::Genesis)];
+        yield 'a history' => [static fn(): Descriptor => (new IntSchema())->was(ApiRevision::Genesis, name: 'old')];
+        yield 'a default' => [static fn(): Descriptor => (new IntSchema())->inGroup(Lifetime::always(), 0)];
+        yield 'a condition' => [static fn(): Descriptor => (new IntSchema())->when(static fn(): bool => true)];
+        yield 'a presence' => [static fn(): Descriptor => (new IntSchema())->whenHas()];
+        yield 'a child with a source' => [static fn(): Descriptor => new ObjectSchema(['amount' => new IntSchema('cents')])];
+        yield 'a child with a history' => [static fn(): Descriptor => new ObjectSchema(['amount' => (new IntSchema())->was(ApiRevision::Genesis, name: 'old')])];
+        yield 'items with a source' => [static fn(): Descriptor => new ListSchema(new IntSchema('cents'))];
+        yield 'nested items with a default' => [static fn(): Descriptor => new ListSchema(new ObjectSchema(['a' => (new IntSchema())->inGroup(Lifetime::always(), 0)]))];
+    }
+
+    /**
+     * @param Closure(): Descriptor<mixed> $schema
+     */
+    #[DataProvider('schemasWithAHistory')]
+    public function test_a_was_schema_with_its_own_source_or_history_throws(Closure $schema): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage(sprintf(
+            'The schema of was(%s::Winter25) and its items or children must declare no source, lifetime, history, default nor condition: older values derive from the head value through down:.',
+            ApiRevision::class,
+        ));
+
+        (new StringSchema())->was(ApiRevision::Winter25, schema: $schema());
+    }
+
+    public function test_a_was_composite_whose_parts_describe_only_types_is_accepted(): void
+    {
+        $object = new ObjectSchema(['amount' => new IntSchema(), 'tags' => new ListSchema(new StringSchema())]);
+
+        $schema = (new StringSchema())->was(ApiRevision::Winter25, schema: new ListSchema($object));
+
+        self::assertInstanceOf(ListSchema::class, $schema->history()->changes[0]->schema);
+    }
+
+    public function test_a_was_that_changes_nothing_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage(sprintf('Invalid was(%s::Winter25): it changes nothing (give a name, a schema, down: or up:).', ApiRevision::class));
+
+        (new StringSchema())->was(ApiRevision::Winter25);
+    }
+
+    public function test_a_was_with_only_a_conversion_is_a_change(): void
+    {
+        $down = static fn(string $value): string => strtoupper($value);
+
+        self::assertSame($down, (new StringSchema())->was(ApiRevision::Winter25, down: $down)->history()->changes[0]->down);
+        self::assertCount(1, (new StringSchema())->was(ApiRevision::Winter25, up: $down)->history()->changes);
+    }
+
+    public function test_a_was_of_another_enum_than_the_lifetime_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('Revisions of two enums cannot be mixed');
+
+        (new StringSchema())->since(ApiRevision::Genesis)->was(IntRevision::First, name: 'old');
+    }
+
+    public function test_a_lifetime_of_another_enum_than_the_changes_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('Revisions of two enums cannot be mixed');
+
+        (new StringSchema())->was(ApiRevision::Winter25, name: 'old')->until(IntRevision::Third);
     }
 }

@@ -54,7 +54,7 @@ abstract class Descriptor
      */
     private array $presences = [];
 
-    private Lifetime $lifetime;
+    private History $history;
 
     private mixed $default;
 
@@ -73,7 +73,7 @@ abstract class Descriptor
     public function __construct(mixed $source = null)
     {
         $this->source = Source::from($source);
-        $this->lifetime = Lifetime::always();
+        $this->history = History::none();
         $this->default = new Undefined();
     }
 
@@ -257,10 +257,10 @@ abstract class Descriptor
     public function since(Revision $revision, mixed $default = new Undefined()): static
     {
         $clone = clone $this;
-        $clone->lifetime = $this->lifetime->withSince($revision);
+        $clone->history = $this->history->withLifetime($this->lifetime()->withSince($revision));
         $clone->default = $default;
-        if ($this->lifetime->since !== null) {
-            $clone->repeatedBounds[] = ['bound' => 'since', 'replaced' => $this->lifetime->since];
+        if ($this->lifetime()->since !== null) {
+            $clone->repeatedBounds[] = ['bound' => 'since', 'replaced' => $this->lifetime()->since];
         }
 
         return $clone;
@@ -273,9 +273,9 @@ abstract class Descriptor
     public function until(Revision $revision): static
     {
         $clone = clone $this;
-        $clone->lifetime = $this->lifetime->withUntil($revision);
-        if ($this->lifetime->until !== null) {
-            $clone->repeatedBounds[] = ['bound' => 'until', 'replaced' => $this->lifetime->until];
+        $clone->history = $this->history->withLifetime($this->lifetime()->withUntil($revision));
+        if ($this->lifetime()->until !== null) {
+            $clone->repeatedBounds[] = ['bound' => 'until', 'replaced' => $this->lifetime()->until];
         }
 
         return $clone;
@@ -289,7 +289,7 @@ abstract class Descriptor
     public function inGroup(Lifetime $lifetime, mixed $default): static
     {
         $clone = clone $this;
-        $clone->lifetime = $lifetime;
+        $clone->history = $this->history->withLifetime($lifetime);
         $clone->default = $default;
 
         return $clone;
@@ -297,7 +297,71 @@ abstract class Descriptor
 
     public function lifetime(): Lifetime
     {
-        return $this->lifetime;
+        return $this->history->lifetime;
+    }
+
+    /**
+     * Up to `$revision` included, the field had another `name`, another type (`schema`, its source never read), or
+     * both, than in the next newer shape (model.md §4.2); `down` / `up` convert between the two `($value, $subject)`
+     * when the pair is not automatic. Ordered by revision whatever the call order. Throws
+     * `DefinitionException::invalidHistory()` on the head, on a revision already changed or for an empty name,
+     * `DefinitionException::sourceInHistory()` for a `schema` with a source, a lifetime, a history or a default.
+     *
+     * @param non-empty-string|null $name
+     * @param Descriptor<mixed>|null $schema
+     */
+    public function was(Revision $revision, ?string $name = null, ?Descriptor $schema = null, ?Closure $down = null, ?Closure $up = null): static
+    {
+        // @phpstan-ignore identical.alwaysFalse (checked at run time: declarations are application code)
+        if ($name === '') {
+            throw DefinitionException::emptyHistoryName($revision);
+        }
+        if ($name === null && $schema === null && $down === null && $up === null) {
+            throw DefinitionException::emptyChange($revision);
+        }
+        if ($schema !== null && !$schema->describesOnlyAType()) {
+            throw DefinitionException::sourceInHistory($revision);
+        }
+        $clone = clone $this;
+        $clone->history = $this->history->withChange(new Change($revision, $name, $schema, $down, $up));
+
+        return $clone;
+    }
+
+    /**
+     * No source of its own (the declared key, or the parent's subject for an object), no lifetime, no history, no
+     * default, no condition, and the same for its items and children: what a `was(schema:)` may be.
+     */
+    private function describesOnlyAType(): bool
+    {
+        if (!($this->source->isDeclaredKey() || $this->source->isParent())
+            || !$this->history->isEmpty()
+            || !Undefined::is($this->default)
+            || $this->isConditional()) {
+            return false;
+        }
+        foreach ($this->parts() as $part) {
+            if (!$part->describesOnlyAType()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The descriptors a composite is made of (its items, its children); none for a scalar.
+     *
+     * @return list<Descriptor<mixed>>
+     */
+    protected function parts(): array
+    {
+        return [];
+    }
+
+    public function history(): History
+    {
+        return $this->history;
     }
 
     /**

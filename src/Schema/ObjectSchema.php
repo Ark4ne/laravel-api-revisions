@@ -55,6 +55,11 @@ final class ObjectSchema extends Descriptor
         return $this->children;
     }
 
+    protected function parts(): array
+    {
+        return array_values($this->children);
+    }
+
     public function configure(Configuration $configuration): static
     {
         $clone = clone $this;

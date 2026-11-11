@@ -179,6 +179,43 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A `was()` the history cannot hold: on the head, or on a revision already changed (`history-unordered`).
+     */
+    public static function invalidHistory(BackedEnum $revision, string $reason): self
+    {
+        return new self(sprintf('Invalid was(%s::%s): %s.', $revision::class, $revision->name, $reason));
+    }
+
+    /**
+     * A `was(name: '')`.
+     */
+    public static function emptyHistoryName(BackedEnum $revision): self
+    {
+        return new self(sprintf('Invalid was(%s::%s): a name must not be empty.', $revision::class, $revision->name));
+    }
+
+    /**
+     * A `was()` without name, schema, `down:` nor `up:`: it changes nothing.
+     */
+    public static function emptyChange(BackedEnum $revision): self
+    {
+        return new self(sprintf('Invalid was(%s::%s): it changes nothing (give a name, a schema, down: or up:).', $revision::class, $revision->name));
+    }
+
+    /**
+     * A `was(schema:)` declaring its own source, lifetime, history or default: older values derive from the head value
+     * through the down chain (model.md §6.4).
+     */
+    public static function sourceInHistory(BackedEnum $revision): self
+    {
+        return new self(sprintf(
+            'The schema of was(%s::%s) and its items or children must declare no source, lifetime, history, default nor condition: older values derive from the head value through down:.',
+            $revision::class,
+            $revision->name,
+        ));
+    }
+
+    /**
      * A presence key (`whenHas()`) empty, or with an empty segment.
      */
     public static function invalidPresenceKey(string $key): self

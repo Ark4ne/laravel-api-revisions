@@ -189,4 +189,32 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::invalidTypeFragment('money')->getMessage(),
         );
     }
+
+    public function test_invalid_history_names_the_revision_and_the_reason(): void
+    {
+        self::assertSame(
+            sprintf('Invalid was(%s::Atlas): the head has no older shape.', ApiRevision::class),
+            DefinitionException::invalidHistory(ApiRevision::Atlas, 'the head has no older shape')->getMessage(),
+        );
+    }
+
+    public function test_source_in_history_names_the_revision(): void
+    {
+        self::assertSame(
+            sprintf('The schema of was(%s::Genesis) and its items or children must declare no source, lifetime, history, default nor condition: older values derive from the head value through down:.', ApiRevision::class),
+            DefinitionException::sourceInHistory(ApiRevision::Genesis)->getMessage(),
+        );
+    }
+
+    public function test_empty_history_name_and_empty_change_name_the_revision(): void
+    {
+        self::assertSame(
+            sprintf('Invalid was(%s::Genesis): a name must not be empty.', ApiRevision::class),
+            DefinitionException::emptyHistoryName(ApiRevision::Genesis)->getMessage(),
+        );
+        self::assertSame(
+            sprintf('Invalid was(%s::Genesis): it changes nothing (give a name, a schema, down: or up:).', ApiRevision::class),
+            DefinitionException::emptyChange(ApiRevision::Genesis)->getMessage(),
+        );
+    }
 }

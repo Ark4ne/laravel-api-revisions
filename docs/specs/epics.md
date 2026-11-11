@@ -439,6 +439,18 @@ to model.md §9 and to Q16.
 Tests: `test_was_returns_a_new_descriptor`, `test_was_entries_are_ordered_by_revision_not_by_call`,
 `test_was_on_the_head_throws`, `test_was_has_no_effect_on_the_head_type`.
 
+**Done** (2026-11-11): `Schema\Change` (one `was()`: revision, name, schema, `down`, `up`; never a source),
+`Schema\History` (`none()`, `isEmpty()`, `withLifetime()`, `withChange()` keeping the changes newest first and
+refusing the head, a repeated revision and bounds or changes of two enums), `Descriptor::was()` / `history()`;
+`Descriptor` now keeps its lifetime in its `History` (the US 3.1 follow-up; its `default` stays on `Descriptor`, it
+belongs to `since()`, not to the history). `Change` and `History::withChange()` are `@internal`: `Descriptor::was()`
+checks the arguments. F10 (part): a `was(schema:)` whose schema, items or children declare a source, a lifetime, a
+history, a default or a condition throws `sourceInHistory()` (model.md §6.4; an object without source is accepted);
+`was(name: '')` throws `emptyHistoryName()`, a `was()` changing nothing `emptyChange()` (both `definition-error`
+under D39; `invalidHistory()` is `history-unordered`). Coverage 100 %, Infection MSI 99–100 % (the escaped mutant is
+equivalent). Follow-ups: a `was()` older than the `since` is `history-before-since` (US 9.2); one at or after the
+`until` is Q17; `down:` / `up:` become `ClosureConverter`s in US 4.2, chained by US 4.3.
+
 #### US 3.4 — `ShapeSelector`: the shape of a revision · L · depends US 3.2, US 3.3, US 4.3
 
 *As a maintainer, I want one pure function giving the shape of a class at a revision, so that the response, the
@@ -971,6 +983,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36: rule keywords apply last, in order, even over the typed ones; the check warns (`schema-override`) |
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
 | Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | **Decided** (2026-11-11): `bound-repeated` is a warning (D38); the check catches declaration errors and reports them under their code (D39) |
+| Q17 | A `was()` at or after the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | Open |
 
 ---
 
@@ -1013,7 +1026,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.7 | Custom types seen by PHPStan | S | 2.5 | M1 | done |
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
 | US 3.2 | Groups | S | 3.1 | M1 | done |
-| US 3.3 | `was()` | M | 3.1, 4.1 | M1 | todo |
+| US 3.3 | `was()` | M | 3.1, 4.1 | M1 | done |
 | US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | todo |
 | US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |
 | US 4.1 | Converters and directions | M | 2.1 | M1 | done |
