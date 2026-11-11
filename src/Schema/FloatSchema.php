@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 
 /**
  * A float: accepts ints, floats and numeric strings without surrounding blanks, finite only (JSON has no NaN nor
- * infinity) (model.md §6.3, Q12). An int beyond 2^53 loses precision, as in PHP.
+ * infinity) (model.md §6.3, D32). An int beyond 2^53 loses precision, as in PHP.
  *
  * @extends Descriptor<float>
  */

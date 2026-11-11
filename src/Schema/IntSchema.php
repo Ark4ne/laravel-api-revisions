@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 /**
  * An integer: accepts ints, integral floats within the int range, and integral numeric strings: digits (`'-007'`,
  * exact up to the int range) or any other numeric string with an integral value exact as a float (`'12.00'`, `'1e3'`,
- * up to 2^53). Never surrounding blanks (model.md §6.3, Q12).
+ * up to 2^53). Never surrounding blanks (model.md §6.3, D32).
  *
  * @extends Descriptor<int>
  */

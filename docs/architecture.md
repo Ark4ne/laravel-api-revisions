@@ -88,7 +88,8 @@ Context** (`RevisionScope`).
   `finally`) above a base revision. The core reaches it through `RevisionScope::provider()`, a closure set **at
   boot** (configuration, not state; replaceable, `null` restores the default); the default provider is a process-local scope for non-Laravel use; the Laravel
   layer provides the `scoped` container binding (reset per request under Octane). API: `RevisionScope::get()`,
-  `setBase(?Revision)` (the middleware), `current(class)` (head of `class` when nothing is set, see Q11; a revision of
+  `setBase(?Revision)` (the middleware), `current(class)` (head of `class` when nothing is set; the Laravel provider sets the configured
+  fixed default outside a request, D31; a revision of
   another enum throws `foreignRevision()`), `using(revision, callback)`; `provider(null)` restores a new process-local scope
   (tests: `tests/TestCase` and `tests/FeatureTestCase` reset it after every test).
 

@@ -74,7 +74,7 @@ enum ApiRevision: string implements Revision
 | `static latest()` / `static oldest()` | bounds; `latest()` is the head |
 | `static current()` | the revision of the current context (§10) |
 | `static using(R, Closure)` | runs a closure in revision `R`, restores the previous one (even on exception) |
-| `meta()` | the `Meta` of the case (`description`, `publishedAt`, `deprecatedAt`, `sunsetAt`), empty when absent |
+| `meta()` | the `Meta` of the case (`description`, `publishedAt`, `deprecatedAt`, `sunsetAt`: days, reached from the day included, D30), empty when absent |
 
 `meta()` feeds the export, the changelog and the `Deprecation` / `Sunset` response headers.
 
@@ -327,11 +327,11 @@ raw subject data or on JSON.
 | Kind | Accepted from the source | Normalized value | Serialized |
 | --- | --- | --- | --- |
 | string | `string`, `int`, `float`, `Stringable` | `string` | string |
-| int | `int`, integral `float`, integral numeric string | `int` | number |
-| float | `int`, `float`, numeric string | `float` | number |
+| int | `int`, integral `float`, integral numeric string (D32) | `int` | number |
+| float | `int`, `float`, numeric string without blanks, finite (D32) | `float` | number |
 | bool | `bool`, `0` / `1`, `'0'` / `'1'` | `bool` | boolean |
-| enum | the enum case, or its backed value (`::from()`; an int-backed enum reads it as `int` does, Q13) | the `BackedEnum` case | `->value` |
-| date / dateTime | `DateTimeInterface`, a string parsed without warning nor surrounding blanks, an int timestamp (UTC) (Q13) | `DateTimeImmutable` | `format()` of the type (D29) |
+| enum | the enum case, or its backed value (`::from()`; an int-backed enum reads it as `int` does, D33) | the `BackedEnum` case | `->value` |
+| date / dateTime | `DateTimeInterface`, a string parsed without warning nor surrounding blanks, an int timestamp (UTC) (D33) | `DateTimeImmutable` | `format()` of the type (D29) |
 | list | any `iterable` (arrays, generators, Laravel collections) | `list` of normalized items | array |
 | object | see §6.1 (subject of its children) | `array<string, mixed>` | object |
 | custom type | the type's `normalize()` | the type's | the type's `serialize()` |
@@ -557,7 +557,8 @@ Rather than forcing `since` everywhere, the published revisions are frozen, `com
 ## 10. Context, Octane, performance
 
 - The current revision is **context state, never a static variable**. `Revision::current()` reads, in order: the
-  innermost `using()`, the `scoped` binding set by the middleware, the configured default.
+  innermost `using()`, the `scoped` binding set by the middleware, the configured default (outside a request: the
+  configured `default` when it is a fixed revision, the head otherwise, D31).
 - **Outside HTTP** (webhooks, jobs, broadcasting, notifications) the code targets a revision explicitly:
   `ApiRevision::using($account->apiRevision, fn () => $webhook->send(OrderResource::make($order)))`. A queued job
   captures the revision **when dispatched**, not when run. The revision does not outlive the closure of `using()`:
@@ -642,5 +643,9 @@ returns the declared type.
 | D27 | One direction per declaration kind: responses plan / check `down`, requests `up` | **Decided** (2026-11-11) |
 | D28 | Application test helpers: trait `Testing\InteractsWithRevisions` (`withRevision()`, `assertRevisionsAreConsistent()`) for the application's `TestCase`; `assertMatchesRevisionSchema()` is a `TestResponse` macro | **Decided** (2026-11-11) |
 | D29 | Date formats: `format()` on the descriptor, else the configured default (`date_format` `Y-m-d`, `date_time_format` `Y-m-d\TH:i:sP`, RFC 3339). Resolved at compilation: the compiler calls `Descriptor::configure(Configuration)` and the resolved format reaches the `TypeDefinition` and `serialize()`; the core never reads configuration globally | **Decided** (2026-11-11) |
+| D30 | `#[Meta]` days: `isDeprecated($now)` / `isSunset($now)` hold from the day included, read in the timezone of `$now`; the `Deprecation` / `Sunset` headers send midnight of that day in the **application timezone** (Q10) | **Decided** (2026-11-11) |
+| D31 | Outside a request (jobs, console) the base revision is the configured `default` when it is a fixed revision (`latest`, `oldest`, a backed value), set by the Laravel provider; the head otherwise (a resolver class needs a request) (Q11) | **Decided** (2026-11-11) |
+| D32 | Numeric strings: `int` reads digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'`, `'1e3'`, up to 2^53); `int` and `float` refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit whatever `precision` (`'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 read as float loses precision, as in PHP (Q12) | **Decided** (2026-11-11) |
+| D33 | Dates: a string parsed by `DateTimeImmutable` without warning (`2026-02-30` refused, never rolled over) nor surrounding blanks, relative strings accepted, read in the default timezone unless it names one; an int timestamp in UTC. Enums: an int-backed enum reads its value as `int` does (`'3'`, `3.0`); a refused value keeps its backed value as lenient cast (Q13) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.

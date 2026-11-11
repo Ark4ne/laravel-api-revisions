@@ -564,8 +564,11 @@ Goal: a Laravel application resolves the revision of each request, renders resou
 - `config/revisions.php` documented key by key (`model.md` §8); `Configuration` built from it (validated: `enum`
   implements `Revision`, resolvers exist, non-empty date formats); `RevisionScope` provider = `scoped` binding;
   publishable config.
+- Outside a request, the scope's base is the configured `default` when it is a fixed revision (`latest`, `oldest`, a
+  backed value), the head otherwise (D31).
 
-Tests: `test_an_enum_not_implementing_revision_is_refused`, `test_the_scope_is_reset_between_two_requests`.
+Tests: `test_an_enum_not_implementing_revision_is_refused`, `test_the_scope_is_reset_between_two_requests`,
+`test_outside_a_request_current_is_the_configured_fixed_default`.
 
 #### US 8.2 — Resolvers · M · depends US 8.1
 
@@ -578,7 +581,8 @@ Tests: `test_the_first_resolver_returning_a_revision_wins`, `test_the_default_ap
 #### US 8.3 — `ResolveRevision` middleware · M · depends US 8.2
 
 - Unknown value → `UnknownRevisionException` rendered **400** (JSON body naming the accepted values); stores the
-  revision in the scope; response header; `Vary` in header / query mode; `Deprecation` / `Sunset` from `meta()`.
+  revision in the scope; response header; `Vary` in header / query mode; `Deprecation` / `Sunset` from `meta()`
+  (midnight of the day in the application timezone, D30).
 
 Tests: `test_an_unknown_revision_is_answered_with_400`, `test_the_response_carries_the_revision_header`,
 `test_a_deprecated_revision_adds_deprecation_and_sunset_headers`, `test_header_mode_adds_vary`.
@@ -831,10 +835,10 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q7 | Group `until()` vs a member's own `until()` (F10): propose — mirror of `since`: the member's earlier `until` wins, a later one throws | US 3.2 | **Decided** (2026-11-11): as proposed (D24) |
 | Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | **Decided** (2026-11-11): as proposed (D27) |
 | Q9 | Test helpers for applications (US 9.3 `assertRevisionsAreConsistent()`, US 10.4 `withRevision()`, `assertMatchesRevisionSchema()`): propose — one trait `Testing\\InteractsWithRevisions` for the application's `TestCase` (as Laravel's `InteractsWithDatabase`), added to §16 and to the allowed traits; `assertMatchesRevisionSchema()` as a `TestResponse` macro | US 0.3 review | **Decided** (2026-11-11): as proposed (D28) |
-| Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | Open |
-| Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | Open |
-| Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | Open |
-| Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | Open |
+| Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | **Decided** (2026-11-11): D30: application timezone for the headers |
+| Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | **Decided** (2026-11-11): D31: the configured `default` when it is a fixed revision, set by the Laravel provider |
+| Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | **Decided** (2026-11-11): D32 |
+| Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
 
 ---
 
