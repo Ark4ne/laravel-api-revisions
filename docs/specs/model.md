@@ -539,7 +539,7 @@ discovered classes, so a forgotten path is visible.
 | `lifetime-inverted` | `until` before `since` | all |
 | `since-older-than-group` | a field `since` older than its group's | all |
 | `until-newer-than-group` | a field `until` newer than its group's (D24) | all |
-| `bound-repeated` | `since()` or `until()` called twice on one descriptor, naming the replaced revision (§4.4 rule 5; severity: Q16) | all |
+| `bound-repeated` | **warning**: `since()` or `until()` called twice on one descriptor, naming the replaced revision (§4.4 rule 5, D38) | all |
 | `history-unordered` | two `was()` on the same revision, or a `was()` not older than the head | all |
 | `history-before-since` | a `was()` older than the field's `since` (dead declaration) | all |
 | `conversion-missing` | a type pair neither automatic nor provided, in the direction of the declaration kind | all |
@@ -660,5 +660,6 @@ returns the declared type.
 | D35 | In lenient mode a refused list or object renders `null` (no sensible cast, as for dates) | **Decided** (2026-11-11) |
 | D36 | A rule implementing `DescribesSchema` enriches the type of **any** descriptor (`Schema::rule()` and `rules()`); its keywords are merged in declaration order after those of the type, a later one wins; keywords that are not JSON-ready (scalars, arrays, nulls) throw `DefinitionException::invalidJsonSchema()`. The rule keywords apply **last, in order**, over the typed ones too: a rule giving `type: integer` on a `string()` exports `integer`, a declaration inconsistent by its author's choice; the check reports it (`schema-override`) (Q14) | **Decided** (2026-11-11) |
 | D37 | `whenHas()` without key checks the source path when the source is a key or dotted path, the head declared key otherwise (closure source, parent subject); never the name at an older revision (Q15) | **Decided** (2026-11-11) |
+| D38 | `bound-repeated` (a `since()` or `until()` called twice on one descriptor) is a **warning**: the last call wins, the declaration stays valid (Q16) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.
