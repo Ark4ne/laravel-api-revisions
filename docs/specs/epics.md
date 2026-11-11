@@ -53,6 +53,15 @@ checked.
 
 Tests: `test_the_package_boots_in_a_laravel_application`.
 
+**Done** (2026-11-11): `composer.json` (illuminate `^12.46 || ^13.0`, dev tools of `laravel-json-api`, every script with
+its description, auto-discovery of `Laravel\RevisionsServiceProvider`, empty for now), `phpunit.xml.dist` (Unit,
+Feature), `tests/TestCase` (pure PHP), `tests/FeatureTestCase` (Testbench, loads the providers declared in
+`composer.json` `extra.laravel.providers`, so the smoke test checks the real auto-discovery; `application()` helper as
+Testbench types `$app` nullable), `tests/Feature/PackageTest`, repository files. Deviations: `composer.lock` is
+git-ignored (a library; CI resolves lowest / highest); `phpstan.neon.dist` minimal (level max + Larastan) until
+US 0.2; the scripts `test:coverage` and `benchmark` reference `bin/coverage-check.php` (US 0.2) and `bin/benchmark.php`
+(US 5.4); `cs` has no configuration until US 0.2.
+
 #### US 0.2 — Static analysis and style · S
 
 - `phpstan.neon.dist`: level max, Larastan, strict rules, phpstan-phpunit, phpat, disallowed calls (facades and
@@ -741,7 +750,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | Story | Title | Size | Depends on | Milestone | Status |
 | --- | --- | --- | --- | --- | --- |
 | M0 | Spike (throwaway) | — | — | M0 | done |
-| US 0.1 | Package skeleton | S | — | M1 | todo |
+| US 0.1 | Package skeleton | S | — | M1 | done |
 | US 0.2 | Static analysis and style | S | 0.1 | M1 | todo |
 | US 0.3 | Architecture test | S | 0.2 | M1 | todo |
 | US 0.4 | Continuous integration | S | 0.2 | M1 | todo |

@@ -1,0 +1,10 @@
+# Minimal until US 0.2 adds strict rules, phpstan-phpunit, phpat, disallowed calls and the empty baseline.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+    tmpDir: build/phpstan

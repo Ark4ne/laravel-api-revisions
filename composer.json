@@ -1,0 +1,105 @@
+{
+    "name": "ark4ne/laravel-api-revisions",
+    "description": "Typed schemas and their evolution through ordered API revisions, Stripe-style, for Laravel.",
+    "keywords": [
+        "laravel",
+        "api",
+        "versioning",
+        "revisions",
+        "schema",
+        "json-schema"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "ark4ne",
+            "email": "gui.allegret@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/console": "^12.46 || ^13.0",
+        "illuminate/contracts": "^12.46 || ^13.0",
+        "illuminate/http": "^12.46 || ^13.0",
+        "illuminate/routing": "^12.46 || ^13.0",
+        "illuminate/support": "^12.46 || ^13.0",
+        "illuminate/validation": "^12.46 || ^13.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.75",
+        "larastan/larastan": "^3.4",
+        "opis/json-schema": "^2.6",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "phpat/phpat": "^0.12.5",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.5 || ^12.5 || ^13.0",
+        "spaze/phpstan-disallowed-calls": "^4.5"
+    },
+    "suggest": {
+        "phpunit/phpunit": "Required by the Testing assertions (assertRevisionsAreConsistent, assertMatchesRevisionSchema)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Ark4ne\\ApiRevisions\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:coverage": [
+            "@putenv XDEBUG_MODE=coverage",
+            "phpunit --coverage-clover=build/coverage/clover.xml",
+            "php bin/coverage-check.php build/coverage/clover.xml 90"
+        ],
+        "stan": "phpstan analyse --memory-limit=1G",
+        "stan:baseline": "phpstan analyse --memory-limit=1G --generate-baseline",
+        "cs": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "mutation": "infection --threads=max --show-mutations",
+        "fixtures:update": [
+            "@putenv REVISIONS_FIXTURES_UPDATE=1",
+            "phpunit tests/Feature"
+        ],
+        "benchmark": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php bin/benchmark.php"
+        ],
+        "ci": [
+            "@composer validate --strict",
+            "@cs",
+            "@stan",
+            "@test"
+        ]
+    },
+    "scripts-descriptions": {
+        "test": "Run the whole PHPUnit suite.",
+        "test:coverage": "Run the tests with line coverage and fail under 90%.",
+        "stan": "Run PHPStan at max level with Larastan, the phpat architecture rules and the disallowed calls.",
+        "stan:baseline": "Regenerate the PHPStan baseline (it may only shrink: review the diff).",
+        "cs": "Check the code style (PER-CS).",
+        "cs:fix": "Fix the code style (PER-CS).",
+        "mutation": "Run mutation testing (requires infection to be installed globally).",
+        "fixtures:update": "Write the expected files of the Feature tests (tests/Feature/**/expected/*.json): review the diff.",
+        "benchmark": "Compare the projection time and peak memory at the head and at the oldest revision (fails on regression).",
+        "ci": "Run every blocking check of the CI locally."
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ark4ne\\ApiRevisions\\Laravel\\RevisionsServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

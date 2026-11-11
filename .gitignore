@@ -1,5 +1,6 @@
 /vendor/
 /build/
 /.idea/
+/composer.lock
 .phpunit.result.cache
 /.claude/settings.local.json
