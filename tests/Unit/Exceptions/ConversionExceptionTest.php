@@ -35,4 +35,12 @@ final class ConversionExceptionTest extends TestCase
         self::assertSame('1.0E+20 is outside the int range.', ConversionException::outOfIntRange(1.0e20)->getMessage());
         self::assertSame('INF is outside the int range.', ConversionException::outOfIntRange(INF)->getMessage());
     }
+
+    public function test_missing_names_the_step(): void
+    {
+        self::assertSame(
+            'No conversion object>string:down: declare down: / up: on the was(), or register a converter.',
+            ConversionException::missing('object>string:down')->getMessage(),
+        );
+    }
 }

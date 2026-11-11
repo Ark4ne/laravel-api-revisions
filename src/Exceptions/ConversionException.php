@@ -26,6 +26,15 @@ final class ConversionException extends RuntimeException implements RevisionsExc
     }
 
     /**
+     * A step of a conversion chain without converter: no automatic conversion and no `down:` / `up:` (check code
+     * `conversion-missing`), or a chain applied before `bind()`.
+     */
+    public static function missing(string $key): self
+    {
+        return new self(sprintf('No conversion %s: declare down: / up: on the was(), or register a converter.', $key));
+    }
+
+    /**
      * A float → int conversion of a float the int range cannot hold (beyond ±2^63, `INF`, `NaN`, model.md D44).
      */
     public static function outOfIntRange(float $value): self

@@ -168,6 +168,16 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
   `model.md` D44).
 - Plans hold **one direction**, the one of the declaration kind (`model.md` D27): `down` for responses, `up` for
   requests.
+- `ConversionChain` is planned step by step (`withStep($from, $to, $change, $explicit, $converters)`, in apply order)
+  by the `ShapeSelector`, which alone decides the types of consecutive shapes. A step is `StepKind::Explicit` (the
+  `was()` declares the direction: always a step), `Registered` (a registry key) or `Missing` (recorded, thrown by
+  `apply()` only). Two types holding the same values (kind, enum class, custom name, items and children by key) add no
+  step: constraints, formats and documentation never convert a value; a custom type compares its fragment too (spike
+  F7). `bind(Converters, $explicit)`
+  re-finds the registered converters by their types and takes the explicit ones by `was` index (an array, not a
+  `History`: `Conversion` sits left of `Schema`). Every step keeps its `was` index. `apply()` runs the whole chain
+  (down side); the upgrader runs an up chain step by step (`stepOf()`), normalizing the value to each shape and passing
+  each step its snapshot (spike F3, `model.md` §7.1). A step serializes without its converter.
 - `ConversionChain` is built once per `(field, revision, direction)` at compilation and only **references**
   converters, so it serializes; the closures are re-attached from the fresh descriptors at run time.
 - A conversion failure (`BackedEnum::from()` on an unknown value) throws `ConversionException`, turned into a

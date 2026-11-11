@@ -69,6 +69,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - PHPStan extension (`extension.neon`, registered for `phpstan/extension-installer`): the custom types mapped in
   `apiRevisions.types` are static methods of `Schema` typed with their class and their constructor's parameters
   (`PHPStan\CustomTypesExtension`).
+- Conversion chains: `Conversion\ConversionChain` (`empty()`, `withStep()`, `bind()`, `apply($value, $subject)`,
+  `stepOf()`, `missing()`, `isEmpty()`), the steps of one field at one revision in one direction, planned from types and
+  references only (`Conversion\ConversionStep`, `Conversion\StepKind`: registered, explicit, missing) so it
+  serializes; two types holding the same values add no step; `ConversionException::missing()` when a step without
+  converter is applied.
 - History: `Descriptor::was(Revision, name:, schema:, down:, up:)` (`down:` / `up:` a closure, kept as a
   `ClosureConverter`, or a `Cast`) adds a `Schema\Change` to the field's
   `Schema\History` (its lifetime and its changes, newest first whatever the call order; `Descriptor::history()`);

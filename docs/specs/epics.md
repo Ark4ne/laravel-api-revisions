@@ -549,6 +549,23 @@ Tests: `test_a_down_chain_converts_from_the_head_to_the_oldest_shape`,
 `test_an_up_chain_converts_from_the_client_shape_to_the_head`, `test_a_chain_survives_serialization`,
 `test_a_missing_step_is_recorded_not_thrown`.
 
+**Done** (2026-11-12): `Conversion\ConversionChain` (`empty()`, `withStep()`, `bind()`, `apply()`, `missing()`,
+`isEmpty()`), `Conversion\ConversionStep` (kind, `Converters::key()`, both `TypeDefinition`s, `was` index, bound
+converter), `Conversion\StepKind` (`Registered`, `Explicit`, `Missing`: F6), `ConversionException::missing()`. Every step keeps the
+index of the `was()` it crosses (`stepOf()`), so the upgrader (US 7.1) runs an up chain step by step, normalizing to
+each shape and passing each step its snapshot (model.md §7.1); `apply()` runs the whole chain, for the down side. A
+step serializes without its converter, so a bound chain serializes as its planned form.
+Spike findings: **F6** steps carry an enum kind and keys; **F7** steps compare `TypeDefinition`s (kind, enum class,
+custom name and fragment, items, children), not kinds; **F8** a chain has one direction, chosen by its caller (D27); **F3** the
+chain receives normalized values, normalizing the client's input is left to the upgrader (US 7.1). Coverage 100 % of
+the new classes, Infection MSI 100 %. Deviations: `bind(Converters, array $explicit)` instead of `bind(History)`
+(`Schema` sits right of `Conversion`; the caller passes the `down` / `up` of each `Change` by index); `apply()` takes
+the subject; a chain is built by `withStep()`, the `ShapeSelector` (US 3.4) deciding the types of each pair of
+consecutive shapes; an unbound step and a missing one both throw `missing()` when applied. Follow-ups: US 3.4 builds
+the chains (and passes `explicit: true` when the `Change` declares the chain's direction); US 9.2 reports
+`missing()` as `conversion-missing` and the lossy registered steps as `conversion-lossy` (re-find the converter by the
+step's types); US 4.4 custom types: the key must include the type name.
+
 #### US 4.4 — Conversions of custom types · S · depends US 2.5, US 4.3
 
 - A custom type registers its converters with the `Converters` registry when registered in the `TypeRegistry`.
@@ -1046,7 +1063,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |
 | US 4.1 | Converters and directions | M | 2.1 | M1 | done |
 | US 4.2 | Explicit casts and closures | S | 4.1 | M1 | done |
-| US 4.3 | Conversion chains | M | 4.2 | M1 | todo |
+| US 4.3 | Conversion chains | M | 4.2 | M1 | done |
 | US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | todo |
 | US 5.1 | Probe and compiler | M | 3.4 | M1 | todo |
 | US 5.2 | Shapes repository | S | 5.1 | M1 | todo |
