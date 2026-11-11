@@ -550,10 +550,12 @@ discovered classes, so a forgotten path is visible.
 | `native-condition` | a Laravel `MissingValue` / `MergeValue` in a declaration | all |
 | `eager-value` | a plain value instead of a descriptor (typed `any`, the same in every revision) | responses |
 | `unknown-resource` | `Schema::resource()` on a class that is not `Revisioned` | all |
+| `definition-error` | a `DefinitionException` thrown while building the class, with no code of its own (D39) | all |
 | `lock-mismatch` | the shape of a locked revision differs from its lock | all |
 | `lock-order-changed` | a locked revision moved in `order()` | enum |
 
 Every diagnostic names the class, the field and the revision. The check never throws on application code: it reports.
+A declaration error thrown while building a class is caught and reported under its code (D39).
 
 **Lock.** The real risk is not a missing `since`, it is a **forgotten** one: a new field leaks into the old revisions.
 Rather than forcing `since` everywhere, the published revisions are frozen, `composer.lock`-style:
@@ -661,5 +663,6 @@ returns the declared type.
 | D36 | A rule implementing `DescribesSchema` enriches the type of **any** descriptor (`Schema::rule()` and `rules()`); its keywords are merged in declaration order after those of the type, a later one wins; keywords that are not JSON-ready (scalars, arrays, nulls) throw `DefinitionException::invalidJsonSchema()`. The rule keywords apply **last, in order**, over the typed ones too: a rule giving `type: integer` on a `string()` exports `integer`, a declaration inconsistent by its author's choice; the check reports it (`schema-override`) (Q14) | **Decided** (2026-11-11) |
 | D37 | `whenHas()` without key checks the source path when the source is a key or dotted path, the head declared key otherwise (closure source, parent subject); never the name at an older revision (Q15) | **Decided** (2026-11-11) |
 | D38 | `bound-repeated` (a `since()` or `until()` called twice on one descriptor) is a **warning**: the last call wins, the declaration stays valid (Q16) | **Decided** (2026-11-11) |
+| D39 | The check catches a `DefinitionException` thrown while building a class and reports it as an **error** under its code (`lifetime-inverted`, `since-older-than-group`, `until-newer-than-group`…; the generic `definition-error` otherwise), then goes on with the other classes: `revision:check` lists every faulty class at once. Declarations still throw at run time (Q16) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.

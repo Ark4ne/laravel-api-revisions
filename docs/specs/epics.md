@@ -721,7 +721,8 @@ Tests: one passing and one failing declaration per code, e.g.
 `test_a_required_field_added_later_without_default_is_reported`, `test_a_lossy_conversion_without_cast_is_reported`,
 `test_a_rule_keyword_overriding_the_type_is_reported` (`schema-override`, D36: compare the exported keywords of the
 type with `TypeDefinition::$jsonSchema`). The repeated `since()` / `until()` calls of model.md §4.4 rule 5 are read
-from `Descriptor::repeatedBounds()` (US 3.1).
+from `Descriptor::repeatedBounds()` (US 3.1). Declaration errors are caught per class and reported under their code, else
+`definition-error` (D39): `test_a_declaration_error_is_reported_and_the_check_goes_on`.
 
 #### US 9.3 — `revision:check` and the PHPUnit assertion · S · depends US 9.2, US 8.1
 
@@ -913,7 +914,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
 | Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36: rule keywords apply last, in order, even over the typed ones; the check warns (`schema-override`) |
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
-| Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | Partly decided (2026-11-11): `bound-repeated` is a warning (D38); reporting declaration errors still open |
+| Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | **Decided** (2026-11-11): `bound-repeated` is a warning (D38); the check catches declaration errors and reports them under their code (D39) |
 
 ---
 
