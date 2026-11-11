@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Schema;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Support\Undefined;
 use Closure;
 
 /**
@@ -50,6 +53,15 @@ abstract class Descriptor
      */
     private array $presences = [];
 
+    private Lifetime $lifetime;
+
+    private mixed $default;
+
+    /**
+     * @var list<array{bound: 'since'|'until', replaced: Revision}>
+     */
+    private array $repeatedBounds = [];
+
     /**
      * Not final: composite and custom descriptors take their own arguments first (`ListSchema($items, $source)`) and
      * call `parent::__construct($source)`, the only way to set the source.
@@ -60,6 +72,8 @@ abstract class Descriptor
     public function __construct(mixed $source = null)
     {
         $this->source = Source::from($source);
+        $this->lifetime = Lifetime::always();
+        $this->default = new Undefined();
     }
 
     /**
@@ -232,6 +246,62 @@ abstract class Descriptor
     public function presences(): array
     {
         return $this->presences;
+    }
+
+    /**
+     * The field exists from `$revision` included (model.md §4.1). `$default` is what an older client is deemed to send
+     * (model.md §7.3); none by default. A second call replaces the first, its default included, and is recorded
+     * (`repeatedBounds()`).
+     */
+    public function since(Revision $revision, mixed $default = new Undefined()): static
+    {
+        $clone = clone $this;
+        $clone->lifetime = $this->lifetime->withSince($revision);
+        $clone->default = $default;
+        if ($this->lifetime->since !== null) {
+            $clone->repeatedBounds[] = ['bound' => 'since', 'replaced' => $this->lifetime->since];
+        }
+
+        return $clone;
+    }
+
+    /**
+     * The field exists up to `$revision` included, removed in `$revision->next()` (model.md §4.1). A second call
+     * replaces the first and is recorded (`repeatedBounds()`).
+     */
+    public function until(Revision $revision): static
+    {
+        $clone = clone $this;
+        $clone->lifetime = $this->lifetime->withUntil($revision);
+        if ($this->lifetime->until !== null) {
+            $clone->repeatedBounds[] = ['bound' => 'until', 'replaced' => $this->lifetime->until];
+        }
+
+        return $clone;
+    }
+
+    public function lifetime(): Lifetime
+    {
+        return $this->lifetime;
+    }
+
+    /**
+     * The default given to `since()`, an `Undefined` without one.
+     */
+    public function default(): mixed
+    {
+        return $this->default;
+    }
+
+    /**
+     * The bounds set more than once, one entry per extra call, in call order, with the revision it replaced (reported
+     * by the check, model.md §4.4 rule 5).
+     *
+     * @return list<array{bound: 'since'|'until', replaced: Revision}>
+     */
+    public function repeatedBounds(): array
+    {
+        return $this->repeatedBounds;
     }
 
     public function isNullable(): bool

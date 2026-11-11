@@ -6,15 +6,18 @@ namespace Test\Unit\Schema;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\Kind;
+use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\Presence;
 use Ark4ne\ApiRevisions\Schema\StringSchema;
+use Ark4ne\ApiRevisions\Support\Undefined;
 use Closure;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use stdClass;
+use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Rules\PostcodeRule;
 use Test\TestCase;
 
@@ -260,5 +263,91 @@ final class DescriptorTest extends TestCase
         $keywords = ['default' => null, 'enum' => ['a', 1, 1.5, true, ['x' => null]]];
 
         self::assertSame($keywords, (new StringSchema())->rules(new PostcodeRule($keywords))->toType()->jsonSchema);
+    }
+
+    public function test_a_new_descriptor_exists_in_every_revision_without_default(): void
+    {
+        $schema = new StringSchema();
+
+        self::assertEquals(Lifetime::always(), $schema->lifetime());
+        self::assertTrue(Undefined::is($schema->default()));
+        self::assertSame([], $schema->repeatedBounds());
+    }
+
+    public function test_until_keeps_the_field_up_to_its_revision_included(): void
+    {
+        $schema = new StringSchema();
+
+        $until = $schema->until(ApiRevision::Winter25);
+
+        self::assertEquals(Lifetime::always(), $schema->lifetime());
+        self::assertSame(ApiRevision::Winter25, $until->lifetime()->until);
+        self::assertSame([true, true, false, false], array_map($until->lifetime()->covers(...), ApiRevision::order()));
+    }
+
+    public function test_since_keeps_the_field_from_its_revision_included(): void
+    {
+        $schema = new StringSchema();
+
+        $since = $schema->since(ApiRevision::Spring26);
+
+        self::assertEquals(Lifetime::always(), $schema->lifetime());
+        self::assertSame(ApiRevision::Spring26, $since->lifetime()->since);
+        self::assertSame([false, false, true, true], array_map($since->lifetime()->covers(...), ApiRevision::order()));
+        self::assertTrue(Undefined::is($since->default()));
+    }
+
+    public function test_since_after_until_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('its since is newer than its until');
+
+        (new StringSchema())->until(ApiRevision::Winter25)->since(ApiRevision::Atlas);
+    }
+
+    public function test_since_keeps_its_default_even_null(): void
+    {
+        self::assertNull((new StringSchema())->since(ApiRevision::Atlas, default: null)->default());
+        self::assertSame('n/a', (new StringSchema())->since(ApiRevision::Atlas, 'n/a')->default());
+    }
+
+    public function test_until_keeps_the_default_of_since(): void
+    {
+        $schema = (new StringSchema())->since(ApiRevision::Winter25, 'n/a')->until(ApiRevision::Spring26);
+
+        self::assertSame('n/a', $schema->default());
+        self::assertSame(ApiRevision::Winter25, $schema->lifetime()->since);
+        self::assertSame(ApiRevision::Spring26, $schema->lifetime()->until);
+    }
+
+    public function test_a_second_call_keeps_the_last_and_is_recorded(): void
+    {
+        $schema = (new StringSchema())
+            ->since(ApiRevision::Winter25, 'n/a')
+            ->until(ApiRevision::Atlas)
+            ->since(ApiRevision::Spring26)
+            ->until(ApiRevision::Spring26)
+            ->until(ApiRevision::Atlas);
+
+        self::assertSame(ApiRevision::Spring26, $schema->lifetime()->since);
+        self::assertSame(ApiRevision::Atlas, $schema->lifetime()->until);
+        self::assertTrue(Undefined::is($schema->default()));
+        self::assertSame([
+            ['bound' => 'since', 'replaced' => ApiRevision::Winter25],
+            ['bound' => 'until', 'replaced' => ApiRevision::Atlas],
+            ['bound' => 'until', 'replaced' => ApiRevision::Spring26],
+        ], $schema->repeatedBounds());
+    }
+
+    public function test_a_single_call_of_each_bound_is_not_recorded(): void
+    {
+        self::assertSame([], (new StringSchema())->since(ApiRevision::Genesis)->until(ApiRevision::Atlas)->repeatedBounds());
+    }
+
+    public function test_the_lifetime_does_not_change_the_type(): void
+    {
+        $schema = new StringSchema();
+
+        self::assertEquals($schema->toType(), $schema->since(ApiRevision::Genesis)->until(ApiRevision::Atlas)->toType());
     }
 }

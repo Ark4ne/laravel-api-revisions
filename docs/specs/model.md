@@ -198,7 +198,9 @@ Checked when declared (programming error → `DefinitionException`) or by the ch
 2. `until` must be at or after the `since` of the same field or of its group.
 3. The revisions of the `was()` of a field are distinct; every one is older than the head and at or after the `since`.
 4. A rename cannot target a name already present in the same revision (checked revision by revision).
-5. Calling `until()` (or `since()`) twice on the same descriptor keeps the last call and reports a diagnostic.
+5. Calling `until()` (or `since()`) twice on the same descriptor keeps the last call and reports a diagnostic
+   (`bound-repeated`). The default belongs to the `since()` call it is given with: a later `since()` without default
+   leaves none; `until()` keeps it.
 
 ### 4.5 Central invariant: one selection function
 
@@ -532,6 +534,7 @@ discovered classes, so a forgotten path is visible.
 | `order-missing-case` / `order-duplicate-case` | a case absent from `order()`, or present twice | enum |
 | `lifetime-inverted` | `until` before `since` | all |
 | `since-older-than-group` | a field `since` older than its group's | all |
+| `bound-repeated` | `since()` or `until()` called twice on one descriptor, naming the replaced revision (§4.4 rule 5; severity: Q16) | all |
 | `history-unordered` | two `was()` on the same revision, or a `was()` not older than the head | all |
 | `history-before-since` | a `was()` older than the field's `since` (dead declaration) | all |
 | `conversion-missing` | a type pair neither automatic nor provided, in the direction of the declaration kind | all |

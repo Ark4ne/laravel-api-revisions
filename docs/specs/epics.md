@@ -358,6 +358,15 @@ Goal: the history of a field is declared on it, and one pure function turns the 
 Tests: `test_until_keeps_the_field_up_to_its_revision_included`, `test_since_keeps_the_field_from_its_revision_included`,
 `test_since_after_until_throws`.
 
+**Done** (2026-11-11): `Definition\Lifetime` (`always()`, `withSince()` / `withUntil()`, `covers()`, inclusive
+bounds, `DefinitionException::invertedLifetime()`, revisions of another enum refused), `Descriptor::since(Revision,
+$default)` / `until(Revision)` / `lifetime()` / `default()` / `repeatedBounds()` (each extra call with the revision it
+replaced), `Support\Undefined` (`is()`) brought forward from US 3.5. A later `since()` without default leaves none,
+`until()` keeps it (written in model.md §4.4 rule 5). Coverage 100 %, Infection MSI 100 %. Deviations and follow-ups:
+`lifetime` and `default` live on `Descriptor` until US 3.3 gathers them with the `Change`s in `History`
+(architecture.md §5); groups (US 3.2) need an internal entry point (noted there); rule 5 gets the `bound-repeated`
+code in model.md §9; Q16 (whether the check reports declaration errors, severity of `bound-repeated`).
+
 #### US 3.2 — Groups · S · depends US 3.1
 
 - `Schema::since(R, array $fields, mixed $default = new Undefined())`, `Schema::until(R, array $fields)`: return the
@@ -365,6 +374,10 @@ Tests: `test_until_keeps_the_field_up_to_its_revision_included`, `test_since_kee
   `DefinitionException::sinceOlderThanGroup()`; a member's own default wins.
 - Nested in objects: a group inside `Schema::object([...])` works the same.
 - Spike M0 findings to address: F10 (Q7) (§3.1).
+
+- Note (from US 3.1): a group must not go through the public `since()` / `until()` of its members, which record a
+  repeated bound and replace the member's default: apply it through a dedicated (`@internal`) entry point that keeps
+  a newer own `since` and a defined own default, records nothing, and throws `sinceOlderThanGroup()`.
 
 Tests: `test_a_group_sets_since_on_every_member`, `test_a_member_newer_than_its_group_keeps_its_own_since`,
 `test_a_member_older_than_its_group_throws`, `test_a_member_default_overrides_the_group_default`.
@@ -411,6 +424,9 @@ recomputed.
   shape older than `R` (consumed by US 7.1); `Configuration::missingDefault` (`error` | `null`).
 
 Tests: `test_undefined_and_null_defaults_are_distinct`, `test_missing_default_null_option_fills_null`.
+
+Note (from US 3.1): `Support\Undefined` (with `is()`) and `Descriptor::default()` already exist; this story adds their
+use in the shapes and `missingDefault`.
 
 ---
 
@@ -695,7 +711,8 @@ Tests: `test_a_diagnostic_names_its_class_field_and_revision`, `test_the_checker
 Tests: one passing and one failing declaration per code, e.g.
 `test_a_required_field_added_later_without_default_is_reported`, `test_a_lossy_conversion_without_cast_is_reported`,
 `test_a_rule_keyword_overriding_the_type_is_reported` (`schema-override`, D36: compare the exported keywords of the
-type with `TypeDefinition::$jsonSchema`).
+type with `TypeDefinition::$jsonSchema`). The repeated `since()` / `until()` calls of model.md §4.4 rule 5 are read
+from `Descriptor::repeatedBounds()` (US 3.1).
 
 #### US 9.3 — `revision:check` and the PHPUnit assertion · S · depends US 9.2, US 8.1
 
@@ -884,9 +901,10 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | **Decided** (2026-11-11): D30: application timezone for the headers |
 | Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | **Decided** (2026-11-11): D31: the configured `default` when it is a fixed revision, set by the Laravel provider |
 | Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | **Decided** (2026-11-11): D32 |
+| Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
 | Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36: rule keywords apply last, in order, even over the typed ones; the check warns (`schema-override`) |
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
-| Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
+| Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | Open |
 
 ---
 
@@ -926,7 +944,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | done |
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | todo |
 | US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |
-| US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | todo |
+| US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
 | US 3.2 | Groups | S | 3.1 | M1 | todo |
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | todo |
 | US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | todo |

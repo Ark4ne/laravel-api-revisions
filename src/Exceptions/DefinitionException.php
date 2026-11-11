@@ -84,6 +84,20 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A field whose `since` is newer than its `until`: it would exist in no revision.
+     */
+    public static function invertedLifetime(BackedEnum $since, BackedEnum $until): self
+    {
+        return new self(sprintf(
+            'A field cannot exist from %s::%s until %s::%s: its since is newer than its until.',
+            $since::class,
+            $since->name,
+            $until::class,
+            $until->name,
+        ));
+    }
+
+    /**
      * A presence key (`whenHas()`) empty, or with an empty segment.
      */
     public static function invalidPresenceKey(string $key): self

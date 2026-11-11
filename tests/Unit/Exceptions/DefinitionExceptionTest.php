@@ -97,4 +97,28 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::invalidChildKey('')->getMessage(),
         );
     }
+
+    public function test_inverted_lifetime_names_both_cases_and_their_enums(): void
+    {
+        self::assertSame(
+            sprintf('A field cannot exist from %1$s::Atlas until %1$s::Genesis: its since is newer than its until.', ApiRevision::class),
+            DefinitionException::invertedLifetime(ApiRevision::Atlas, ApiRevision::Genesis)->getMessage(),
+        );
+    }
+
+    public function test_invalid_presence_key_names_the_key(): void
+    {
+        self::assertSame(
+            "Invalid presence key 'a..b': a key or each segment of a dotted path must not be empty.",
+            DefinitionException::invalidPresenceKey('a..b')->getMessage(),
+        );
+    }
+
+    public function test_invalid_json_schema_names_the_rule(): void
+    {
+        self::assertSame(
+            'The JSON Schema of the rule App\\Rules\\Postcode must be keywords holding scalars, arrays and nulls only.',
+            DefinitionException::invalidJsonSchema('App\\Rules\\Postcode')->getMessage(),
+        );
+    }
 }

@@ -42,6 +42,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Conditions on every descriptor: `when(Closure $condition)` (called `($value, $subject)` after normalization) and
   `whenHas(?string $key)` (a `Schema\Presence`, checked before the source; `DefinitionException::invalidPresenceKey()`);
   `isConditional()`, `conditions()`, `presences()`.
+- Lifetime of a field: `Descriptor::since(Revision, $default)` (from the revision included; a default for older
+  clients, `Support\Undefined` when none) and `until(Revision)` (up to the revision included), read as
+  `Definition\Lifetime` (`covers(Revision)`); a `since` newer than the `until` throws
+  `DefinitionException::invertedLifetime()`; a bound set twice keeps the last call and is recorded
+  (`Descriptor::repeatedBounds()`).
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.
