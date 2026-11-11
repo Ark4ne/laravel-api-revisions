@@ -200,7 +200,8 @@ Checked when declared (programming error → `DefinitionException`) or by the ch
    field's `until` newer than its group's is an **error**, an earlier one wins. A group never counts as a second call
    (rule 5).
 2. `until` must be at or after the `since` of the same field or of its group.
-3. The revisions of the `was()` of a field are distinct; every one is older than the head and at or after the `since`.
+3. The revisions of the `was()` of a field are distinct; every one is older than the head, at or after the `since`
+   and at or before the `until` (D43).
 4. A rename cannot target a name already present in the same revision (checked revision by revision).
 5. Calling `until()` (or `since()`) twice on the same descriptor keeps the last call and reports a diagnostic
    (`bound-repeated`). The default belongs to the `since()` call it is given with: a later `since()` without default
@@ -544,6 +545,7 @@ discovered classes, so a forgotten path is visible.
 | `bound-repeated` | **warning**: `since()` or `until()` called twice on one descriptor, naming the replaced revision (§4.4 rule 5, D38) | all |
 | `history-unordered` | two `was()` on the same revision, or a `was()` not older than the head | all |
 | `history-before-since` | a `was()` older than the field's `since` (dead declaration) | all |
+| `history-after-until` | a `was()` newer than the field's `until` (dead declaration, D43) | all |
 | `conversion-missing` | a type pair neither automatic nor provided, in the direction of the declaration kind | all |
 | `conversion-lossy` | **warning**: a lossy-capable automatic conversion without closure (§5) | all |
 | `name-collision` | two fields under the same name in one revision | all |
@@ -669,5 +671,6 @@ returns the declared type.
 | D40 | Booleans and strings: `bool → string` gives `'1'` / `'0'` (never `''`); `string → bool` reads like `filter_var(FILTER_VALIDATE_BOOLEAN)` (`'1'`, `'true'`, `'on'`, `'yes'` → `true`; `'0'`, `'false'`, `'off'`, `'no'`, `''` → `false`, case-insensitive, surrounding blanks ignored as by `filter_var`), any other string → `true` as the PHP cast; `int → bool` is the PHP cast (US 4.1) | **Decided** (2026-11-11) |
 | D41 | Enums and their backing: `enum → string` always (`->value` as string, lossless); `enum → int` only for an int-backed enum (otherwise no automatic conversion: a closure is required, `conversion-missing`); `string / int → enum` reads the value as the backing type when lossless (`'3'` for an int-backed enum, `3` for a string-backed one), else `ConversionException::invalidEnumValue()` (US 4.1) | **Decided** (2026-11-11) |
 | D42 | The `TypeRegistry` of custom types is **static**, like Laravel's macros: the application registers its types at boot (`TypeRegistry::register('money', MoneySchema::class)`), `Schema::__callStatic()` serves them, `TypeRegistry::flush()` empties it for tests; names are case-sensitive, as for macros; the third allowed global state (US 2.5) | **Decided** (2026-11-11) |
+| D43 | A `was()` newer than the field's `until` is dead (the field no longer exists after its `until`; a `was(until)` is valid, it describes the last revision the field exists in): check code `history-after-until`, an **error**, mirror of `history-before-since` (Q17) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.
