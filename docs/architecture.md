@@ -48,7 +48,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 
 | Layer | Folder | Content |
 | --- | --- | --- |
-| Support | `src/Support/` | Building blocks without internal dependency: `Undefined`, `Memo`, `Invoke`, `Diagnostics`, `Diagnostic`, `Severity` |
+| Support | `src/Support/` | Building blocks without internal dependency: `Undefined`, `Memo`, `Invoke`, `Floats`, `Diagnostics`, `Diagnostic`, `Severity` |
 | Configuration | `src/Configuration/` | `Configuration`: typed, validated, readonly options of the core (date formats, `missingDefault`, `strictValues`) |
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
 | Definition | `src/Definition/` | Public immutable model: `Shape`, `FieldDefinition`, `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
@@ -150,9 +150,16 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
 Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(from Kind, to Kind, Direction)`),
 **Pipeline** (`ConversionChain`).
 
-- `Converter::convert(mixed $value): mixed`, `lossless(): bool`, `extraRules(): list<mixed>` (e.g. `numeric`).
-- Built-ins are one class each (`IntToFloat`, `NumericStringToFloat`, `EnumToBacked`, `BackedToEnum`…), registered
-  in `Converters::builtIn()`. `Cast::round()` / `floor()` / `ceil()` are named constructors of explicit converters.
+- `Converter::convert(mixed $value): mixed`, `lossless(): bool`, `extraRules(): list<mixed>` (e.g. `numeric`). A
+  converter receives a normalized value of its source type; any other value passes through unchanged.
+- `Converters` is an immutable instance (no static state): `register(Kind $from, Kind $to, Direction, $factory)`
+  stores a factory `(TypeDefinition $from, TypeDefinition $to): ?Converter`, so a converter is built for the two
+  types (`BackedToEnum` needs the enum class) or declined for them (`enum → int` of a string-backed enum, D41);
+  `find(TypeDefinition, TypeDefinition, Direction)` resolves it; `key()` (`int>float:down`) is what a chain stores.
+- Built-ins are one class each under `Conversion\BuiltIn\` (`IntToFloat`, `NumericStringToFloat`, `EnumToBacked`,
+  `BackedToEnum`…), registered in `Converters::builtIn()` for both directions (D25: the same cast serves both).
+  `BackedToEnum` is the one converter that validates instead of passing a foreign value through: it throws
+  `ConversionException`. `Cast::round()` / `floor()` / `ceil()` are named constructors of explicit converters.
 - A user closure (`down:` / `up:`) becomes a `ClosureConverter`, always considered explicit (so never `conversion-lossy`).
 - Plans hold **one direction**, the one of the declaration kind (`model.md` D27): `down` for responses, `up` for
   requests.
@@ -319,8 +326,9 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 
 ### Add a conversion
 
-1. `src/Conversion/Converters/<From>To<To>.php` implementing `Converter`; `lossless()` honest per direction.
-2. Register it in `Converters::builtIn()`; update `specs/model.md` §5.
+1. `src/Conversion/BuiltIn/<From>To<To>.php` implementing `Converter`; `lossless()` honest for every value it accepts.
+2. Register a factory for it in `Converters::builtIn()` (both directions unless the model says otherwise; the factory
+   may decline a pair of types); update `specs/model.md` §5.
 3. Unit tests: values at the edges, the lossy cases reported by `conversion-lossy`.
 
 ### Add a check rule

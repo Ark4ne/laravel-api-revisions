@@ -6,6 +6,7 @@ namespace Ark4ne\ApiRevisions\Schema;
 
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Support\Floats;
 use Stringable;
 
 /**
@@ -72,25 +73,10 @@ final class StringSchema extends Descriptor
     {
         return match (true) {
             is_string($value) => $value,
-            is_float($value) && is_finite($value) => self::float($value),
+            is_float($value) && is_finite($value) => Floats::toString($value),
             is_int($value), $value instanceof Stringable => (string) $value,
             default => new InvalidValue($value, Kind::String, is_scalar($value) && !is_float($value) ? (string) $value : null),
         };
-    }
-
-    /**
-     * The shortest string that reads back as the same float, whatever the `precision` setting (`0.1 + 0.2` keeps its
-     * 17 digits, `0.1` stays `'0.1'`), in PHP's notation (`'12'`, `'1.0E+20'`).
-     */
-    private static function float(float $value): string
-    {
-        $digits = 1;
-        while ($digits < 17 && (float) sprintf("%.{$digits}G", $value) !== $value) {
-            $digits++;
-        }
-        $written = sprintf("%.{$digits}G", $value);
-
-        return preg_replace('/^(-?\d+)E/', '$1.0E', $written) ?? $written;
     }
 
     protected function type(): TypeDefinition

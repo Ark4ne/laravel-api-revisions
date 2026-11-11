@@ -454,6 +454,22 @@ Tests: one per row of the table of `model.md` §5 and per direction, e.g.
 `test_int_to_float_is_automatic`, `test_float_to_int_is_automatic_and_flagged_lossy`,
 `test_numeric_string_to_float_requires_the_numeric_rule`, `test_an_unknown_enum_value_throws_a_conversion_exception`.
 
+**Done** (2026-11-11): `Definition\Direction`, `Conversion\Converter`, `Conversion\Converters` (immutable registry of
+factories `(TypeDefinition $from, TypeDefinition $to): ?Converter` keyed by `Converters::key()`, `builtIn()` in both
+directions), twelve built-ins under `Conversion\BuiltIn\`, `Exceptions\ConversionException::invalidEnumValue()`,
+`Support\Floats::toString()` (moved out of `StringSchema`, reused by `FloatToString`). Decisions taken with the
+maintainer: **D40** (`bool → string` gives `'1'` / `'0'`; `string → bool` as `filter_var(FILTER_VALIDATE_BOOLEAN)`,
+else `true`) and **D41** (enum → int only when int-backed; string / int → enum read losslessly as the backing type).
+Coverage 100 %, Infection MSI 98–99 % (the escaped mutants are equivalent: an enum type always has its
+backing, an earlier arm of `BackedToEnum` already takes the strings of a string-backed enum, the digit search of
+`Floats` from 1 or 2). Deviations: `find()` takes the two `TypeDefinition`s, not only their kinds (an
+enum target needs its class); the registry key stays `(Kind, Kind, Direction)`. `BackedToEnum` validates (throws) instead of passing
+a foreign value through. Follow-ups: chains (US 4.3) store `Converters::key()` and re-resolve with the types of the
+shapes; custom types (US 2.5, US 4.4) register factories, and the key must then include the custom type's name (all
+custom types share `Kind::Custom`); the up rules of an older shape converted to an enum must carry the enum values
+(US 8.6, model.md §5), the converter itself returns no extra rule; on the response side the projection (US 6.1)
+maps a `ConversionException` to a value error under `strict_values`.
+
 #### US 4.2 — Explicit casts and closures · S · depends US 4.1
 
 - `Cast::round()`, `floor()`, `ceil()`; `ClosureConverter` wraps `down:` / `up:` (always explicit).
@@ -479,11 +495,15 @@ Tests: `test_a_down_chain_converts_from_the_head_to_the_oldest_shape`,
 
 Tests: `test_a_custom_type_converts_to_a_float_with_its_own_converter`.
 
+Note (from US 4.1): `Converters` keys factories by `(Kind, Kind, Direction)`; every custom type is `Kind::Custom`,
+so the key (and `find()`) must include the custom type's name, or two custom types overwrite each other.
+
 ---
 
 ### E5 — Compilation and cache
 
 Goal: the shape of a class is computed once per revision, without a subject, and can be cached in a file.
+
 
 #### US 5.1 — Probe and compiler · M · depends US 3.4
 
@@ -959,7 +979,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | todo |
 | US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | todo |
 | US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |
-| US 4.1 | Converters and directions | M | 2.1 | M1 | todo |
+| US 4.1 | Converters and directions | M | 2.1 | M1 | done |
 | US 4.2 | Explicit casts and closures | S | 4.1 | M1 | todo |
 | US 4.3 | Conversion chains | M | 4.2 | M1 | todo |
 | US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | todo |

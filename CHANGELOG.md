@@ -51,6 +51,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   array with each member bounded, to spread with its string keys (in a declaration or in `Schema::object()`); a
   member's own narrower bound and own default win, a wider one throws `DefinitionException::sinceOlderThanGroup()` /
   `untilNewerThanGroup()`; a group never records a repeated bound.
+- Conversions: `Definition\Direction` (`Down`, `Up`), the `Conversion\Converter` strategy (`convert()`, `lossless()`,
+  `extraRules()`) and the `Conversion\Converters` registry keyed by `(from Kind, to Kind, Direction)`
+  (`builtIn()`, `register()` with a factory receiving both types, `find()`, `key()`), with the built-ins of model.md
+  §5 in both directions (`Conversion\BuiltIn\*`: int ↔ float / string / bool, float → string / int, bool → string /
+  int, string → bool, enum ↔ backed value, D40, D41); `Exceptions\ConversionException::invalidEnumValue()`.
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.

@@ -227,9 +227,9 @@ need: **it is the author's call** (D25). Pairs that may lose information without
 
 | Conversion | Automatic | Lossy-capable (warning without closure) |
 | --- | --- | --- |
-| int → float, int / float / bool → string, bool → int | yes | no |
-| string → int, string → float, float → int, int / string → bool | yes (PHP cast) | **yes** |
-| backed enum → string / int | yes, via `->value` | no |
+| int → float, int / float / bool → string, bool → int | yes (a float as its shortest round-trip string, a bool as `'1'` / `'0'`, D40) | no |
+| string → int, string → float, float → int, int / string → bool | yes (PHP cast; string → bool as D40) | **yes** |
+| backed enum → string / int | yes, via `->value` (to int only when int-backed, D41) | no |
 | string / int → backed enum | yes, `::from()`; a failure is a validation error (up) or a value error (down) | no |
 | nullable → non-nullable (up) | no | `default:` required |
 | object, list, custom type | no: explicit closure, unless the custom type declares its conversions | — |
@@ -664,5 +664,7 @@ returns the declared type.
 | D37 | `whenHas()` without key checks the source path when the source is a key or dotted path, the head declared key otherwise (closure source, parent subject); never the name at an older revision (Q15) | **Decided** (2026-11-11) |
 | D38 | `bound-repeated` (a `since()` or `until()` called twice on one descriptor) is a **warning**: the last call wins, the declaration stays valid (Q16) | **Decided** (2026-11-11) |
 | D39 | The check catches a `DefinitionException` thrown while building a class and reports it as an **error** under its code (`lifetime-inverted`, `since-older-than-group`, `until-newer-than-group`…; the generic `definition-error` otherwise), then goes on with the other classes: `revision:check` lists every faulty class at once. Declarations still throw at run time (Q16) | **Decided** (2026-11-11) |
+| D40 | Booleans and strings: `bool → string` gives `'1'` / `'0'` (never `''`); `string → bool` reads like `filter_var(FILTER_VALIDATE_BOOLEAN)` (`'1'`, `'true'`, `'on'`, `'yes'` → `true`; `'0'`, `'false'`, `'off'`, `'no'`, `''` → `false`, case-insensitive, surrounding blanks ignored as by `filter_var`), any other string → `true` as the PHP cast; `int → bool` is the PHP cast (US 4.1) | **Decided** (2026-11-11) |
+| D41 | Enums and their backing: `enum → string` always (`->value` as string, lossless); `enum → int` only for an int-backed enum (otherwise no automatic conversion: a closure is required, `conversion-missing`); `string / int → enum` reads the value as the backing type when lossless (`'3'` for an int-backed enum, `3` for a string-backed one), else `ConversionException::invalidEnumValue()` (US 4.1) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.
