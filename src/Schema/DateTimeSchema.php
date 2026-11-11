@@ -8,6 +8,7 @@ use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use DateTimeImmutable;
+use DateTimeInterface;
 
 /**
  * A date and time: serialized with its format, RFC 3339 unless configured (model.md D29). Accepts a `DateTimeInterface`, a non-empty string `DateTimeImmutable` parses, or an int timestamp (UTC).
@@ -50,11 +51,11 @@ final class DateTimeSchema extends Descriptor
     }
 
     /**
-     * @param DateTimeImmutable $value
+     * A date in its format; anything else (never a normalized value) as it is.
      */
     public function serialize(mixed $value): mixed
     {
-        return $value->format($this->resolvedFormat());
+        return $value instanceof DateTimeInterface ? $value->format($this->resolvedFormat()) : $value;
     }
 
     /**

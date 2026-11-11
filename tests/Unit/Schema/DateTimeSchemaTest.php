@@ -57,4 +57,9 @@ final class DateTimeSchemaTest extends TestCase
     {
         self::assertRefused((new DateTimeSchema())->normalize('soon-ish'), 'soon-ish', Kind::DateTime, null);
     }
+
+    public function test_serialize_leaves_a_value_of_another_type_as_it_is(): void
+    {
+        self::assertSame('raw', (new DateTimeSchema())->serialize('raw'));
+    }
 }

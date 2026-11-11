@@ -25,6 +25,22 @@ final class TypeDefinitionTest extends TestCase
         self::assertNull($type->enum);
         self::assertNull($type->backing);
         self::assertSame([], $type->values);
+        self::assertNull($type->items);
+        self::assertSame([], $type->children);
+    }
+
+    public function test_items_and_children_are_kept_by_every_wither(): void
+    {
+        $string = TypeDefinition::of(Kind::String);
+
+        $list = TypeDefinition::of(Kind::List)->withItems($string)->withMin(1)->withDescription('Tags');
+        $object = TypeDefinition::of(Kind::Object)->withChildren(['street' => $string])->withDeprecated(true);
+
+        self::assertSame($string, $list->items);
+        self::assertSame(1, $list->min);
+        self::assertSame(['street' => $string], $object->children);
+        self::assertTrue($object->deprecated);
+        self::assertEquals($object, unserialize(serialize($object)));
     }
 
     public function test_withers_return_a_new_type_and_keep_the_others_values(): void

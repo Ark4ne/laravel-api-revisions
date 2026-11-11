@@ -280,6 +280,20 @@ impact to US 5.3, the format validation to US 8.1).
 Tests: `test_an_object_describes_its_children`, `test_a_list_describes_its_items_and_size`,
 `test_a_list_normalizes_any_iterable`.
 
+**Done** (2026-11-11): `Schema\ListSchema` (`Schema::list($items, $source)`, `min()` / `max()` on the size, any
+`iterable` normalized to a list of its elements), `Schema\ObjectSchema` (`Schema::object($children, $source)`, children
+checked at declaration: `DefinitionException::invalidChildKey()` / `invalidChild()`; serialized as `{}` when empty),
+both forwarding `configure()`; `Source::parent()` (an object without source reads its children on the parent's
+subject); `TypeDefinition` gains `items` / `children` (its withers now go through one private copier). Decisions taken
+with the maintainer: **D34** (composites: `normalize()` checks the container, the projection projects the children
+first, the composite's `when()` / `down:` receive the projected children, `serialize()` the serialized ones) and
+**D35** (lenient: a refused list or object renders `null`). `Descriptor`'s template is now covariant
+(`Descriptor<string>` is a `Descriptor<mixed>`), so `serialize()` takes a `mixed` and date / enum `serialize()` pass
+another type through. Coverage 100 %, Infection MSI 96–100 %. Deviations and follow-ups: the subject of the children
+(criterion 2) is only representable here (`Source::parent()`), its behaviour is tested by US 6.2; children are
+`TypeDefinition`s without required / nullable / history until US 3.4 (noted there and on US 10.1); size bounds
+(`min(-1)`, `min > max`) are not validated, as for strings (left to the check, US 9.2).
+
 #### US 2.4 — Escape hatch and conditions · S · depends US 2.1
 
 - `Schema::rule(array $rules)` → `Kind::Any` unless `describe()`; `Schema\DescribesSchema::toSchema(): array` on a
@@ -363,7 +377,9 @@ validation, the export and the lock never disagree.*
 - `Compilation\ShapeSelector::at(array<string, Descriptor> $head, Revision $r): Shape` (`model.md` §4.5): visible
   fields (lifetime), for each: name, type, required / nullable, defaults, conversion plan down and up, with **chained
   inheritance** of omitted `was()` arguments from the next newer shape.
-- Recursive into objects and lists (children have their own history).
+- Recursive into objects and lists (children have their own history). `TypeDefinition::children` holds plain
+  `TypeDefinition`s since US 2.3: the shape gives each child its own field definition (name, required, nullable,
+  history), and `children` follows (spike F7 compares types through it).
 - Name collisions at `R` are recorded on the `Shape` (reported by US 9.2), never thrown.
 - Spike M0 findings to address: F4, F5, F6 (Q6) (§3.1).
 
@@ -492,7 +508,9 @@ Tests: `test_only_visible_sources_are_evaluated`, `test_a_field_is_written_under
 #### US 6.2 — Nested projection · M · depends US 6.1
 
 - Objects and lists projected recursively with their children's histories and subjects (`model.md` §6.1); `null`
-  objects stay `null`; `ResourceSchema` projects the other class at the same revision.
+  objects stay `null`; `ResourceSchema` projects the other class at the same revision. Children are projected before
+  the composite's own `when()` and down conversions, which receive the projected children (D34); an object without
+  source reads its children on the parent's subject (`Source::parent()`).
 
 Tests: `test_a_child_renamed_in_an_object_is_projected_under_its_old_name`,
 `test_an_object_with_a_source_reads_its_children_on_the_source_value`,
@@ -682,6 +700,8 @@ Tests: `test_a_field_leaking_into_a_locked_revision_fails_the_check`, `test_movi
   conditional = optional, descriptions, examples, `deprecated`, revision `meta()` in `$comment` / `description`;
   `DescribesSchema` honoured. Command `revision:export {--revision=} {--class=}`.
 - Extends the invariant test (US 6.3): every projected fixture validates against its revision's schema (opis).
+- Object children are exported with their own required / nullable / history (the field definitions of US 3.4),
+  not only their `TypeDefinition` (from US 2.3).
 
 Tests: `test_each_revision_exports_its_own_schema`, `test_a_projected_document_matches_the_schema_of_its_revision`.
 
@@ -874,7 +894,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 1.3 | Current revision and `using()` | S | 1.1 | M1 | done |
 | US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | done |
 | US 2.2 | Dates and enums | S | 2.1 | M1 | done |
-| US 2.3 | Lists and objects | M | 2.1 | M1 | todo |
+| US 2.3 | Lists and objects | M | 2.1 | M1 | done |
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | todo |
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | todo |
 | US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |

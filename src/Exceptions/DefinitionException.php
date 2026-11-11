@@ -90,4 +90,25 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     {
         return new self("Schema::enum() needs a backed enum, got {$class}.");
     }
+
+    /**
+     * A child of `Schema::object()` that is not a descriptor.
+     *
+     * @param string $type the debug type of the child
+     */
+    public static function invalidChild(string $key, string $type): self
+    {
+        return new self(sprintf("Invalid child '%s' of Schema::object(): a descriptor is expected, got %s.", $key, $type));
+    }
+
+    /**
+     * A child of `Schema::object()` under an int or empty key.
+     */
+    public static function invalidChildKey(int|string $key): self
+    {
+        return new self(sprintf(
+            'Invalid child key %s of Schema::object(): children are keyed by non-empty strings.',
+            is_int($key) ? $key : "'{$key}'",
+        ));
+    }
 }

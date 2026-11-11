@@ -77,4 +77,24 @@ final class DefinitionExceptionTest extends TestCase
     {
         self::assertSame('Schema::enum() needs a backed enum, got stdClass.', DefinitionException::notBackedEnum('stdClass')->getMessage());
     }
+
+    public function test_invalid_child_names_the_key_and_the_type(): void
+    {
+        self::assertSame(
+            "Invalid child 'street' of Schema::object(): a descriptor is expected, got string.",
+            DefinitionException::invalidChild('street', 'string')->getMessage(),
+        );
+    }
+
+    public function test_invalid_child_key_names_the_key(): void
+    {
+        self::assertSame(
+            'Invalid child key 0 of Schema::object(): children are keyed by non-empty strings.',
+            DefinitionException::invalidChildKey(0)->getMessage(),
+        );
+        self::assertSame(
+            "Invalid child key '' of Schema::object(): children are keyed by non-empty strings.",
+            DefinitionException::invalidChildKey('')->getMessage(),
+        );
+    }
 }

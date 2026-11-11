@@ -14,21 +14,24 @@ use Closure;
 final readonly class Source
 {
     /**
-     * @param list<string> $path empty for the declared key and for a closure
+     * @param list<string> $path empty for the declared key, the parent subject and a closure
      * @param Closure|null $closure called with `($value, $subject)` (`Support\Invoke`)
+     * @param bool $parent the subject of the parent itself (an object without source)
      */
     private function __construct(
         public array $path,
         public ?Closure $closure,
+        public bool $parent = false,
     ) {}
 
     /**
-     * A source as declared: `null` (the declared key), a key or dotted path, or a closure. Anything else is an
-     * evaluated value and throws `DefinitionException::eagerSource()`.
+     * A source as declared: `null` (the declared key), a key or dotted path, a closure, or a `Source` already built.
+     * Anything else is an evaluated value and throws `DefinitionException::eagerSource()`.
      */
     public static function from(mixed $source): self
     {
         return match (true) {
+            $source instanceof self => $source,
             $source === null => self::declaredKey(),
             is_string($source) => self::key($source),
             $source instanceof Closure => self::closure($source),
@@ -65,9 +68,22 @@ final readonly class Source
         return new self([], null);
     }
 
+    /**
+     * The subject of the parent: an object without source groups fields read on the parent's subject (model.md §6.1).
+     */
+    public static function parent(): self
+    {
+        return new self([], null, true);
+    }
+
+    public function isParent(): bool
+    {
+        return $this->parent;
+    }
+
     public function isDeclaredKey(): bool
     {
-        return $this->path === [] && $this->closure === null;
+        return $this->path === [] && $this->closure === null && !$this->parent;
     }
 
     public function isClosure(): bool

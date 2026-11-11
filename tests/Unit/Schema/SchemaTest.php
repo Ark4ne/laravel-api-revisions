@@ -32,6 +32,17 @@ final class SchemaTest extends TestCase
         self::assertSame(['state'], Schema::enum(OrderStatus::class, 'state')->source()->path);
     }
 
+    public function test_list_and_object_helpers_return_their_descriptor_with_their_source(): void
+    {
+        $list = Schema::list(Schema::string(), 'tags');
+        $object = Schema::object(['street' => Schema::string()], 'shippingAddress');
+
+        self::assertSame(Kind::String, $list->items()->toType()->kind);
+        self::assertSame(['tags'], $list->source()->path);
+        self::assertSame(['street'], array_keys($object->children()));
+        self::assertSame(['shippingAddress'], $object->source()->path);
+    }
+
     public function test_an_evaluated_value_is_refused_even_without_strict_types(): void
     {
         foreach (NonStrictDeclarations::evaluatedSources() as $index => $declare) {

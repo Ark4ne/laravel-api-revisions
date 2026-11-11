@@ -104,4 +104,9 @@ final class DateSchemaTest extends TestCase
     {
         self::assertRefused((new DateSchema())->normalize($value), $value, Kind::Date, null);
     }
+
+    public function test_serialize_leaves_a_value_of_another_type_as_it_is(): void
+    {
+        self::assertSame('raw', (new DateSchema())->serialize('raw'));
+    }
 }

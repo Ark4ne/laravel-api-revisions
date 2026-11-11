@@ -79,11 +79,11 @@ final class EnumSchema extends Descriptor
     }
 
     /**
-     * @param TEnum $value
+     * A case as its backed value; anything else (never a normalized value) as it is.
      */
     public function serialize(mixed $value): mixed
     {
-        return $value->value;
+        return $value instanceof BackedEnum ? $value->value : $value;
     }
 
     protected function type(): TypeDefinition

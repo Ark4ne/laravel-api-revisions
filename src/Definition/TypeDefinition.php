@@ -16,6 +16,8 @@ final readonly class TypeDefinition
      * @param list<mixed> $examples JSON-ready values
      * @param class-string<BackedEnum>|null $enum the enum of an `Enum` kind
      * @param list<int|string> $values the backed values of the enum, in declaration order
+     * @param TypeDefinition|null $items the type of the items of a `List` kind
+     * @param array<string, TypeDefinition> $children the types of the children of an `Object` kind, by key
      */
     private function __construct(
         public Kind $kind,
@@ -29,6 +31,8 @@ final readonly class TypeDefinition
         public ?string $enum = null,
         public ?Kind $backing = null,
         public array $values = [],
+        public ?TypeDefinition $items = null,
+        public array $children = [],
     ) {}
 
     public static function of(Kind $kind): self
@@ -41,7 +45,7 @@ final readonly class TypeDefinition
      */
     public function withMin(int|float|null $min): self
     {
-        return new self($this->kind, $min, $this->max, $this->format, $this->pattern, $this->description, $this->examples, $this->deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['min' => $min]);
     }
 
     /**
@@ -49,12 +53,15 @@ final readonly class TypeDefinition
      */
     public function withMax(int|float|null $max): self
     {
-        return new self($this->kind, $this->min, $max, $this->format, $this->pattern, $this->description, $this->examples, $this->deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['max' => $max]);
     }
 
+    /**
+     * A JSON Schema format for a string (`email`), a PHP date format for a date.
+     */
     public function withFormat(?string $format): self
     {
-        return new self($this->kind, $this->min, $this->max, $format, $this->pattern, $this->description, $this->examples, $this->deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['format' => $format]);
     }
 
     /**
@@ -62,12 +69,12 @@ final readonly class TypeDefinition
      */
     public function withPattern(?string $pattern): self
     {
-        return new self($this->kind, $this->min, $this->max, $this->format, $pattern, $this->description, $this->examples, $this->deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['pattern' => $pattern]);
     }
 
     public function withDescription(?string $description): self
     {
-        return new self($this->kind, $this->min, $this->max, $this->format, $this->pattern, $description, $this->examples, $this->deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['description' => $description]);
     }
 
     /**
@@ -75,7 +82,7 @@ final readonly class TypeDefinition
      */
     public function addExample(mixed $example): self
     {
-        return new self($this->kind, $this->min, $this->max, $this->format, $this->pattern, $this->description, [...$this->examples, $example], $this->deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['examples' => [...$this->examples, $example]]);
     }
 
     /**
@@ -86,11 +93,40 @@ final readonly class TypeDefinition
      */
     public function withEnum(string $enum, Kind $backing, array $values): self
     {
-        return new self($this->kind, $this->min, $this->max, $this->format, $this->pattern, $this->description, $this->examples, $this->deprecated, $enum, $backing, $values);
+        return $this->with(['enum' => $enum, 'backing' => $backing, 'values' => $values]);
+    }
+
+    /**
+     * The type of the items of a `List` kind.
+     */
+    public function withItems(TypeDefinition $items): self
+    {
+        return $this->with(['items' => $items]);
+    }
+
+    /**
+     * The types of the children of an `Object` kind, by key, in declaration order.
+     *
+     * @param array<string, TypeDefinition> $children
+     */
+    public function withChildren(array $children): self
+    {
+        return $this->with(['children' => $children]);
     }
 
     public function withDeprecated(bool $deprecated): self
     {
-        return new self($this->kind, $this->min, $this->max, $this->format, $this->pattern, $this->description, $this->examples, $deprecated, $this->enum, $this->backing, $this->values);
+        return $this->with(['deprecated' => $deprecated]);
+    }
+
+    /**
+     * A copy with some properties replaced (the properties are the constructor's parameters).
+     *
+     * @param array<string, mixed> $changes
+     */
+    private function with(array $changes): self
+    {
+        /** @phpstan-ignore argument.type (the keys are the constructor's parameters, the values their types) */
+        return new self(...[...get_object_vars($this), ...$changes]);
     }
 }

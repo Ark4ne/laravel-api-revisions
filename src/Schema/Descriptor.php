@@ -11,7 +11,8 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
  * A field at the head: its lazy source, its type and its modifiers. Immutable: every modifier returns a new instance.
  * The extension base of custom types (docs/architecture.md §16).
  *
- * @template TValue the PHP value of the type, once normalized
+ * @template-covariant TValue the PHP value of the type, once normalized (covariant: a `Descriptor<string>` is a
+ *                     `Descriptor<mixed>`, so `serialize()` takes a `mixed`)
  */
 abstract class Descriptor
 {
@@ -58,9 +59,8 @@ abstract class Descriptor
     abstract public function normalize(mixed $value): mixed;
 
     /**
-     * The JSON-ready value of a normalized value. Scalars serialize as they are.
-     *
-     * @param TValue $value
+     * The JSON-ready value of a normalized value (a `TValue`). Scalars serialize as they are; a composite receives its
+     * items or children already projected and serialized (model.md D34).
      */
     public function serialize(mixed $value): mixed
     {

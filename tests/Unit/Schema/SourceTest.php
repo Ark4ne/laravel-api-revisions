@@ -23,6 +23,24 @@ final class SourceTest extends TestCase
         self::assertNull($source->closure);
     }
 
+    public function test_the_parent_subject_is_neither_a_key_nor_a_closure(): void
+    {
+        $source = Source::parent();
+
+        self::assertTrue($source->isParent());
+        self::assertFalse($source->isDeclaredKey());
+        self::assertFalse($source->isClosure());
+        self::assertFalse(Source::declaredKey()->isParent());
+        self::assertFalse(Source::key('a')->isParent());
+    }
+
+    public function test_from_keeps_a_source_as_it_is(): void
+    {
+        $source = Source::parent();
+
+        self::assertSame($source, Source::from($source));
+    }
+
     public function test_a_key_is_a_path_of_one_segment(): void
     {
         $source = Source::key('reference');

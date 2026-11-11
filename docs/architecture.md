@@ -127,6 +127,10 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
   without `format()` takes the configured format, `model.md` D29): a descriptor never reads configuration itself.
 - A descriptor builds its `TypeDefinition` (`toType()`); it never builds a `Shape` (that is the compiler's job) and
   never reads a revision other than those declared in its `History`.
+- Composites (`ListSchema`, `ObjectSchema`) normalize only their own value: a list to `list` of elements, an object
+  to the subject of its children. Projecting each item and child is the projection's job (a descriptor never reads
+  the subject), before the composite's own `when()` and conversions (`model.md` D34). `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
+  so `serialize()` takes a `mixed` and passes any other type through.
 - A descriptor owns the **value rules of its type**: `normalize(mixed): mixed` (subject data → PHP value of the type,
   or an `InvalidValue`, returned, never thrown: not named `ValueError`, which PHP already defines and `BackedEnum::from()`
   throws) and `serialize(mixed): mixed` (PHP value → JSON-ready value), `model.md` §6.3. It never reads the
@@ -181,7 +185,10 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   **without side effect** (`SourceReader::peek()`; the Laravel layer decorates it for Eloquent: attributes present,
   relations loaded).
 - **Nesting** changes the subject, never the pipeline: an object with a source projects its children on the source's
-  value, a list on each item, `ResourceSchema` delegates to the `Shape` of the other class at the same revision.
+  value (without one, on the parent's subject: `Source::parent()`), a list on each item, `ResourceSchema` delegates
+  to the `Shape` of the other class at the same revision. For a composite, the children are projected **between**
+  its `normalize()` (which only checks the container) and its own `when()` / down conversions, which therefore
+  receive the projected children; its `serialize()` receives them serialized (`model.md` D34).
 - **Value errors** go to a `ValueErrorHandler` (**Strategy**): `StrictValues` throws `ValueException`;
   `LenientValues` casts and hands the error to a reporter. Chosen from `Configuration::strictValues`.
 - A field whose condition fails is omitted. No `MissingValue` in the core.

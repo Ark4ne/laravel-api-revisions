@@ -332,8 +332,8 @@ raw subject data or on JSON.
 | bool | `bool`, `0` / `1`, `'0'` / `'1'` | `bool` | boolean |
 | enum | the enum case, or its backed value (`::from()`; an int-backed enum reads it as `int` does, D33) | the `BackedEnum` case | `->value` |
 | date / dateTime | `DateTimeInterface`, a string parsed without warning nor surrounding blanks, an int timestamp (UTC) (D33) | `DateTimeImmutable` | `format()` of the type (D29) |
-| list | any `iterable` (arrays, generators, Laravel collections) | `list` of normalized items | array |
-| object | see §6.1 (subject of its children) | `array<string, mixed>` | object |
+| list | any `iterable` (arrays, generators, Laravel collections) | `list` of projected items (D34) | array |
+| object | an array or object, the subject of its children (§6.1) | `array<string, mixed>` of projected children (D34) | object (`{}` when empty) |
 | custom type | the type's `normalize()` | the type's | the type's `serialize()` |
 | any (`Schema::rule()`, eager value) | anything | as is | `JsonSerializable`, scalars and arrays as is |
 
@@ -647,5 +647,7 @@ returns the declared type.
 | D31 | Outside a request (jobs, console) the base revision is the configured `default` when it is a fixed revision (`latest`, `oldest`, a backed value), set by the Laravel provider; the head otherwise (a resolver class needs a request) (Q11) | **Decided** (2026-11-11) |
 | D32 | Numeric strings: `int` reads digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'`, `'1e3'`, up to 2^53); `int` and `float` refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit whatever `precision` (`'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 read as float loses precision, as in PHP (Q12) | **Decided** (2026-11-11) |
 | D33 | Dates: a string parsed by `DateTimeImmutable` without warning (`2026-02-30` refused, never rolled over) nor surrounding blanks, relative strings accepted, read in the default timezone unless it names one; an int timestamp in UTC. Enums: an int-backed enum reads its value as `int` does (`'3'`, `3.0`); a refused value keeps its backed value as lenient cast (Q13) | **Decided** (2026-11-11) |
+| D34 | Composites (list, object): their `normalize()` only checks the container (an iterable; an array or object subject). The projection then runs every item or child through its own pipeline, in the shape of `R`; the composite's `when()` and `down:` receive that result (a list of projected items, an `array<string, mixed>` of projected children) and `serialize()` the serialized children (an empty object is `{}`). An object without source reads its children on the parent's subject (`Source::parent()`) | **Decided** (2026-11-11) |
+| D35 | In lenient mode a refused list or object renders `null` (no sensible cast, as for dates) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.

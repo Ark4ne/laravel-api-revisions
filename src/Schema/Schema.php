@@ -78,4 +78,22 @@ final class Schema
     {
         return new EnumSchema($enum, $source);
     }
+
+    /**
+     * @param Descriptor<mixed> $items each element of the list is its subject
+     * @param string|Closure|null $source see `string()`
+     */
+    public static function list(Descriptor $items, mixed $source = null): ListSchema
+    {
+        return new ListSchema($items, $source);
+    }
+
+    /**
+     * @param array<string, Descriptor<mixed>> $children by key
+     * @param string|Closure|null $source see `string()`; without one, the children read the parent's subject
+     */
+    public static function object(array $children, mixed $source = null): ObjectSchema
+    {
+        return new ObjectSchema($children, $source);
+    }
 }
