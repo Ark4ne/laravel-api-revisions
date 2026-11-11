@@ -53,7 +53,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
 | Definition | `src/Definition/` | Public immutable model: `Shape`, `FieldDefinition`, `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `Revisioned` |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `Presence`, `Revisioned` |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradeStep`, `Input` (present / absent / null), `UpgradesInput` hook contract |
@@ -136,7 +136,13 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
   throws) and `serialize(mixed): mixed` (PHP value → JSON-ready value), `model.md` §6.3. It never reads the
   subject itself: that is the `SourceReader`'s job.
 - `DescribesSchema` (implemented by a rule object) and `Revisioned` (implemented by a declaring class) are the two
-  contracts of this layer an application implements.
+  contracts of this layer an application implements. `Descriptor::toType()` merges the keywords of every declared
+  rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
+  and refuses keywords that are not JSON-ready (Definitions stay serializable); precedence in the export is
+  `epics.md` Q14.
+- Conditions are **declared, never run** by the Schema layer: `when()` keeps the closure, `whenHas()` a `Presence`
+  (a value: `null` for the field's own key, or a path). The projection evaluates presences before the source and
+  conditions after normalization (`model.md` §6.4); the Laravel layer adds `whenLoaded()` the same way.
 
 ## 6. Conversions
 

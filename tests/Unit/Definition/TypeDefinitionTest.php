@@ -55,9 +55,12 @@ final class TypeDefinitionTest extends TestCase
             ->withDescription('The reference')
             ->addExample('a@b.c')
             ->addExample('d@e.f')
-            ->withDeprecated(true);
+            ->withDeprecated(true)
+            ->withJsonSchema(['minLength' => 1]);
 
         self::assertNull($type->min);
+        self::assertSame([], $type->jsonSchema);
+        self::assertSame(['minLength' => 1], $described->jsonSchema);
         self::assertSame(Kind::String, $described->kind);
         self::assertSame(1, $described->min);
         self::assertSame(2.5, $described->max);

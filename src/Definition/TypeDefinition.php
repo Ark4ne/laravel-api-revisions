@@ -18,6 +18,7 @@ final readonly class TypeDefinition
      * @param list<int|string> $values the backed values of the enum, in declaration order
      * @param TypeDefinition|null $items the type of the items of a `List` kind
      * @param array<string, TypeDefinition> $children the types of the children of an `Object` kind, by key
+     * @param array<string, mixed> $jsonSchema JSON Schema keywords given by the rules (`DescribesSchema`), JSON-ready
      */
     private function __construct(
         public Kind $kind,
@@ -33,6 +34,7 @@ final readonly class TypeDefinition
         public array $values = [],
         public ?TypeDefinition $items = null,
         public array $children = [],
+        public array $jsonSchema = [],
     ) {}
 
     public static function of(Kind $kind): self
@@ -112,6 +114,16 @@ final readonly class TypeDefinition
     public function withChildren(array $children): self
     {
         return $this->with(['children' => $children]);
+    }
+
+    /**
+     * JSON Schema keywords added to the export of the type.
+     *
+     * @param array<string, mixed> $jsonSchema
+     */
+    public function withJsonSchema(array $jsonSchema): self
+    {
+        return $this->with(['jsonSchema' => $jsonSchema]);
     }
 
     public function withDeprecated(bool $deprecated): self

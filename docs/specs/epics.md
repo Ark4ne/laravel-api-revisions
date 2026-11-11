@@ -303,6 +303,18 @@ another type through. Coverage 100 %, Infection MSI 96–100 %. Deviations and f
 
 Tests: `test_a_rule_schema_is_any_without_description`, `test_a_conditional_field_is_marked_conditional`.
 
+**Done** (2026-11-11): `Schema\RuleSchema` (`Schema::rule($rules, $source)`, kind `Any`, any value normalized and
+serialized as it is, `null` refused like every descriptor; constructor rules kept before those of `rules()`, keys
+dropped), `Schema\DescribesSchema`, `Schema\Presence` (a value: `null` path for the field's own key, or a path;
+`DefinitionException::invalidPresenceKey()`), `Descriptor::when()` / `whenHas()` / `isConditional()` /
+`conditions()` / `presences()` (declared, never run), `TypeDefinition::$jsonSchema` / `withJsonSchema()`.
+`Descriptor::toType()` merges the keywords of every `DescribesSchema` rule, on any descriptor
+(`DefinitionException::invalidJsonSchema()` unless JSON-ready). Coverage 100 %, Infection MSI 100 % on the new code.
+Deviations and follow-ups: the criteria "optional in the export" and "runs before the source" are tested only as
+descriptor state, their behaviour belongs to US 3.4, US 6.1 and US 10.1 (noted there); open questions Q14
+(`DescribesSchema` scope and precedence) and Q15 (default key of `whenHas()`); eager values are not a `RuleSchema`
+(noted on US 8.5).
+
 #### US 2.5 — Custom types · M · depends US 2.3, US 4.1
 
 *As an application developer, I want to add my own type (`Schema::money()`), so that it carries its rules, its
@@ -389,6 +401,9 @@ Tests (the reference table of `model.md` §4.2, one test per row and per column)
 `test_chained_type_changes_give_the_type_of_the_oldest_applicable_was`,
 `test_a_field_until_a_revision_is_absent_from_the_next_one`, `test_nested_children_follow_their_own_history`,
 `test_a_name_collision_is_recorded_on_the_shape`.
+
+Follow-up (from US 2.4): `FieldDefinition::$conditional` is read from `Descriptor::isConditional()`, nowhere
+recomputed.
 
 #### US 3.5 — Defaults and the `Undefined` sentinel · S · depends US 3.4
 
@@ -504,6 +519,10 @@ Tests: `test_only_visible_sources_are_evaluated`, `test_a_field_is_written_under
 `test_when_receives_the_normalized_head_value`, `test_conversions_receive_normalized_values`,
 `test_a_down_closure_receives_the_subject`, `test_null_is_rendered_null_in_every_shape`,
 `test_a_failing_condition_omits_the_field`, `test_projecting_twice_gives_the_same_result`.
+
+Follow-up (from US 2.4): evaluate `Descriptor::presences()` before the source (a `Presence` with a `null` path checks
+the field's own key, Q15) and `conditions()` after normalization, all of them required; test
+`test_a_presence_condition_runs_before_the_source`.
 
 #### US 6.2 — Nested projection · M · depends US 6.1
 
@@ -626,6 +645,9 @@ Tests (Feature, reference scenario): `test_order_resource_renders_each_revision_
 `test_a_resource_collection_is_projected_item_by_item`, `test_closures_in_to_array_reach_the_model_three_ways`,
 `test_when_loaded_omits_a_relation_not_loaded`, `test_an_eager_value_is_rendered_as_is`.
 
+Follow-up (from US 2.4): an eager value is rendered as is, `null` included, while `RuleSchema::normalize()` refuses
+`null` like every descriptor: an eager value is typed as a nullable `any`, not a `RuleSchema` reused as is.
+
 #### US 8.6 — Validation rules of a shape · L · depends US 5.2, US 8.1
 
 - `Laravel\Validation\RuleCompiler` + one `RuleMapper` per `Kind`: rules under the **names of the revision**, with the
@@ -702,6 +724,8 @@ Tests: `test_a_field_leaking_into_a_locked_revision_fails_the_check`, `test_movi
 - Extends the invariant test (US 6.3): every projected fixture validates against its revision's schema (opis).
 - Object children are exported with their own required / nullable / history (the field definitions of US 3.4),
   not only their `TypeDefinition` (from US 2.3).
+- `TypeDefinition::$jsonSchema` (the keywords of the `DescribesSchema` rules, US 2.4) is merged into the exported
+  type; precedence against the typed keywords is Q14.
 
 Tests: `test_each_revision_exports_its_own_schema`, `test_a_projected_document_matches_the_schema_of_its_revision`.
 
@@ -858,6 +882,8 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | **Decided** (2026-11-11): D30: application timezone for the headers |
 | Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | **Decided** (2026-11-11): D31: the configured `default` when it is a fixed revision, set by the Laravel provider |
 | Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | **Decided** (2026-11-11): D32 |
+| Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | Open |
+| Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | Open |
 | Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
 
 ---
@@ -895,7 +921,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | done |
 | US 2.2 | Dates and enums | S | 2.1 | M1 | done |
 | US 2.3 | Lists and objects | M | 2.1 | M1 | done |
-| US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | todo |
+| US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | done |
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | todo |
 | US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | todo |

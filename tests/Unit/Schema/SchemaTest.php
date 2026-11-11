@@ -43,6 +43,16 @@ final class SchemaTest extends TestCase
         self::assertSame(['shippingAddress'], $object->source()->path);
     }
 
+    public function test_the_rule_helper_returns_a_rule_schema_with_its_rules_and_source(): void
+    {
+        $schema = Schema::rule(['array'], 'meta');
+
+        self::assertSame(Kind::Any, $schema->toType()->kind);
+        self::assertSame(['array'], $schema->declaredRules());
+        self::assertSame(['meta'], $schema->source()->path);
+        self::assertTrue(Schema::rule([])->source()->isDeclaredKey());
+    }
+
     public function test_an_evaluated_value_is_refused_even_without_strict_types(): void
     {
         foreach (NonStrictDeclarations::evaluatedSources() as $index => $declare) {

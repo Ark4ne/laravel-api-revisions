@@ -96,4 +96,15 @@ final class Schema
     {
         return new ObjectSchema($children, $source);
     }
+
+    /**
+     * The escape hatch: a field typed only by its validation rules (`Kind::Any`).
+     *
+     * @param array<mixed> $rules strings, rule objects, closures; a rule implementing `DescribesSchema` enriches the export
+     * @param string|Closure|null $source see `string()`
+     */
+    public static function rule(array $rules, mixed $source = null): RuleSchema
+    {
+        return new RuleSchema($rules, $source);
+    }
 }

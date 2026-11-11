@@ -35,6 +35,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   and children; the children are projected before the composite's own conversions (model.md D34). An object without
   source reads its children on the parent's subject (`Schema\Source::parent()`). `TypeDefinition` exports `items` and
   `children`.
+- `Schema::rule(array $rules, $source)` (`RuleSchema`, the escape hatch: kind `Any`, any value rendered as it is) and
+  `Schema\DescribesSchema`: a rule object implementing it adds its JSON Schema keywords to the type of the field it is
+  declared on (`TypeDefinition::$jsonSchema`), whatever the descriptor; non JSON-ready keywords throw
+  `DefinitionException::invalidJsonSchema()`.
+- Conditions on every descriptor: `when(Closure $condition)` (called `($value, $subject)` after normalization) and
+  `whenHas(?string $key)` (a `Schema\Presence`, checked before the source; `DefinitionException::invalidPresenceKey()`);
+  `isConditional()`, `conditions()`, `presences()`.
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.

@@ -93,7 +93,7 @@ resources, form requests, ad hoc responses.
 | `Schema::list(Schema::string())` | `ListSchema` | `min()`, `max()` on the size |
 | `Schema::object([...])` | `ObjectSchema` | free nesting |
 | `Schema::money()` | a custom type (`MoneySchema extends Descriptor`) | registered in the type registry, exposed by macro |
-| `Schema::rule(['array', new MetaRule])` | `RuleSchema` | escape hatch; `any` in the export unless `describe()` |
+| `Schema::rule(['array', new MetaRule])` | `RuleSchema` | escape hatch; `any` in the export unless `describe()`; a rule implementing `DescribesSchema` (here or in `rules()` of any descriptor, Q14) adds its JSON Schema keywords |
 | `Schema::resource(CustomerResource::class)` | `ResourceSchema` | another `Revisioned` class, projected at the same revision with its own shape (§6.1) |
 
 Common to all: `nullable()`, `required()`, `sometimes()`, `describe()`, `example()`, `deprecated()`,

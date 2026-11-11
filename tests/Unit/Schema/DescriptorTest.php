@@ -6,13 +6,16 @@ namespace Test\Unit\Schema;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\Kind;
+use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
+use Ark4ne\ApiRevisions\Schema\Presence;
 use Ark4ne\ApiRevisions\Schema\StringSchema;
 use Closure;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use stdClass;
+use Test\Fixtures\Rules\PostcodeRule;
 use Test\TestCase;
 
 /**
@@ -138,5 +141,124 @@ final class DescriptorTest extends TestCase
     public function test_descriptor_is_the_extension_base(): void
     {
         self::assertTrue((new ReflectionClass(Descriptor::class))->isAbstract());
+    }
+
+    public function test_a_conditional_field_is_marked_conditional(): void
+    {
+        $condition = static fn(mixed $value): bool => $value !== '';
+        $schema = new StringSchema();
+
+        $conditional = $schema->when($condition);
+
+        self::assertFalse($schema->isConditional());
+        self::assertSame([], $schema->conditions());
+        self::assertTrue($conditional->isConditional());
+        self::assertSame([$condition], $conditional->conditions());
+        self::assertSame([], $conditional->presences());
+    }
+
+    public function test_conditions_are_kept_in_declaration_order(): void
+    {
+        $first = static fn(): bool => true;
+        $second = static fn(): bool => false;
+
+        self::assertSame([$first, $second], (new StringSchema())->when($first)->when($second)->conditions());
+    }
+
+    public function test_a_condition_is_never_called_by_the_declaration(): void
+    {
+        $called = false;
+
+        (new StringSchema())->when(static function () use (&$called): bool {
+            $called = true;
+
+            return true;
+        })->toType();
+
+        self::assertFalse($called);
+    }
+
+    public function test_a_presence_condition_makes_the_field_conditional(): void
+    {
+        $schema = new StringSchema();
+
+        $present = $schema->whenHas()->whenHas('customer.email');
+
+        self::assertFalse($schema->isConditional());
+        self::assertSame([], $schema->presences());
+        self::assertTrue($present->isConditional());
+        self::assertSame([], $present->conditions());
+        self::assertEquals([Presence::has(), Presence::has('customer.email')], $present->presences());
+    }
+
+    public function test_a_presence_condition_refuses_an_empty_key(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage("Invalid presence key '': a key or each segment of a dotted path must not be empty.");
+
+        (new StringSchema())->whenHas('');
+    }
+
+    public function test_conditions_do_not_change_the_type(): void
+    {
+        $schema = new StringSchema();
+
+        self::assertEquals($schema->toType(), $schema->when(static fn(): bool => true)->whenHas()->toType());
+    }
+
+    public function test_rules_describing_their_schema_enrich_the_export_of_any_descriptor(): void
+    {
+        $type = (new StringSchema())->rules('alpha_num', new PostcodeRule(['pattern' => '^\\d{5}$']))->toType();
+
+        self::assertSame(Kind::String, $type->kind);
+        self::assertSame(['pattern' => '^\\d{5}$'], $type->jsonSchema);
+    }
+
+    public function test_the_keywords_of_a_custom_type_are_merged_with_those_of_its_rules(): void
+    {
+        $custom = new class extends Descriptor {
+            public function normalize(mixed $value): mixed
+            {
+                return $value;
+            }
+
+            protected function type(): TypeDefinition
+            {
+                return TypeDefinition::of(Kind::String)->withJsonSchema(['minLength' => 3, 'pattern' => '^[A-Z]']);
+            }
+        };
+
+        self::assertSame(
+            ['minLength' => 3, 'pattern' => '^\\d{5}$'],
+            $custom->rules(new PostcodeRule(['pattern' => '^\\d{5}$']))->toType()->jsonSchema,
+        );
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function notJsonReady(): iterable
+    {
+        yield 'object' => [['default' => new stdClass()]];
+        yield 'nested closure' => [['enum' => ['a', static fn(): string => 'b']]];
+    }
+
+    /**
+     * @param array<string, mixed> $schema
+     */
+    #[DataProvider('notJsonReady')]
+    public function test_a_rule_schema_that_is_not_json_ready_is_refused(array $schema): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('The JSON Schema of the rule ' . PostcodeRule::class . ' must be keywords holding scalars, arrays and nulls only.');
+
+        (new StringSchema())->rules(new PostcodeRule($schema))->toType();
+    }
+
+    public function test_json_ready_keywords_may_nest_arrays_and_nulls(): void
+    {
+        $keywords = ['default' => null, 'enum' => ['a', 1, 1.5, true, ['x' => null]]];
+
+        self::assertSame($keywords, (new StringSchema())->rules(new PostcodeRule($keywords))->toType()->jsonSchema);
     }
 }

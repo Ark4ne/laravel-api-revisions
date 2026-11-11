@@ -6,6 +6,8 @@ namespace Ark4ne\ApiRevisions\Schema;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Closure;
 
 /**
  * A field at the head: its lazy source, its type and its modifiers. Immutable: every modifier returns a new instance.
@@ -39,6 +41,16 @@ abstract class Descriptor
     private array $rules = [];
 
     /**
+     * @var list<Closure>
+     */
+    private array $conditions = [];
+
+    /**
+     * @var list<Presence>
+     */
+    private array $presences = [];
+
+    /**
      * Not final: composite and custom descriptors take their own arguments first (`ListSchema($items, $source)`) and
      * call `parent::__construct($source)`, the only way to set the source.
      *
@@ -68,11 +80,26 @@ abstract class Descriptor
     }
 
     /**
-     * The type with its documentation (`describe()`, `example()`, `deprecated()`).
+     * The type with its documentation (`describe()`, `example()`, `deprecated()`) and the JSON Schema keywords of its
+     * rules implementing `DescribesSchema` (merged in declaration order: a later rule wins on a shared keyword).
      */
     final public function toType(): TypeDefinition
     {
-        $type = $this->type()->withDescription($this->description)->withDeprecated($this->deprecated);
+        $jsonSchema = [];
+        foreach ($this->declaredRules() as $rule) {
+            if ($rule instanceof DescribesSchema) {
+                $keywords = $rule->toSchema();
+                if (!self::isJsonReady($keywords)) {
+                    throw DefinitionException::invalidJsonSchema($rule::class);
+                }
+                $jsonSchema = [...$jsonSchema, ...$keywords];
+            }
+        }
+        $type = $this->type();
+        $type = $type
+            ->withDescription($this->description)
+            ->withDeprecated($this->deprecated)
+            ->withJsonSchema([...$type->jsonSchema, ...$jsonSchema]);
         foreach ($this->examples as $example) {
             $type = $type->addExample($example);
         }
@@ -158,6 +185,55 @@ abstract class Descriptor
         return $clone;
     }
 
+    /**
+     * Keeps the field only when the closure returns `true`: called with `($value, $subject)` after the source and the
+     * normalization (model.md §6.4). Several conditions must all pass. The field becomes conditional (optional in the
+     * export).
+     */
+    public function when(Closure $condition): static
+    {
+        $clone = clone $this;
+        $clone->conditions[] = $condition;
+
+        return $clone;
+    }
+
+    /**
+     * Keeps the field only when the subject has the key (dotted paths allowed; its own key by default, resolved by the
+     * projection, epics.md Q15), checked before the source. The field becomes conditional (optional in the export).
+     */
+    public function whenHas(?string $key = null): static
+    {
+        $clone = clone $this;
+        $clone->presences[] = Presence::has($key);
+
+        return $clone;
+    }
+
+    /**
+     * Whether the field may be omitted: it has a `when()` or a presence condition.
+     */
+    public function isConditional(): bool
+    {
+        return $this->conditions !== [] || $this->presences !== [];
+    }
+
+    /**
+     * @return list<Closure> the `when()` conditions, in declaration order
+     */
+    public function conditions(): array
+    {
+        return $this->conditions;
+    }
+
+    /**
+     * @return list<Presence> the presence conditions, in declaration order
+     */
+    public function presences(): array
+    {
+        return $this->presences;
+    }
+
     public function isNullable(): bool
     {
         return $this->nullable;
@@ -179,6 +255,24 @@ abstract class Descriptor
     public function declaredRules(): array
     {
         return $this->rules;
+    }
+
+    /**
+     * Scalars, nulls and arrays of them, at any depth: what a `TypeDefinition` may hold (serializable, closure-free).
+     */
+    private static function isJsonReady(mixed $value): bool
+    {
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if (!self::isJsonReady($item)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return $value === null || is_scalar($value);
     }
 
     /**

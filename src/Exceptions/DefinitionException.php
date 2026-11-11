@@ -84,6 +84,22 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A presence key (`whenHas()`) empty, or with an empty segment.
+     */
+    public static function invalidPresenceKey(string $key): self
+    {
+        return new self("Invalid presence key '{$key}': a key or each segment of a dotted path must not be empty.");
+    }
+
+    /**
+     * A rule whose `DescribesSchema::toSchema()` returns something else than JSON-ready keywords.
+     */
+    public static function invalidJsonSchema(string $rule): self
+    {
+        return new self("The JSON Schema of the rule {$rule} must be keywords holding scalars, arrays and nulls only.");
+    }
+
+    /**
      * `Schema::enum()` of a class that is not a backed enum.
      */
     public static function notBackedEnum(string $class): self
