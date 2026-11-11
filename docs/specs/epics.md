@@ -144,6 +144,21 @@ Tests: `test_revisions_are_ordered_by_their_order_method_not_by_declaration`,
 `test_the_head_is_the_last_revision_of_the_order`, `test_previous_of_the_oldest_revision_is_null`,
 `test_comparing_revisions_of_two_enums_throws`, `test_an_order_missing_a_case_throws`.
 
+**Done** (2026-11-11): `Revisions\Revision` (contract: `order()` and the methods of `IsRevision`),
+`Revisions\IsRevision`, `Revisions\RevisionOrder` (the order checked on first use and memoized per enum, cases keyed
+by **name**: int-backed enums whose values do not follow the order work, F4), `Exceptions\RevisionsException`
+(marker), `Exceptions\DefinitionException` (`mixedRevisions(\BackedEnum, \BackedEnum)`, `invalidOrder(class,
+reason)`, private constructor), `Support\Memo` (`remember()`, `flush()`, flushed after every Unit test by
+`tests/TestCase`). Fixtures `tests/Fixtures/ApiRevision` (cases declared out of order) and
+`tests/Fixtures/Revisions/` (`IntRevision`, and invalid orders: missing, duplicate, foreign case, not a list, empty;
+F12). `tests/Types/RevisionTypes.php` asserts the types applications see. Coverage 100 %, Infection MSI 95 % (3
+equivalent mutants: `between()` length `> 0` / `>= 0`, the memo key). Deviations: `Support\Memo` and the
+`RevisionsException` marker are created here (needed first by this story); `invalidOrder()` takes a reason, and also
+rejects a foreign case, an order that is not a list and an empty order; `RevisionOrder::previous()`, `next()`,
+`between()` return `Revision` rather than a template (PHPStan binds a template, and `static` on an enum, to the case
+passed), `IsRevision` narrows to `self` (architecture.md §3); `between(from, to)` is empty when `from` is newer than
+`to` (not decided by model.md: a pure helper's choice, to confirm).
+
 #### US 1.2 — Revision metadata · S · depends US 1.1
 
 - Attribute `Revisions\Meta(string $description = '', ?string $publishedAt = null, ?string $deprecatedAt = null,
@@ -789,7 +804,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 0.2 | Static analysis and style | S | 0.1 | M1 | done |
 | US 0.3 | Architecture test | S | 0.2 | M1 | done |
 | US 0.4 | Continuous integration | S | 0.2 | M1 | done |
-| US 1.1 | Revision contract and order | M | 0.3 | M1 | todo |
+| US 1.1 | Revision contract and order | M | 0.3 | M1 | done |
 | US 1.2 | Revision metadata | S | 1.1 | M1 | todo |
 | US 1.3 | Current revision and `using()` | S | 1.1 | M1 | todo |
 | US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | todo |

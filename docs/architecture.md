@@ -76,8 +76,12 @@ behaviour by delegating to `RevisionOrder`. Patterns: **Strategy** (the order is
 Context** (`RevisionScope`).
 
 - `RevisionOrder` is a pure service: index of a case, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`,
-  `between(R, head)`. The index map is memoized per enum class (`Support\Memo`). Mixing two enums throws
-  `DefinitionException::mixedRevisions()`.
+  `between(from, to)` (inclusive, empty when `from` is newer). The order is checked on first use (`DefinitionException::invalidOrder()`) and memoized per enum
+  class (`Support\Memo`); cases are keyed by **name**, never by backed value (int- and string-backed enums alike).
+  Mixing two enums throws `DefinitionException::mixedRevisions()`.
+- Typing: PHPStan reads `static` on an enum as the case itself (`ApiRevision::Atlas`), and a template bound by a case
+  argument is that case. So `RevisionOrder::previous()`, `next()`, `between()` return `Revision`, and `IsRevision`
+  narrows to `self` in its PHPDoc. `tests/Types/RevisionTypes.php` asserts what applications see.
 - `RevisionScope` is the **only** holder of the current revision: a stack for `using()` (Execute Around, restored in
   `finally`) above a base revision. The core reaches it through `RevisionScope::provider()`, a closure set **once at
   boot** (configuration, not state); the default provider is a process-local scope for non-Laravel use; the Laravel
