@@ -16,6 +16,30 @@ consistency check and a lock of the published revisions.
 
 Requirements: PHP 8.3+, Laravel 12.46+ or 13.
 
+## Custom types and PHPStan
+
+A custom type is a `Schema\Descriptor` registered at boot, then available on `Schema`:
+
+```php
+TypeRegistry::register('money', MoneySchema::class);   // in a service provider's boot()
+
+'total' => Schema::money('total_cents'),
+```
+
+PHPStan does not know `Schema::money()` by itself. The package ships an extension (`extension.neon`, included
+automatically by `phpstan/extension-installer`, or by hand with
+`includes: [vendor/ark4ne/laravel-api-revisions/extension.neon]`); map each registered name to its class:
+
+```neon
+parameters:
+    apiRevisions:
+        types:
+            money: App\Schema\MoneySchema
+```
+
+`Schema::money(...)` then takes the parameters of `MoneySchema`'s constructor and returns a `MoneySchema`; an
+unmapped name stays an undefined method. A generic descriptor (`@template`) is typed as its raw class.
+
 ## License
 
 MIT.

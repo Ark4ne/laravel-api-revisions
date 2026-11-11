@@ -93,6 +93,24 @@ final class ArchitectureTest
             ->because('exceptions are usable by every layer.');
     }
 
+    public function test_no_layer_depends_on_the_phpstan_tooling(): ArchitectureRule
+    {
+        return PHPat::rule()
+            ->classes(...self::layers(...self::LAYERS, ...['Exceptions']))
+            ->shouldNotDependOn()
+            ->classes(self::layer('PHPStan'), Selector::inNamespace('PHPStan'))
+            ->because('src/PHPStan/ is loaded only by PHPStan, a dev dependency: never at run time.');
+    }
+
+    public function test_the_phpstan_tooling_depends_only_on_schema(): ArchitectureRule
+    {
+        return PHPat::rule()
+            ->classes(self::layer('PHPStan'))
+            ->shouldNotDependOn()
+            ->classes(...self::layers(...array_values(array_diff(self::LAYERS, ['Schema']))))
+            ->because('the extension only reads the custom types, which are descriptors.');
+    }
+
     public function test_the_core_never_depends_on_illuminate(): ArchitectureRule
     {
         return PHPat::rule()

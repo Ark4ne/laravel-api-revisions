@@ -5,10 +5,15 @@ includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpat/phpat/extension.neon
     - vendor/spaze/phpstan-disallowed-calls/extension.neon
+    # The package's own extension, checked on the fixtures (US 2.7).
+    - extension.neon
     # Empty: never add an entry, fix the cause instead (docs/specs/epics.md §1).
     - phpstan-baseline.neon
 
 parameters:
+    apiRevisions:
+        types:
+            money: Test\Fixtures\MoneySchema
     level: max
     paths:
         - src

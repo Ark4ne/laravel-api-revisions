@@ -9,6 +9,10 @@
          failOnRisky="true"
          failOnWarning="true"
 >
+  <php>
+    <!-- The suite, PHPStan's container included (tests/Unit/PHPStan), needs more than the default 128M. -->
+    <ini name="memory_limit" value="512M"/>
+  </php>
   <testsuites>
     <testsuite name="Unit">
       <directory>tests/Unit</directory>

@@ -61,6 +61,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `TypeDefinition::custom($name, $fragment)` (`Kind::Custom`, the name the type declares, its JSON Schema fragment in
   `fragment`, apart from the rule keywords of `jsonSchema`); `DefinitionException::unknownType()`, `invalidTypeName()`,
   `invalidCustomType()`, `invalidTypeFragment()`.
+- PHPStan extension (`extension.neon`, registered for `phpstan/extension-installer`): the custom types mapped in
+  `apiRevisions.types` are static methods of `Schema` typed with their class and their constructor's parameters
+  (`PHPStan\CustomTypesExtension`).
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.

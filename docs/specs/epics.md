@@ -365,6 +365,19 @@ built-in one.*
 
 Tests: `tests/Types/CustomTypeTypes.php` asserts `Schema::money()` is a `MoneySchema`; an unknown name is reported.
 
+**Done** (2026-11-11): `extension.neon` (parameter `apiRevisions.types`, name → class; listed in `extra.phpstan` for
+`phpstan/extension-installer`), `PHPStan\CustomTypesExtension` (a `MethodsClassReflectionExtension` on `Schema`: a
+mapped name of an existing, concrete `Descriptor` becomes a public static method with the constructor's variants,
+returning the class), `PHPStan\CustomTypeMethod`. The package's own `phpstan.neon.dist` includes the extension and
+maps `money` to the fixture, so the `@phpstan-ignore` of US 2.5 are gone. Tests: `tests/Types/CustomTypeTypes.php`
+(analysed) and `tests/Unit/PHPStan/CustomTypesExtensionTest` (PHPStan's `TypeInferenceTestCase`, run by PHPUnit:
+`phpunit.xml.dist` raises `memory_limit` to 512M for its container). Coverage 100 %, Infection MSI 95 %. Deviation:
+only `MethodsClassReflectionExtension` was needed (the method reflection carries the return type); the map is
+declared by hand, PHPStan cannot read the runtime `TypeRegistry`; `SchemaTest::test_an_unknown_type_throws` now calls
+`Schema::percent()` (`money` is known to PHPStan); a generic descriptor is typed as its raw class (template types not
+resolved, documented); `composer.json` declares `conflict: phpstan/phpstan <2.0` and suggests
+`phpstan/extension-installer`; two phpat rules keep `src/PHPStan/` out of run time and dependent on `Schema` only.
+
 ---
 
 ### E3 — History: `since`, `until`, `was`
@@ -997,7 +1010,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | done |
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | done |
 | US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |
-| US 2.7 | Custom types seen by PHPStan | S | 2.5 | M1 | todo |
+| US 2.7 | Custom types seen by PHPStan | S | 2.5 | M1 | done |
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
 | US 3.2 | Groups | S | 3.1 | M1 | done |
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | todo |

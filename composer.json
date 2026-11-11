@@ -26,6 +26,9 @@
         "illuminate/support": "^12.46 || ^13.0",
         "illuminate/validation": "^12.46 || ^13.0"
     },
+    "conflict": {
+        "phpstan/phpstan": "<2.0"
+    },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.75",
         "larastan/larastan": "^3.4",
@@ -39,6 +42,7 @@
         "spaze/phpstan-disallowed-calls": "^4.5"
     },
     "suggest": {
+        "phpstan/extension-installer": "Registers extension.neon, which types the custom types of Schema (README).",
         "phpunit/phpunit": "Required by the Testing assertions (assertRevisionsAreConsistent, assertMatchesRevisionSchema)."
     },
     "autoload": {
@@ -91,6 +95,11 @@
         "ci": "Run every blocking check of the CI locally."
     },
     "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
+        },
         "laravel": {
             "providers": [
                 "Ark4ne\\ApiRevisions\\Laravel\\RevisionsServiceProvider"

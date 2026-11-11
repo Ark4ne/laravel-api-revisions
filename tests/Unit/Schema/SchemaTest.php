@@ -59,9 +59,8 @@ final class SchemaTest extends TestCase
     {
         TypeRegistry::register('money', MoneySchema::class);
 
-        $schema = Schema::money('total', currency: 'EUR'); // @phpstan-ignore staticMethod.notFound
+        $schema = Schema::money('total', currency: 'EUR');
 
-        self::assertInstanceOf(MoneySchema::class, $schema);
         self::assertSame(['total'], $schema->source()->path);
         self::assertSame('money', $schema->toType()->name);
     }
@@ -69,9 +68,9 @@ final class SchemaTest extends TestCase
     public function test_an_unknown_type_throws(): void
     {
         $this->expectException(DefinitionException::class);
-        $this->expectExceptionMessage("Unknown type 'money'");
+        $this->expectExceptionMessage("Unknown type 'percent'");
 
-        Schema::money(); // @phpstan-ignore staticMethod.notFound
+        Schema::percent(); // @phpstan-ignore staticMethod.notFound
     }
 
     public function test_an_evaluated_value_is_refused_even_without_strict_types(): void

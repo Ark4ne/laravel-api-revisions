@@ -61,6 +61,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits, commands, queue capture |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
+| PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extension of the custom types (`CustomTypesExtension`, `CustomTypeMethod`); loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
 
 - A layer depends only on the layers to its left. Checked by `phpat` (`tests/Architecture/ArchitectureTest.php`).
