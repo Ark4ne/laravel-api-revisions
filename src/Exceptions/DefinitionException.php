@@ -82,4 +82,12 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     {
         return new self("Invalid source key '{$key}': a key or each segment of a dotted path must not be empty.");
     }
+
+    /**
+     * `Schema::enum()` of a class that is not a backed enum.
+     */
+    public static function notBackedEnum(string $class): self
+    {
+        return new self("Schema::enum() needs a backed enum, got {$class}.");
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Schema;
 
+use BackedEnum;
 use Closure;
 
 /**
@@ -47,5 +48,34 @@ final class Schema
     public static function bool(mixed $source = null): BoolSchema
     {
         return new BoolSchema($source);
+    }
+
+    /**
+     * @param string|Closure|null $source see `string()`
+     */
+    public static function date(mixed $source = null): DateSchema
+    {
+        return new DateSchema($source);
+    }
+
+    /**
+     * @param string|Closure|null $source see `string()`
+     */
+    public static function dateTime(mixed $source = null): DateTimeSchema
+    {
+        return new DateTimeSchema($source);
+    }
+
+    /**
+     * @template TEnum of BackedEnum
+     *
+     * @param class-string<TEnum> $enum
+     * @param string|Closure|null $source see `string()`
+     *
+     * @return EnumSchema<TEnum>
+     */
+    public static function enum(string $enum, mixed $source = null): EnumSchema
+    {
+        return new EnumSchema($enum, $source);
     }
 }

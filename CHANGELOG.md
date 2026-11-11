@@ -26,6 +26,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `sometimes()`, `describe()`, `example()`, `deprecated()`, `rules()`, and returns a new instance on every modifier.
 - `normalize()` / `serialize()` of the scalars (model.md §6.3); a refused value is returned as a `Schema\InvalidValue`
   carrying its lenient cast. An evaluated source is refused even in a file without `strict_types`.
+- `Schema::date()` / `dateTime()` (`DateSchema` / `DateTimeSchema`, `format()`, else the configured default: `Y-m-d`
+  and RFC 3339) and `Schema::enum(BackedEnum::class)` (`EnumSchema`: the case or its backed value, serialized as the
+  backed value; its type exports the enum, its backing kind and its values).
+- `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.
 - `Exceptions\RevisionsException`, marker of the package exceptions, and `Exceptions\DefinitionException`

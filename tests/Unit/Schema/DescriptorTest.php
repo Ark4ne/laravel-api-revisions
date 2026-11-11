@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Unit\Schema;
 
+use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
@@ -120,6 +121,13 @@ final class DescriptorTest extends TestCase
         self::assertSame('The reference', $type->description);
         self::assertSame(['A-1', 'A-2'], $type->examples);
         self::assertTrue($type->deprecated);
+    }
+
+    public function test_a_descriptor_without_configured_default_is_returned_as_is_by_configure(): void
+    {
+        $schema = new StringSchema();
+
+        self::assertSame($schema, $schema->configure(new Configuration()));
     }
 
     public function test_serialize_returns_a_scalar_as_is(): void

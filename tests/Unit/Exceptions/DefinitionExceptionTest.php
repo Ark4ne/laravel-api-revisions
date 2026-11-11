@@ -72,4 +72,9 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::invalidSourceKey('a..b')->getMessage(),
         );
     }
+
+    public function test_not_backed_enum_names_the_class(): void
+    {
+        self::assertSame('Schema::enum() needs a backed enum, got stdClass.', DefinitionException::notBackedEnum('stdClass')->getMessage());
+    }
 }

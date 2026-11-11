@@ -257,6 +257,17 @@ protected `type()`), `Schema\Source` (`from()`, `key()` with dotted paths, `clos
 Tests: `test_enum_schema_exports_the_values_of_the_backed_enum`, `test_date_schema_uses_the_configured_format`,
 `test_enum_schema_normalizes_a_backed_value_to_its_case`, `test_date_schema_normalizes_a_timestamp`.
 
+**Done** (2026-11-11): `Configuration\Configuration` (`dateFormat` `Y-m-d`, `dateTimeFormat` RFC 3339), decision D29
+taken with the maintainer: the format is resolved at compilation through `Descriptor::configure(Configuration)`
+(identity by default), never read globally; `DateSchema` / `DateTimeSchema` (`format()`, else configured, else the
+`Configuration` default, the same in `toType()` and `serialize()`), `Schema\Dates` (`@internal` normalization),
+`EnumSchema<TEnum>` (`Schema::enum(class, $source)`; a non-backed class throws `DefinitionException::notBackedEnum()`;
+its type exports `enum`, `backing`, `values` through the new `TypeDefinition::withEnum()`). Coverage 100 %, Infection
+MSI 98 % (one equivalent mutant on the warning count). Deviations and follow-ups: the rules beyond model.md §6.3
+(impossible dates refused, blanks refused, relative strings accepted, int-backed enums reading what `int` reads) are
+recorded as Q13; the compiler calling `configure()` is added to US 5.1 (and its forwarding to US 2.3, its cache
+impact to US 5.3, the format validation to US 8.1).
+
 #### US 2.3 — Lists and objects · M · depends US 2.1
 
 - `Schema::list(Descriptor $items, $source = null)` (`min()` / `max()` on the size; any `iterable` normalized to a
@@ -264,6 +275,7 @@ Tests: `test_enum_schema_exports_the_values_of_the_backed_enum`, `test_date_sche
   (E3).
 - Subject of the children (`model.md` §6.1): an object with a source → the source's value; without → the parent's
   subject; a list → each item.
+- `ListSchema` / `ObjectSchema` override `configure()` to forward it to their items and children (D29, from US 2.2).
 
 Tests: `test_an_object_describes_its_children`, `test_a_list_describes_its_items_and_size`,
 `test_a_list_normalizes_any_iterable`.
@@ -424,8 +436,11 @@ Goal: the shape of a class is computed once per revision, without a subject, and
   `@internal` bridge `describeRevisioned(): array<string, Descriptor>`.
 - `Compilation\Probe` (Null Object subject); `Compiler::compile(class, R)`: instantiate on the probe, call the hook,
   `ShapeSelector::at()`. A source closure run during compilation is a bug: the probe throws on any access.
+- The compiler receives the `Configuration` and calls `configure()` on every descriptor, recursively for composites
+  (model.md D29, from US 2.2).
 
-Tests: `test_compiling_a_class_runs_no_source`, `test_compiling_gives_the_shape_of_the_revision`.
+Tests: `test_compiling_a_class_runs_no_source`, `test_compiling_gives_the_shape_of_the_revision`,
+`test_compiling_resolves_the_configured_date_format`.
 
 #### US 5.2 — Shapes repository · S · depends US 5.1
 
@@ -438,6 +453,7 @@ Tests: `test_a_shape_is_compiled_once_per_class_and_revision`, `test_flush_forge
 - `CompiledShapes` writes / reads a PHP file (`var_export` of the shapes, keyed `class@revision`); `Shapes` reads it
   first. Commands `revision:cache` and `revision:clear` (Laravel layer), registered with
   `ServiceProvider::optimizes()`; file `bootstrap/cache/revisions.php` (`cache_path`).
+- The compiled shapes depend on the configured date formats (D29): changing them requires `revision:cache` again.
 
 Tests: `test_a_cached_shape_equals_the_compiled_one`, `test_projection_from_the_cache_runs_the_closures_of_the_instance`,
 `test_artisan_optimize_builds_the_revisions_cache`, `test_optimize_clear_removes_the_revisions_cache`.
@@ -546,7 +562,8 @@ Goal: a Laravel application resolves the revision of each request, renders resou
 
 - Add `config` to the PHPStan `paths` (follow-up of US 0.2).
 - `config/revisions.php` documented key by key (`model.md` §8); `Configuration` built from it (validated: `enum`
-  implements `Revision`, resolvers exist); `RevisionScope` provider = `scoped` binding; publishable config.
+  implements `Revision`, resolvers exist, non-empty date formats); `RevisionScope` provider = `scoped` binding;
+  publishable config.
 
 Tests: `test_an_enum_not_implementing_revision_is_refused`, `test_the_scope_is_reset_between_two_requests`.
 
@@ -817,6 +834,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | Open |
 | Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | Open |
 | Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | Open |
+| Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | Open |
 
 ---
 
@@ -851,7 +869,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 1.2 | Revision metadata | S | 1.1 | M1 | done |
 | US 1.3 | Current revision and `using()` | S | 1.1 | M1 | done |
 | US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | done |
-| US 2.2 | Dates and enums | S | 2.1 | M1 | todo |
+| US 2.2 | Dates and enums | S | 2.1 | M1 | done |
 | US 2.3 | Lists and objects | M | 2.1 | M1 | todo |
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | todo |
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | todo |

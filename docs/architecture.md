@@ -104,8 +104,8 @@ the **public contract** read by the export, the check, the lock and external too
   `conditional`, `default` (`Undefined` when none), `lifetime`, and the **conversion plan** as references (the indexes
   of the `was()` to apply, the converter keys) — never closures.
 - `TypeDefinition`: a `Kind` (`String`, `Int`, `Float`, `Bool`, `Date`, `DateTime`, `Enum`, `List`, `Object`,
-  `Custom`, `Any`), its constraints (`min`, `max`, `format`, `pattern`, `enum` class, `items`, `children`), its
-  description, examples, deprecation.
+  `Custom`, `Any`), its constraints (`min`, `max`, `format`, `pattern`, `enum` class with its `backing` kind and
+  `values`, `items`, `children`; `format` is a PHP date format for dates), its description, examples, deprecation.
 - `Lifetime`: `since`, `until`; `covers(Revision): bool`.
 - `final readonly`, private constructor, named constructors, `with*()` replacing setters, `add*()` appenders.
 
@@ -122,6 +122,8 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
   `Source::declaredKey()`. **Every closure the library calls has one signature, `($value, $subject)`** (`model.md`
   §3): sources, conditions, `down:` / `up:` converters. One invoker (`Support\Invoke::value()`) calls them all. Their
   PHPDoc type is a plain `Closure`: `Closure(mixed, mixed)` would refuse `fn (int $cents, Order $order)`. A `Change` (`was()`) never holds a source (`model.md` §6.4).
+- Configured defaults reach a descriptor through `configure(Configuration): static`, called by the compiler (a date
+  without `format()` takes the configured format, `model.md` D29): a descriptor never reads configuration itself.
 - A descriptor builds its `TypeDefinition` (`toType()`); it never builds a `Shape` (that is the compiler's job) and
   never reads a revision other than those declared in its `History`.
 - A descriptor owns the **value rules of its type**: `normalize(mixed): mixed` (subject data → PHP value of the type,

@@ -22,6 +22,9 @@ final class TypeDefinitionTest extends TestCase
         self::assertNull($type->description);
         self::assertSame([], $type->examples);
         self::assertFalse($type->deprecated);
+        self::assertNull($type->enum);
+        self::assertNull($type->backing);
+        self::assertSame([], $type->values);
     }
 
     public function test_withers_return_a_new_type_and_keep_the_others_values(): void
@@ -49,10 +52,25 @@ final class TypeDefinitionTest extends TestCase
         self::assertTrue($described->deprecated);
     }
 
+    public function test_with_enum_sets_the_enum_and_every_wither_keeps_it(): void
+    {
+        $type = TypeDefinition::of(Kind::Enum)->withEnum(Kind::class, Kind::String, ['string', 'int']);
+
+        $described = $type->withMin(1)->withMax(2)->withFormat('f')->withPattern('/p/')->withDescription('d')->addExample('string')->withDeprecated(true);
+
+        self::assertNull(TypeDefinition::of(Kind::Enum)->enum);
+        self::assertSame(Kind::class, $described->enum);
+        self::assertSame(Kind::String, $described->backing);
+        self::assertSame(['string', 'int'], $described->values);
+        self::assertSame('d', $described->description);
+    }
+
     public function test_a_type_is_serializable(): void
     {
         $type = TypeDefinition::of(Kind::Float)->withMin(0)->addExample(12.5);
+        $enum = TypeDefinition::of(Kind::Enum)->withEnum(Kind::class, Kind::String, ['string', 'int']);
 
         self::assertEquals($type, unserialize(serialize($type)));
+        self::assertEquals($enum, unserialize(serialize($enum)));
     }
 }

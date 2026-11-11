@@ -7,6 +7,7 @@ namespace Test\Unit\Schema;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\NonStrictDeclarations;
 use Test\TestCase;
 
@@ -20,6 +21,15 @@ final class SchemaTest extends TestCase
         self::assertSame(Kind::Float, Schema::float()->toType()->kind);
         self::assertSame(Kind::Bool, Schema::bool()->toType()->kind);
         self::assertTrue(Schema::bool()->source()->isDeclaredKey());
+    }
+
+    public function test_date_and_enum_helpers_return_their_descriptor_with_their_source(): void
+    {
+        self::assertSame(Kind::Date, Schema::date('placed_on')->toType()->kind);
+        self::assertSame(['placed_on'], Schema::date('placed_on')->source()->path);
+        self::assertSame(Kind::DateTime, Schema::dateTime()->toType()->kind);
+        self::assertSame(OrderStatus::class, Schema::enum(OrderStatus::class, 'state')->toType()->enum);
+        self::assertSame(['state'], Schema::enum(OrderStatus::class, 'state')->source()->path);
     }
 
     public function test_an_evaluated_value_is_refused_even_without_strict_types(): void

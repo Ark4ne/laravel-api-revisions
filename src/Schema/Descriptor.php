@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Schema;
 
+use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 
 /**
@@ -77,6 +78,15 @@ abstract class Descriptor
         }
 
         return $type;
+    }
+
+    /**
+     * This descriptor with the configured defaults resolved (a date without `format()` takes the configured format).
+     * Called by the compiler, once (model.md D29); nothing to resolve by default.
+     */
+    public function configure(Configuration $configuration): static
+    {
+        return $this;
     }
 
     public function source(): Source

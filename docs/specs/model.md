@@ -330,8 +330,8 @@ raw subject data or on JSON.
 | int | `int`, integral `float`, integral numeric string | `int` | number |
 | float | `int`, `float`, numeric string | `float` | number |
 | bool | `bool`, `0` / `1`, `'0'` / `'1'` | `bool` | boolean |
-| enum | the enum case, or its backed value (`::from()`) | the `BackedEnum` case | `->value` |
-| date / dateTime | `DateTimeInterface`, a parsable string, an int timestamp | `DateTimeImmutable` | `format()` of the type |
+| enum | the enum case, or its backed value (`::from()`; an int-backed enum reads it as `int` does, Q13) | the `BackedEnum` case | `->value` |
+| date / dateTime | `DateTimeInterface`, a string parsed without warning nor surrounding blanks, an int timestamp (UTC) (Q13) | `DateTimeImmutable` | `format()` of the type (D29) |
 | list | any `iterable` (arrays, generators, Laravel collections) | `list` of normalized items | array |
 | object | see §6.1 (subject of its children) | `array<string, mixed>` | object |
 | custom type | the type's `normalize()` | the type's | the type's `serialize()` |
@@ -499,6 +499,8 @@ return [
     'response_header' => 'Api-Revision',
     'missing_default' => 'error',     // error | null (§7.3)
     'strict_values' => env('APP_DEBUG', false), // value errors throw (true) or are cast and reported (false) (§6.3)
+    'date_format' => 'Y-m-d',         // Schema::date() without format() (D29)
+    'date_time_format' => 'Y-m-d\TH:i:sP', // Schema::dateTime() without format(), RFC 3339 (D29)
     'discovery' => [
         'paths' => [app_path()],      // scanned for classes implementing Revisioned
         'classes' => [],              // extra classes outside the paths (packages, modules)
@@ -639,5 +641,6 @@ returns the declared type.
 | D26 | Upgrade: values normalized to the type of the shape of `X` before each up conversion (`up:` receives typed values and a snapshot of the step); `validated()` serialized back to raw values | **Decided** (2026-11-11) |
 | D27 | One direction per declaration kind: responses plan / check `down`, requests `up` | **Decided** (2026-11-11) |
 | D28 | Application test helpers: trait `Testing\InteractsWithRevisions` (`withRevision()`, `assertRevisionsAreConsistent()`) for the application's `TestCase`; `assertMatchesRevisionSchema()` is a `TestResponse` macro | **Decided** (2026-11-11) |
+| D29 | Date formats: `format()` on the descriptor, else the configured default (`date_format` `Y-m-d`, `date_time_format` `Y-m-d\TH:i:sP`, RFC 3339). Resolved at compilation: the compiler calls `Descriptor::configure(Configuration)` and the resolved format reaches the `TypeDefinition` and `serialize()`; the core never reads configuration globally | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.
