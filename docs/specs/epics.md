@@ -193,6 +193,16 @@ request (webhooks, jobs) renders in a chosen revision.*
 Tests: `test_current_is_the_head_by_default`, `test_using_sets_the_revision_inside_the_closure_only`,
 `test_using_restores_the_revision_when_the_closure_throws`, `test_nested_using_restores_each_level`.
 
+**Done** (2026-11-11): `Revisions\RevisionScope` (instance: a base revision, `setBase(?Revision)`, under a `using()`
+stack popped in `finally`; `current(class)` = innermost `using()`, else base, else the head of `class`), one static
+`provider(?Closure)` (`null` restores a new process-local scope, `get()` installs it lazily);
+`Revision::current()` / `using()` in the contract and `IsRevision`. `tests/TestCase` and `tests/FeatureTestCase`
+reset the provider and `Memo` after every test. Coverage 100 %, Infection MSI 100 % on `RevisionScope` and
+`IsRevision`. Deviations: a revision of another enum throws the new `DefinitionException::foreignRevision(case,
+expected enum)` rather than `mixedRevisions()` (which keeps comparisons); `provider()` is replaceable (Testbench
+boots an application per test), not enforced "once"; the revision does not outlive the `using()` closure (documented
+in model.md §10). Follow-up: Q11 (the fallback outside a request: head or configured default, for US 8.1).
+
 ---
 
 ### E2 — Schema vocabulary
@@ -785,6 +795,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | **Decided** (2026-11-11): as proposed (D27) |
 | Q9 | Test helpers for applications (US 9.3 `assertRevisionsAreConsistent()`, US 10.4 `withRevision()`, `assertMatchesRevisionSchema()`): propose — one trait `Testing\\InteractsWithRevisions` for the application's `TestCase` (as Laravel's `InteractsWithDatabase`), added to §16 and to the allowed traits; `assertMatchesRevisionSchema()` as a `TestResponse` macro | US 0.3 review | **Decided** (2026-11-11): as proposed (D28) |
 | Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | Open |
+| Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | Open |
 
 ---
 
@@ -817,7 +828,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 0.4 | Continuous integration | S | 0.2 | M1 | done |
 | US 1.1 | Revision contract and order | M | 0.3 | M1 | done |
 | US 1.2 | Revision metadata | S | 1.1 | M1 | done |
-| US 1.3 | Current revision and `using()` | S | 1.1 | M1 | todo |
+| US 1.3 | Current revision and `using()` | S | 1.1 | M1 | done |
 | US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | todo |
 | US 2.2 | Dates and enums | S | 2.1 | M1 | todo |
 | US 2.3 | Lists and objects | M | 2.1 | M1 | todo |

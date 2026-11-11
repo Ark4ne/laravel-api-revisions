@@ -558,7 +558,8 @@ Rather than forcing `since` everywhere, the published revisions are frozen, `com
   innermost `using()`, the `scoped` binding set by the middleware, the configured default.
 - **Outside HTTP** (webhooks, jobs, broadcasting, notifications) the code targets a revision explicitly:
   `ApiRevision::using($account->apiRevision, fn () => $webhook->send(OrderResource::make($order)))`. A queued job
-  captures the revision **when dispatched**, not when run.
+  captures the revision **when dispatched**, not when run. The revision does not outlive the closure of `using()`:
+  render inside it (a resource returned and serialized later renders in the outer revision).
 - **Octane:** the `scoped` binding is reset on every request; no state survives a request.
 - **Compilation:** the shape is computed once per `(class, revision)` and memoized. `revision:cache` (like
   `route:cache`) writes the compiled shapes to `bootstrap/cache/revisions.php`; value closures are never serialized:

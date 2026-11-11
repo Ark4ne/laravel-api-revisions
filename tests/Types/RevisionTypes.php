@@ -24,3 +24,5 @@ assertType('Test\\Fixtures\\Revisions\\IntRevision', IntRevision::latest());
 assertType('Test\\Fixtures\\Revisions\\IntRevision|null', IntRevision::First->next());
 assertType('list<Ark4ne\\ApiRevisions\\Revisions\\Revision>', RevisionOrder::between(ApiRevision::Genesis, ApiRevision::Atlas));
 assertType('Ark4ne\\ApiRevisions\\Revisions\\Meta', ApiRevision::Atlas->meta());
+assertType('Test\\Fixtures\\ApiRevision', ApiRevision::current());
+assertType('1', ApiRevision::using(ApiRevision::Genesis, static fn(): int => 1));

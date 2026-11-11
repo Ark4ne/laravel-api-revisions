@@ -16,7 +16,7 @@ final class DefinitionExceptionTest extends TestCase
         $exception = DefinitionException::mixedRevisions(ApiRevision::Atlas, IntRevision::First);
 
         self::assertSame(
-            'Cannot compare revisions of two enums: Test\Fixtures\ApiRevision::Atlas and Test\Fixtures\Revisions\IntRevision::First.',
+            'Revisions of two enums cannot be mixed: Test\Fixtures\ApiRevision::Atlas and Test\Fixtures\Revisions\IntRevision::First.',
             $exception->getMessage(),
         );
     }
@@ -47,5 +47,13 @@ final class DefinitionExceptionTest extends TestCase
 
         self::assertSame("Invalid #[Meta] on Test\Fixtures\ApiRevision::Atlas: sunsetAt must be a Y-m-d date, got 'soon'.", $exception->getMessage());
         self::assertSame($reason, $exception->getPrevious());
+    }
+
+    public function test_foreign_revision_names_the_case_and_the_required_enum(): void
+    {
+        self::assertSame(
+            'Test\Fixtures\Revisions\IntRevision::First is not a revision of Test\Fixtures\ApiRevision.',
+            DefinitionException::foreignRevision(IntRevision::First, ApiRevision::class)->getMessage(),
+        );
     }
 }

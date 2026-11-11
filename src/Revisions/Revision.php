@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Revisions;
 
 use BackedEnum;
+use Closure;
 
 /**
  * A revision of the API: a case of an application enum using `IsRevision`. Revisions are compared by their index in
@@ -41,6 +42,24 @@ interface Revision extends BackedEnum
      * The `#[Meta]` of the case, an empty `Meta` when absent.
      */
     public function meta(): Meta;
+
+    /**
+     * The revision of the current context: the innermost `using()`, else the revision of the request, else the head.
+     */
+    public static function current(): static;
+
+    /**
+     * Runs `$callback` with `$revision` (a case of this enum) as the current revision, then restores the previous one,
+     * even when it throws. The revision does not outlive the callback: render inside it, not in a resource or
+     * generator returned by it.
+     *
+     * @template TResult
+     *
+     * @param Closure(): TResult $callback
+     *
+     * @return TResult
+     */
+    public static function using(self $revision, Closure $callback): mixed;
 
     /**
      * The head: the last revision of `order()`.

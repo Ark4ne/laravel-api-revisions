@@ -21,12 +21,22 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     public static function mixedRevisions(BackedEnum $a, BackedEnum $b): self
     {
         return new self(sprintf(
-            'Cannot compare revisions of two enums: %s::%s and %s::%s.',
+            'Revisions of two enums cannot be mixed: %s::%s and %s::%s.',
             $a::class,
             $a->name,
             $b::class,
             $b->name,
         ));
+    }
+
+    /**
+     * A revision of another enum where a case of `$expected` is required (`ApiRevision::using(OtherRevision::X)`).
+     *
+     * @param class-string $expected the revision enum required
+     */
+    public static function foreignRevision(BackedEnum $revision, string $expected): self
+    {
+        return new self(sprintf('%s::%s is not a revision of %s.', $revision::class, $revision->name, $expected));
     }
 
     /**

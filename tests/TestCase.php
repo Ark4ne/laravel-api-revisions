@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test;
 
+use Ark4ne\ApiRevisions\Revisions\RevisionScope;
 use Ark4ne\ApiRevisions\Support\Memo;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
@@ -13,11 +14,12 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Every test starts without memoized values (`Support\Memo`).
+     * Every test starts without memoized values (`Support\Memo`) and with a new process-local revision scope.
      */
     protected function tearDown(): void
     {
         Memo::flush();
+        RevisionScope::provider(null);
 
         parent::tearDown();
     }

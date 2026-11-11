@@ -93,7 +93,7 @@ final class RevisionOrderTest extends TestCase
     public function test_comparing_revisions_of_two_enums_throws(): void
     {
         $this->expectException(DefinitionException::class);
-        $this->expectExceptionMessage('Cannot compare revisions of two enums: Test\Fixtures\ApiRevision::Atlas and Test\Fixtures\Revisions\IntRevision::First.');
+        $this->expectExceptionMessage('Revisions of two enums cannot be mixed: Test\Fixtures\ApiRevision::Atlas and Test\Fixtures\Revisions\IntRevision::First.');
 
         RevisionOrder::compare(ApiRevision::Atlas, IntRevision::First);
     }

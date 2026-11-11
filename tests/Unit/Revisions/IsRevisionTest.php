@@ -6,6 +6,7 @@ namespace Test\Unit\Revisions;
 
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\MetaReader;
+use Ark4ne\ApiRevisions\Revisions\RevisionScope;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Revisions\IntRevision;
 use Test\TestCase;
@@ -62,5 +63,35 @@ final class IsRevisionTest extends TestCase
     {
         self::assertSame('First published revision', ApiRevision::Genesis->meta()->description);
         self::assertSame(MetaReader::of(ApiRevision::Genesis), ApiRevision::Genesis->meta());
+    }
+
+    public function test_current_is_the_head_by_default(): void
+    {
+        self::assertSame(ApiRevision::Atlas, ApiRevision::current());
+    }
+
+    public function test_current_reads_the_scope_of_the_context(): void
+    {
+        $scope = new RevisionScope();
+        $scope->setBase(ApiRevision::Spring26);
+        RevisionScope::provider(static fn(): RevisionScope => $scope);
+
+        self::assertSame(ApiRevision::Spring26, ApiRevision::current());
+    }
+
+    public function test_using_sets_the_current_revision_inside_the_closure_only(): void
+    {
+        $inside = ApiRevision::using(ApiRevision::Winter25, static fn(): ApiRevision => ApiRevision::current());
+
+        self::assertSame(ApiRevision::Winter25, $inside);
+        self::assertSame(ApiRevision::Atlas, ApiRevision::current());
+    }
+
+    public function test_using_a_revision_of_another_enum_throws(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('Test\Fixtures\Revisions\IntRevision::First is not a revision of Test\Fixtures\ApiRevision.');
+
+        ApiRevision::using(IntRevision::First, static fn(): null => null);
     }
 }

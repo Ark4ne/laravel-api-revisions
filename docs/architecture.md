@@ -85,9 +85,12 @@ Context** (`RevisionScope`).
 - `#[Meta]` is read by `MetaReader::of()` (reflection, memoized per case); `Meta` checks its `Y-m-d` days in its
   constructor and the reader rethrows `DefinitionException::invalidMeta()` naming the case. Informative only (D21).
 - `RevisionScope` is the **only** holder of the current revision: a stack for `using()` (Execute Around, restored in
-  `finally`) above a base revision. The core reaches it through `RevisionScope::provider()`, a closure set **once at
-  boot** (configuration, not state); the default provider is a process-local scope for non-Laravel use; the Laravel
-  layer provides the `scoped` container binding (reset per request under Octane).
+  `finally`) above a base revision. The core reaches it through `RevisionScope::provider()`, a closure set **at
+  boot** (configuration, not state; replaceable, `null` restores the default); the default provider is a process-local scope for non-Laravel use; the Laravel
+  layer provides the `scoped` container binding (reset per request under Octane). API: `RevisionScope::get()`,
+  `setBase(?Revision)` (the middleware), `current(class)` (head of `class` when nothing is set, see Q11; a revision of
+  another enum throws `foreignRevision()`), `using(revision, callback)`; `provider(null)` restores a new process-local scope
+  (tests: `tests/TestCase` and `tests/FeatureTestCase` reset it after every test).
 
 ## 4. The definition model
 
@@ -261,7 +264,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set once at boot) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default) |
 | Facades and helpers | Only in `src/Laravel/` |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test;
 
+use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Ark4ne\ApiRevisions\Support\Memo;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use LogicException;
@@ -15,6 +17,18 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
  */
 abstract class FeatureTestCase extends BaseTestCase
 {
+    /**
+     * Like the Unit tests: no memoized value and no revision scope provider survive a test (the provider of an
+     * application captures its container).
+     */
+    protected function tearDown(): void
+    {
+        Memo::flush();
+        RevisionScope::provider(null);
+
+        parent::tearDown();
+    }
+
     /**
      * @param Application $app
      *

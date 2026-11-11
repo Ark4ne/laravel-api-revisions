@@ -16,7 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `#[Revisions\Meta]` on a revision case (`description`, `publishedAt`, `deprecatedAt`, `sunsetAt` as `Y-m-d` days,
   checked when read), `Revision::meta()` (an empty `Meta` when absent), `Meta::isDeprecated()` / `isSunset()` from
   their day included; `DefinitionException::invalidMetaDate()` / `invalidMeta()`.
+- Current revision: `Revision::current()` (the innermost `using()`, else the revision of the context, else the head)
+  and `Revision::using($revision, $callback)` (restores the previous revision, even when the callback throws; render inside the callback);
+  `Revisions\RevisionScope`, the only holder of the current revision, found through `RevisionScope::provider()`.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.
 - `Exceptions\RevisionsException`, marker of the package exceptions, and `Exceptions\DefinitionException`
-  (`mixedRevisions()` when two enums are compared, `invalidOrder()` when `order()` misses a case, lists one twice,
-  lists a foreign case, is not a list or is empty).
+  (`mixedRevisions()` when revisions of two enums are compared, `foreignRevision()` when a revision of another enum
+  is used or current, `invalidOrder()` when `order()` misses a case, lists one twice, lists a foreign case, is not a
+  list or is empty).
