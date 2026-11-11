@@ -99,3 +99,9 @@ parameters:
                 - 'print_r()'
                 - 'ray()'
             message: 'debug output must not be committed'
+
+services:
+    -
+        class: Test\Architecture\ArchitectureTest
+        tags:
+            - phpat.test

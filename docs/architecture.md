@@ -239,6 +239,11 @@ declarations), `ConversionException`, `ValueException` (a subject value the type
 `UnknownRevisionException` (unknown client value), `LockException`. Named
 constructors only (`DefinitionException::mixedRevisions()`); messages name the class, the field and the revision.
 
+`Exceptions` depends only on `Support` (phpat, PHPDoc included): an exception takes `\BackedEnum`, `\UnitEnum` or
+`string`, never `Revision` (`DefinitionException::mixedRevisions(\BackedEnum $a, \BackedEnum $b)`). Exceptions are
+pure PHP: the HTTP rendering (the 400 of `UnknownRevisionException`, validation errors) lives in the Laravel layer
+(exception handler / renderable), never in the exception class.
+
 ## 15. Supported versions
 
 PHP `^8.3`, Laravel `^12.46 || ^13.0` (Laravel 14 as soon as it is released). Only APIs present in every supported
@@ -270,6 +275,8 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
   document validates against the exported JSON Schema of its revision.
 - **Expected files** (`tests/Feature/<Scenario>/expected/*.json`) are rewritten by `composer fixtures:update` and
   reviewed in the diff.
+- `tests/Unit/Architecture/` holds the architecture checks phpat cannot do (the declared traits); they test the
+  code base, not one class.
 - Arrange / Act / Assert; test names are sentences (`test_a_renamed_field_keeps_its_old_name_up_to_its_revision`).
 - **Workflow:** contract (signatures and PHPDoc, neutral bodies) → red tests → implementation. Never implement
   behaviour that has no test yet.
@@ -299,7 +306,8 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | Safeguard | What it checks |
 | --- | --- |
 | PHPStan max + Larastan + strict rules + phpstan-phpunit | Types, dead code, comparisons, Laravel API |
-| `phpat` | Dependency rule, pure core, `final` classes, traits allowed list |
+| `phpat` (`tests/Architecture/ArchitectureTest.php`) | Dependency rule, `Exceptions` on `Support` only, pure core (no `Illuminate` left of `Laravel`), `final` classes, abstract only for base classes, no package class using a trait, interface names |
+| `tests/Unit/Architecture/DeclaredTraitsTest.php` | Only the listed traits are declared in `src/` (phpat cannot see a trait declaration) |
 | `spaze/phpstan-disallowed-calls` | Facades, global helpers, `Illuminate\Support` helpers (`collect()`, `data_get()`, `value()`…) and `Container::getInstance()` outside `Laravel/` (phpat does not see functions); debug output everywhere |
 | PHP-CS-Fixer (PER-CS) | Style, `declare(strict_types=1)` |
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
