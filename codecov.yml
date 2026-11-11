@@ -1,0 +1,12 @@
+coverage:
+  precision: 2
+  round: down
+  range: "90...100"
+  status:
+    # The blocking gate is bin/coverage-check.php (90%): Codecov only reports.
+    project:
+      default:
+        target: 90%
+    patch:
+      default:
+        informational: true

@@ -108,6 +108,16 @@ over `src/` (proven red on an unlisted trait; its parsing covered by a data prov
 - `.github/workflows/ci.yml`: tests (PHP 8.3/8.4/8.5 × Laravel 12/13 × lowest/highest), static (validate, PHPStan,
   CS), coverage (pcov, gate 90 %), mutation (blocking on `master`), audit (informative); `codecov.yml`.
 
+**Done** (2026-11-11): `.github/workflows/ci.yml` — `tests` (PHP 8.3/8.4/8.5 × Laravel `^12.46`/Testbench `^10.0` and
+`^13.0`/`^11.0` × lowest/highest, `audit.block-insecure` off so "lowest" really installs the declared minimum),
+`static` (validate, PHPStan, CS on 8.4), `coverage` (pcov, `bin/coverage-check.php` 90 %, Codecov upload),
+`mutation` (Infection 0.35.8 pinned, blocking on `main` only), `audit` (informative); concurrency cancels superseded
+runs except on `main`. `codecov.yml`: project target 90 %, patch informational. CONTRIBUTING.md says a (draft) PR runs
+the CI of a story branch. The four Laravel × dependencies combinations were replayed locally on PHP 8.5: all green
+(Laravel 12 lowest prints two vendor Guzzle deprecations, exit 0). Deviations: no GitHub remote yet, so the workflow
+has never run on GitHub; mutation is blocking on `main` (the default branch), not `master`; no `pdo_sqlite` extension
+(nothing uses a database yet).
+
 ---
 
 ### E1 — Revisions
@@ -778,7 +788,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 0.1 | Package skeleton | S | — | M1 | done |
 | US 0.2 | Static analysis and style | S | 0.1 | M1 | done |
 | US 0.3 | Architecture test | S | 0.2 | M1 | done |
-| US 0.4 | Continuous integration | S | 0.2 | M1 | todo |
+| US 0.4 | Continuous integration | S | 0.2 | M1 | done |
 | US 1.1 | Revision contract and order | M | 0.3 | M1 | todo |
 | US 1.2 | Revision metadata | S | 1.1 | M1 | todo |
 | US 1.3 | Current revision and `using()` | S | 1.1 | M1 | todo |

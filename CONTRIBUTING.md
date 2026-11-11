@@ -38,6 +38,9 @@ composer ci              # composer.json, code style, PHPStan (max, architecture
 composer test:coverage   # at least 90% of the lines
 ```
 
+On GitHub, the CI runs on pull requests (open a draft one to run it on a story branch), on `main` and on release
+branches. Mutation testing is blocking on `main` only.
+
 ## Conventions
 
 - Everything is in English: code, documentation, commit messages.
