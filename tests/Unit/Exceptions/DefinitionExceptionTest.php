@@ -30,4 +30,22 @@ final class DefinitionExceptionTest extends TestCase
             $exception->getMessage(),
         );
     }
+
+    public function test_invalid_meta_date_names_the_argument_and_the_value(): void
+    {
+        self::assertSame(
+            "sunsetAt must be a Y-m-d date, got 'soon'.",
+            DefinitionException::invalidMetaDate('sunsetAt', 'soon')->getMessage(),
+        );
+    }
+
+    public function test_invalid_meta_names_the_case_and_keeps_the_reason(): void
+    {
+        $reason = DefinitionException::invalidMetaDate('sunsetAt', 'soon');
+
+        $exception = DefinitionException::invalidMeta(ApiRevision::Atlas, $reason);
+
+        self::assertSame("Invalid #[Meta] on Test\Fixtures\ApiRevision::Atlas: sunsetAt must be a Y-m-d date, got 'soon'.", $exception->getMessage());
+        self::assertSame($reason, $exception->getPrevious());
+    }
 }

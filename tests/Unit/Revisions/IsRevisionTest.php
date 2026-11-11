@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Unit\Revisions;
 
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Revisions\MetaReader;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Revisions\IntRevision;
 use Test\TestCase;
@@ -55,5 +56,11 @@ final class IsRevisionTest extends TestCase
         $this->expectException(DefinitionException::class);
 
         ApiRevision::Atlas->isBefore(IntRevision::First);
+    }
+
+    public function test_meta_delegates_to_the_reader(): void
+    {
+        self::assertSame('First published revision', ApiRevision::Genesis->meta()->description);
+        self::assertSame(MetaReader::of(ApiRevision::Genesis), ApiRevision::Genesis->meta());
     }
 }

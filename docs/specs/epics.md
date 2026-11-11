@@ -169,6 +169,16 @@ passed), `IsRevision` narrows to `self` (architecture.md §3); `between(from, to
 Tests: `test_meta_reads_the_attribute_of_the_case`, `test_a_case_without_meta_has_an_empty_meta`,
 `test_an_invalid_date_in_meta_throws`.
 
+**Done** (2026-11-11): `Revisions\Meta` (`final readonly` attribute, `TARGET_CLASS_CONSTANT`; its `Y-m-d` days are
+checked in the constructor, i.e. when the attribute is read: strict round trip, `2026-02-30` refused; dates stay
+strings), `isDeprecated($now)` / `isSunset($now)`; `Revisions\MetaReader::of()` (`@internal`, reflection, memoized
+per case) behind `Revision::meta()` / `IsRevision::meta()`; `DefinitionException::invalidMetaDate()` and
+`invalidMeta(case, previous)`, which names the case for a bad date and also for the PHP `Error`s of a broken
+declaration (repeated attribute, wrong argument type). The reference fixture `ApiRevision` carries the `#[Meta]` of
+model.md §2.1. Coverage 100 %, Infection MSI 94 % (2 mutants on the unused exception code). Deviations: the "day
+reached" rule (from the day included, in the timezone of `$now`) is not decided by model.md: applied and recorded
+as Q10, with the instant of the `Deprecation` / `Sunset` headers left to US 8.x.
+
 #### US 1.3 — Current revision and `using()` · S · depends US 1.1
 
 *As an application developer, I want `ApiRevision::current()` and `ApiRevision::using()`, so that code outside a
@@ -774,6 +784,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q7 | Group `until()` vs a member's own `until()` (F10): propose — mirror of `since`: the member's earlier `until` wins, a later one throws | US 3.2 | **Decided** (2026-11-11): as proposed (D24) |
 | Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | **Decided** (2026-11-11): as proposed (D27) |
 | Q9 | Test helpers for applications (US 9.3 `assertRevisionsAreConsistent()`, US 10.4 `withRevision()`, `assertMatchesRevisionSchema()`): propose — one trait `Testing\\InteractsWithRevisions` for the application's `TestCase` (as Laravel's `InteractsWithDatabase`), added to §16 and to the allowed traits; `assertMatchesRevisionSchema()` as a `TestResponse` macro | US 0.3 review | **Decided** (2026-11-11): as proposed (D28) |
+| Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | Open |
 
 ---
 
@@ -805,7 +816,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 0.3 | Architecture test | S | 0.2 | M1 | done |
 | US 0.4 | Continuous integration | S | 0.2 | M1 | done |
 | US 1.1 | Revision contract and order | M | 0.3 | M1 | done |
-| US 1.2 | Revision metadata | S | 1.1 | M1 | todo |
+| US 1.2 | Revision metadata | S | 1.1 | M1 | done |
 | US 1.3 | Current revision and `using()` | S | 1.1 | M1 | todo |
 | US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | todo |
 | US 2.2 | Dates and enums | S | 2.1 | M1 | todo |

@@ -6,15 +6,16 @@ namespace Ark4ne\ApiRevisions\Exceptions;
 
 use BackedEnum;
 use LogicException;
+use Throwable;
 
 /**
  * A programming error in a declaration. Named constructors only.
  */
 final class DefinitionException extends LogicException implements RevisionsException
 {
-    private function __construct(string $message)
+    private function __construct(string $message, ?Throwable $previous = null)
     {
-        parent::__construct($message);
+        parent::__construct($message, 0, $previous);
     }
 
     public static function mixedRevisions(BackedEnum $a, BackedEnum $b): self
@@ -35,5 +36,22 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     public static function invalidOrder(string $class, string $reason): self
     {
         return new self(sprintf('%s::order() must list every case exactly once: %s.', $class, $reason));
+    }
+
+    /**
+     * @param string $argument the `#[Meta]` argument, e.g. `publishedAt`
+     */
+    public static function invalidMetaDate(string $argument, string $value): self
+    {
+        return new self(sprintf("%s must be a Y-m-d date, got '%s'.", $argument, $value));
+    }
+
+    /**
+     * An invalid `#[Meta]` on a revision case (a bad date, a repeated attribute, a wrong argument); `$previous`
+     * says why.
+     */
+    public static function invalidMeta(BackedEnum $case, Throwable $previous): self
+    {
+        return new self(sprintf('Invalid #[Meta] on %s::%s: %s', $case::class, $case->name, $previous->getMessage()), $previous);
     }
 }

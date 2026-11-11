@@ -50,6 +50,11 @@ trait IsRevision
         return RevisionOrder::next($this);
     }
 
+    public function meta(): Meta
+    {
+        return MetaReader::of($this);
+    }
+
     public static function latest(): static
     {
         return RevisionOrder::latest(static::class);

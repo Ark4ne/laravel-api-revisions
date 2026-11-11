@@ -38,6 +38,11 @@ interface Revision extends BackedEnum
     public function next(): ?static;
 
     /**
+     * The `#[Meta]` of the case, an empty `Meta` when absent.
+     */
+    public function meta(): Meta;
+
+    /**
      * The head: the last revision of `order()`.
      */
     public static function latest(): static;

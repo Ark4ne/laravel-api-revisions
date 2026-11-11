@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Revisions: the `Revisions\Revision` contract and the `Revisions\IsRevision` trait for an application's revision enum
   (`isBefore()`, `isAfter()`, `isAtLeast()`, `isAtMost()`, `previous()`, `next()`, `latest()`, `oldest()`), ordered by
   its explicit `order()`, never by declaration or backed value; string- and int-backed enums.
+- `#[Revisions\Meta]` on a revision case (`description`, `publishedAt`, `deprecatedAt`, `sunsetAt` as `Y-m-d` days,
+  checked when read), `Revision::meta()` (an empty `Meta` when absent), `Meta::isDeprecated()` / `isSunset()` from
+  their day included; `DefinitionException::invalidMetaDate()` / `invalidMeta()`.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.
 - `Exceptions\RevisionsException`, marker of the package exceptions, and `Exceptions\DefinitionException`
   (`mixedRevisions()` when two enums are compared, `invalidOrder()` when `order()` misses a case, lists one twice,

@@ -82,6 +82,8 @@ Context** (`RevisionScope`).
 - Typing: PHPStan reads `static` on an enum as the case itself (`ApiRevision::Atlas`), and a template bound by a case
   argument is that case. So `RevisionOrder::previous()`, `next()`, `between()` return `Revision`, and `IsRevision`
   narrows to `self` in its PHPDoc. `tests/Types/RevisionTypes.php` asserts what applications see.
+- `#[Meta]` is read by `MetaReader::of()` (reflection, memoized per case); `Meta` checks its `Y-m-d` days in its
+  constructor and the reader rethrows `DefinitionException::invalidMeta()` naming the case. Informative only (D21).
 - `RevisionScope` is the **only** holder of the current revision: a stack for `using()` (Execute Around, restored in
   `finally`) above a base revision. The core reaches it through `RevisionScope::provider()`, a closure set **once at
   boot** (configuration, not state); the default provider is a process-local scope for non-Laravel use; the Laravel

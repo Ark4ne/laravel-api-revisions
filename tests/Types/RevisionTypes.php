@@ -23,3 +23,4 @@ assertType('bool', ApiRevision::Spring26->isBefore(ApiRevision::Atlas));
 assertType('Test\\Fixtures\\Revisions\\IntRevision', IntRevision::latest());
 assertType('Test\\Fixtures\\Revisions\\IntRevision|null', IntRevision::First->next());
 assertType('list<Ark4ne\\ApiRevisions\\Revisions\\Revision>', RevisionOrder::between(ApiRevision::Genesis, ApiRevision::Atlas));
+assertType('Ark4ne\\ApiRevisions\\Revisions\\Meta', ApiRevision::Atlas->meta());
