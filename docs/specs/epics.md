@@ -767,6 +767,8 @@ Tests: `test_rules_use_the_names_of_the_client_revision`, `test_a_string_to_int_
 - Trait for `FormRequest`: `body()`, `query()`; `rules()` = rules of `Shape(current())`; after validation, the
   upgrader; `validated()` / `safe()` return the head input; the `upgrade()` hook of the request is the
   `UpgradesInput`; a `ConversionException` becomes a validation error on the client's key.
+- Decide Q18 first (§6): how a user `up:` closure rejects an input (a public `ConversionException` constructor or an
+  exception contract caught by the layer).
 
 Tests (Feature): `test_a_genesis_client_is_validated_with_its_own_names`,
 `test_the_controller_receives_the_head_input`, `test_an_invalid_enum_value_is_a_validation_error_on_the_old_key`,
@@ -996,6 +998,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
 | Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | **Decided** (2026-11-11): `bound-repeated` is a warning (D38); the check catches declaration errors and reports them under their code (D39) |
 | Q17 | A `was()` newer than the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | **Decided** (2026-11-11): D43 |
+| Q18 | Exceptions thrown by a user `up:` closure (US 4.2). Today only a `ConversionException` (raised by the library's converters) becomes a validation error on the client's key (US 8.7); any other exception from a closure bubbles up as a 500. Leaning towards letting a closure reject an input for its revision, either with a public `ConversionException::invalid($message)` or with an exception **contract** (an interface the Laravel layer catches) that an application exception may implement: compare both when US 8.7 starts | US 4.2 | Open (deferred to US 8.7) |
 
 ---
 
