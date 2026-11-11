@@ -1,10 +1,101 @@
-# Minimal until US 0.2 adds strict rules, phpstan-phpunit, phpat, disallowed calls and the empty baseline.
 includes:
     - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpat/phpat/extension.neon
+    - vendor/spaze/phpstan-disallowed-calls/extension.neon
+    # Empty: never add an entry, fix the cause instead (docs/specs/epics.md §1).
+    - phpstan-baseline.neon
 
 parameters:
     level: max
     paths:
         - src
         - tests
+        - bin
     tmpDir: build/phpstan
+
+    # Facades, global helpers and the container belong to src/Laravel/ (docs/architecture.md §2).
+    disallowedNamespaces:
+        -
+            namespace: 'Illuminate\Support\Facades\*'
+            message: 'facades are reserved to src/Laravel/: inject a dependency instead'
+            allowIn:
+                - src/Laravel/*
+                - tests/*
+    disallowedStaticCalls:
+        -
+            method:
+                - 'Illuminate\Container\Container::getInstance()'
+                - 'Illuminate\Foundation\Application::getInstance()'
+            message: 'the container is reserved to src/Laravel/: inject a dependency instead'
+            allowIn:
+                - src/Laravel/*
+                - tests/*
+    disallowedFunctionCalls:
+        -
+            function:
+                - 'app()'
+                - 'resolve()'
+                - 'config()'
+                - 'request()'
+                - 'response()'
+                - 'env()'
+                - 'trans()'
+                - '__()'
+                - 'base_path()'
+                - 'config_path()'
+                - 'report()'
+                - 'logger()'
+                - 'info()'
+                - 'event()'
+                - 'cache()'
+                - 'now()'
+                - 'today()'
+                - 'url()'
+                - 'route()'
+                - 'validator()'
+                - 'abort()'
+            message: 'global helpers are reserved to src/Laravel/: inject a dependency instead'
+            allowIn:
+                - src/Laravel/*
+                - tests/*
+                - config/*
+        -
+            # Illuminate\Support helpers: the core is pure PHP (docs/architecture.md §2), phpat does not see functions.
+            function:
+                - 'collect()'
+                - 'data_get()'
+                - 'data_set()'
+                - 'data_fill()'
+                - 'data_forget()'
+                - 'value()'
+                - 'with()'
+                - 'tap()'
+                - 'optional()'
+                - 'blank()'
+                - 'filled()'
+                - 'head()'
+                - 'last()'
+                - 'retry()'
+                - 'rescue()'
+                - 'throw_if()'
+                - 'throw_unless()'
+                - 'transform()'
+                - 'class_basename()'
+                - 'str()'
+            message: 'Illuminate helpers are reserved to src/Laravel/: the core is pure PHP'
+            allowIn:
+                - src/Laravel/*
+                - src/Testing/*
+                - tests/*
+                - config/*
+        -
+            function:
+                - 'dd()'
+                - 'dump()'
+                - 'var_dump()'
+                - 'print_r()'
+                - 'ray()'
+            message: 'debug output must not be committed'

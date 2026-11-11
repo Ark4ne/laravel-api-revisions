@@ -300,9 +300,9 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | PHPStan max + Larastan + strict rules + phpstan-phpunit | Types, dead code, comparisons, Laravel API |
 | `phpat` | Dependency rule, pure core, `final` classes, traits allowed list |
-| `spaze/phpstan-disallowed-calls` | Facades and global helpers outside `Laravel/`, debug output |
+| `spaze/phpstan-disallowed-calls` | Facades, global helpers, `Illuminate\Support` helpers (`collect()`, `data_get()`, `value()`…) and `Container::getInstance()` outside `Laravel/` (phpat does not see functions); debug output everywhere |
 | PHP-CS-Fixer (PER-CS) | Style, `declare(strict_types=1)` |
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
 | Coverage ≥ 90 % (`bin/coverage-check.php`) | Tested lines |
-| Infection (MSI ≥ 80 %) | Test quality |
+| Infection (MSI ≥ 80 %) | Test quality; a change generating no mutant is not measured (`ignoreMsiWithNoMutations`) |
 | Benchmark gate | Projection time and memory at the head and the oldest revision |

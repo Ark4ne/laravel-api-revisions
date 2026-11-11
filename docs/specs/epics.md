@@ -72,6 +72,17 @@ US 0.2; the scripts `test:coverage` and `benchmark` reference `bin/coverage-chec
 
 Tests: `composer ci` green on the skeleton.
 
+**Done** (2026-11-11): `phpstan.neon.dist` (level max, Larastan, strict rules, phpstan-phpunit, phpat extension,
+disallowed calls), empty `phpstan-baseline.neon`, `.php-cs-fixer.dist.php`, `infection.json5`, `bin/coverage-check.php`.
+Each gate proven on a temporary violating file (not committed): a facade, `dd()`, `config()`, `app()`, `data_get()`,
+`value()`, `Container::getInstance()` and `==` in the core rejected by PHPStan, a style fault by the fixer, the same
+helpers accepted in `src/Laravel/`; coverage gate exits 1 under its threshold. Deviations: the disallowed lists go
+beyond `laravel-json-api` (the `Illuminate\Support` helpers and the container: the core is pure, and phpat does not
+see function calls); the "never add an entry" comment sits in `phpstan.neon.dist` (`stan:baseline` rewrites the
+baseline file); `ignoreMsiWithNoMutations` so a change without mutable code passes; the fixer only scans existing
+folders. Infection is installed globally but not on the `PATH` of this machine (`~/.composer/vendor/bin`).
+Follow-ups: `config` in the PHPStan `paths` (US 8.1), `bin/benchmark/*` in the `allowIn` of facades (US 5.4).
+
 #### US 0.3 — Architecture test · S
 
 *As a maintainer, I want the layers enforced by the analysis, so that no story can break them silently.*
@@ -359,6 +370,7 @@ Tests: `test_a_cached_shape_equals_the_compiled_one`, `test_projection_from_the_
 
 #### US 5.4 — Benchmark gate · M · depends US 6.1
 
+- Allow facades and helpers in `bin/benchmark/*` (it boots Laravel; follow-up of US 0.2).
 - `bin/benchmark.php`: project 1 000 orders at the head and at `Genesis`, with and without the compiled file; compare
   with a plain `JsonResource`; reference in `bin/benchmark/reference.json`; fail beyond the tolerance (10 %).
 
@@ -457,6 +469,7 @@ Goal: a Laravel application resolves the revision of each request, renders resou
 
 #### US 8.1 — Service provider and configuration · S · depends US 1.3
 
+- Add `config` to the PHPStan `paths` (follow-up of US 0.2).
 - `config/revisions.php` documented key by key (`model.md` §8); `Configuration` built from it (validated: `enum`
   implements `Revision`, resolvers exist); `RevisionScope` provider = `scoped` binding; publishable config.
 
@@ -751,7 +764,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | --- | --- | --- | --- | --- | --- |
 | M0 | Spike (throwaway) | — | — | M0 | done |
 | US 0.1 | Package skeleton | S | — | M1 | done |
-| US 0.2 | Static analysis and style | S | 0.1 | M1 | todo |
+| US 0.2 | Static analysis and style | S | 0.1 | M1 | done |
 | US 0.3 | Architecture test | S | 0.2 | M1 | todo |
 | US 0.4 | Continuous integration | S | 0.2 | M1 | todo |
 | US 1.1 | Revision contract and order | M | 0.3 | M1 | todo |
