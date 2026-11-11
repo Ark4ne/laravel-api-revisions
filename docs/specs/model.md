@@ -540,8 +540,8 @@ Every diagnostic names the class, the field and the revision. The check never th
 **Lock.** The real risk is not a missing `since`, it is a **forgotten** one: a new field leaks into the old revisions.
 Rather than forcing `since` everywhere, the published revisions are frozen, `composer.lock`-style:
 
-- `revision:lock` writes a snapshot (normalized JSON Schema) of every class at every revision except the head, versioned
-  in the repository; `--revision=` locks one explicitly.
+- `revision:lock` writes a snapshot (normalized JSON Schema, one file per revision) of every class at every revision
+  except the head, versioned in the repository; `--revision=` locks one explicitly. `#[Meta]` plays no part (D21).
 - In CI, any difference between a computed shape and the lock of a frozen revision fails the build.
 - The head stays free. The lock also records `order()`, so a published revision never moves.
 
@@ -623,5 +623,9 @@ returns the declared type.
 | D18 | **One closure signature everywhere**: source, `when()`, `down:`, `up:` receive `($value, $subject)` (§3, §6.2). A `was()` never has a source: older values derive from the head value (`sourceInHistory()`) | **Decided** (2026-11-11) |
 | D19 | Value errors: `strict_values` throws `ValueException`; lenient casts and reports. Default `app.debug` | **Decided** (2026-11-11) |
 | D20 | `Schema::resource()` composes `Revisioned` classes, projected at the same revision | **Decided** (2026-11-11) |
+| D21 | `#[Meta]` is optional and informative only (docs, changelog, headers); it never drives behaviour. `revision:lock` locks every revision but the head (`--revision=` for one) | **Decided** (2026-11-11) |
+| D22 | In `query()`, renames apply to **keys** only (`filter[state]` → `filter[status]`); a change of the values (`sort=-state`, enum values) is declared like any other change, with `was()` and its conversions | **Decided** (2026-11-11) |
+| D23 | A default of a field added later is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | **Decided** (2026-11-11) |
+| D24 | Group `until()` vs a member's own: the member's earlier `until()` wins, a later one throws (mirror of `since`) | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.
