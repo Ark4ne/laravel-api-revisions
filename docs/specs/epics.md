@@ -448,7 +448,7 @@ checks the arguments. F10 (part): a `was(schema:)` whose schema, items or childr
 history, a default or a condition throws `sourceInHistory()` (model.md §6.4; an object without source is accepted);
 `was(name: '')` throws `emptyHistoryName()`, a `was()` changing nothing `emptyChange()` (both `definition-error`
 under D39; `invalidHistory()` is `history-unordered`). Coverage 100 %, Infection MSI 99–100 % (the escaped mutant is
-equivalent). Follow-ups: a `was()` older than the `since` is `history-before-since` (US 9.2); one at or after the
+equivalent). Follow-ups: a `was()` older than the `since` is `history-before-since` (US 9.2); one newer than the
 `until` is Q17; `down:` / `up:` become `ClosureConverter`s in US 4.2, chained by US 4.3.
 
 #### US 3.4 — `ShapeSelector`: the shape of a revision · L · depends US 3.2, US 3.3, US 4.3
@@ -983,7 +983,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36: rule keywords apply last, in order, even over the typed ones; the check warns (`schema-override`) |
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
 | Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | **Decided** (2026-11-11): `bound-repeated` is a warning (D38); the check catches declaration errors and reports them under their code (D39) |
-| Q17 | A `was()` at or after the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | Open |
+| Q17 | A `was()` newer than the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | Open |
 
 ---
 
