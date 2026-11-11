@@ -228,6 +228,25 @@ Tests: `test_a_modifier_returns_a_new_descriptor`, `test_a_descriptor_without_so
 `test_bool_schema_accepts_zero_and_one`. Types:
 `tests/Types/ScalarSchemaTypes.php` asserts `BoolSchema` has no `min()`.
 
+**Done** (2026-11-11): `Definition\Kind` (every kind of architecture.md §4), `Definition\TypeDefinition` (`final
+readonly`, `of()`, `with*()`, `addExample()`); `Schema\Descriptor` (abstract extension base, `Source`, `nullable()`,
+`required()`, `sometimes()`, `describe()`, `example()`, `deprecated()`, `rules()`, final `toType()` over the
+protected `type()`), `Schema\Source` (`from()`, `key()` with dotted paths, `closure()`, `declaredKey()`),
+`StringSchema`, `IntSchema`, `FloatSchema`, `BoolSchema`, the `Schema` factory; `Support\Invoke::value()`;
+`DefinitionException::eagerSource()` / `invalidSourceKey()`. `tests/Types/ScalarSchemaTypes.php` (the ignore on
+`BoolSchema::min()` fails if the error disappears; typed source closures accepted). Coverage 100 %, Infection MSI
+93–98 % (equivalent mutants: rounding variants of `floor`, unreachable cast bounds, `%G` digits). Deviations:
+- the refusal is `Schema\InvalidValue(value, expected kind, cast)`, not `ValueError` (PHP's `\ValueError` is thrown
+  by `BackedEnum::from()`); the type computes the lenient cast (`null` when none makes sense) and US 6.4 renders it;
+- the factories take a native `mixed` source (PHPDoc `string|Closure|null`): in a file without `strict_types` PHP
+  would coerce `Schema::int($order->total)` into the key `'1250'` (`tests/Fixtures/NonStrictDeclarations.php`,
+  excluded from the fixer);
+- the `Descriptor` constructor is not `final` (composites and custom types take their own arguments first);
+- closure parameters are typed as a plain `Closure` (`Closure(mixed, mixed)` refuses `fn (int $cents)`); a
+  first-class callable of an internal function must be wrapped (documented on `Invoke`);
+- a float normalized to a string keeps every digit whatever the `precision` setting; INF / NaN refused;
+- the numeric string rules are applied and recorded as Q12, to confirm.
+
 #### US 2.2 — Dates and enums · S · depends US 2.1
 
 - `Schema::date()`, `dateTime()` (format from `Configuration`), `Schema::enum(class-string<BackedEnum>)` (values and
@@ -478,8 +497,9 @@ Tests: `test_projection_and_shape_agree_for_every_fixture_at_every_revision`.
 production, so that type drift is caught without outages.*
 
 - `Projection\ValueErrorHandler` (Strategy): `StrictValues` throws `ValueException` (class, field, revision, the value's
-  type, never the value itself); `LenientValues` casts (`(int)`, `(string)`…, the raw value for an unknown enum) and
-  passes the error to a reporter (`Closure(ValueException): void`).
+  type, never the value itself); `LenientValues` renders `InvalidValue::cast`, the PHP cast computed by the type
+  (`(int)`, `(string)`…, the raw value for an unknown enum; `null` when no cast makes sense) and passes the error to a
+  reporter (`Closure(ValueException): void`).
 - Chosen from `Configuration::strictValues`; a non-nullable field resolving `null` is a value error.
 - Spike M0 findings to address: F11 (§3.1).
 
@@ -796,6 +816,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q9 | Test helpers for applications (US 9.3 `assertRevisionsAreConsistent()`, US 10.4 `withRevision()`, `assertMatchesRevisionSchema()`): propose — one trait `Testing\\InteractsWithRevisions` for the application's `TestCase` (as Laravel's `InteractsWithDatabase`), added to §16 and to the allowed traits; `assertMatchesRevisionSchema()` as a `TestResponse` macro | US 0.3 review | **Decided** (2026-11-11): as proposed (D28) |
 | Q10 | When is a `#[Meta]` day reached? Applied for now: `isDeprecated($now)` / `isSunset($now)` hold **from the day included**, the day read in the timezone of `$now`. Open for US 8.x: the instant sent in the `Deprecation` / `Sunset` headers (midnight in the application timezone, or UTC?) | US 1.2 | Open |
 | Q11 | Outside a request (jobs, console) nothing sets the base revision: `current()` gives the head (US 1.3), while model.md §10 says "the configured default". Should the Laravel provider (US 8.1) set the base to the configured default when it is a fixed revision (`latest`, `oldest`, a value), the head otherwise? | US 1.3 | Open |
+| Q12 | Numeric strings (model.md §6.3 says "integral numeric string"). Applied: int accepts digits (`'-007'`, exact to the int range) and any numeric string with an integral value exact as a float (`'12.00'` from a MySQL DECIMAL, `'1e3'`, up to 2^53); int and float refuse surrounding blanks and a trailing newline; a float written as a string keeps every digit (`0.1 + 0.2` → `'0.30000000000000004'`), INF / NaN refused; an int beyond 2^53 normalized to float loses precision, as in PHP. Confirm, then record in §14 | US 2.1 | Open |
 
 ---
 
@@ -829,7 +850,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 1.1 | Revision contract and order | M | 0.3 | M1 | done |
 | US 1.2 | Revision metadata | S | 1.1 | M1 | done |
 | US 1.3 | Current revision and `using()` | S | 1.1 | M1 | done |
-| US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | todo |
+| US 2.1 | Descriptor, source, scalars | M | 0.3 | M1 | done |
 | US 2.2 | Dates and enums | S | 2.1 | M1 | todo |
 | US 2.3 | Lists and objects | M | 2.1 | M1 | todo |
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | todo |

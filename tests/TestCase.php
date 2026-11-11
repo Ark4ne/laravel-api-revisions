@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Test;
 
+use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Ark4ne\ApiRevisions\Schema\InvalidValue;
 use Ark4ne\ApiRevisions\Support\Memo;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
@@ -22,5 +24,16 @@ abstract class TestCase extends BaseTestCase
         RevisionScope::provider(null);
 
         parent::tearDown();
+    }
+
+    /**
+     * Asserts a normalization refused `$value`, strictly: the value, the kind and the lenient cast.
+     */
+    protected static function assertRefused(mixed $refusal, mixed $value, Kind $expected, mixed $cast): void
+    {
+        self::assertInstanceOf(InvalidValue::class, $refusal);
+        self::assertSame($value, $refusal->value);
+        self::assertSame($expected, $refusal->expected);
+        self::assertSame($cast, $refusal->cast);
     }
 }

@@ -64,4 +64,22 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     {
         return new self(sprintf('Invalid #[Meta] on %s::%s: %s', $case::class, $case->name, $previous->getMessage()), $previous);
     }
+
+    /**
+     * A source that is neither a key nor a closure: an evaluated value, which would run at declaration time.
+     *
+     * @param string $type the debug type of the value given
+     */
+    public static function eagerSource(string $type): self
+    {
+        return new self("A source is a key, a dotted path or a closure, never an evaluated value: got {$type}.");
+    }
+
+    /**
+     * An empty key, or a dotted path with an empty segment (`customer..name`).
+     */
+    public static function invalidSourceKey(string $key): self
+    {
+        return new self("Invalid source key '{$key}': a key or each segment of a dotted path must not be empty.");
+    }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 $finder = (new PhpCsFixer\Finder())
     ->in(array_filter([__DIR__ . '/src', __DIR__ . '/tests', __DIR__ . '/bin', __DIR__ . '/config'], 'is_dir'))
+    // Written without strict_types on purpose: it proves evaluated sources are refused in application files.
+    ->notPath('Fixtures/NonStrictDeclarations.php')
     ->append([__FILE__]);
 
 $config = new PhpCsFixer\Config();

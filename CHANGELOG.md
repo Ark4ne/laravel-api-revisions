@@ -19,6 +19,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Current revision: `Revision::current()` (the innermost `using()`, else the revision of the context, else the head)
   and `Revision::using($revision, $callback)` (restores the previous revision, even when the callback throws; render inside the callback);
   `Revisions\RevisionScope`, the only holder of the current revision, found through `RevisionScope::provider()`.
+- Schema vocabulary: `Schema\Schema::string()`, `int()`, `float()`, `bool()` returning `StringSchema` (`min()`,
+  `max()`, `format()`, `pattern()`), `IntSchema` / `FloatSchema` (`min()`, `max()`), `BoolSchema`; every descriptor
+  (`Schema\Descriptor`, the extension base) has a lazy source (the declared key, a key or dotted path, or a closure
+  `($value, $subject)`; an evaluated value throws `DefinitionException::eagerSource()`), `nullable()`, `required()`,
+  `sometimes()`, `describe()`, `example()`, `deprecated()`, `rules()`, and returns a new instance on every modifier.
+- `normalize()` / `serialize()` of the scalars (model.md §6.3); a refused value is returned as a `Schema\InvalidValue`
+  carrying its lenient cast. An evaluated source is refused even in a file without `strict_types`.
+- `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.
 - `Exceptions\RevisionsException`, marker of the package exceptions, and `Exceptions\DefinitionException`
   (`mixedRevisions()` when revisions of two enums are compared, `foreignRevision()` when a revision of another enum

@@ -56,4 +56,20 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::foreignRevision(IntRevision::First, ApiRevision::class)->getMessage(),
         );
     }
+
+    public function test_eager_source_names_the_type_given(): void
+    {
+        self::assertSame(
+            'A source is a key, a dotted path or a closure, never an evaluated value: got int.',
+            DefinitionException::eagerSource('int')->getMessage(),
+        );
+    }
+
+    public function test_invalid_source_key_names_the_key(): void
+    {
+        self::assertSame(
+            "Invalid source key 'a..b': a key or each segment of a dotted path must not be empty.",
+            DefinitionException::invalidSourceKey('a..b')->getMessage(),
+        );
+    }
 }
