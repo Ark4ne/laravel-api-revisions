@@ -214,24 +214,27 @@ the export all read its result. **The response, the validation, the export and t
 
 ## 5. Conversions
 
-A scalar type change needs no closure as long as the conversion is **lossless in its direction**; otherwise an
-explicit closure or cast is required. **No conversion is ever silently lossy:** a pair neither automatic nor provided
-fails the check.
+A type change between **scalars** (string, int, float, bool) needs no closure: the library converts automatically, in
+both directions, with PHP cast semantics. The author gives `down:` / `up:` whenever the cast is not what the clients
+need: **it is the author's call** (D25). Pairs that may lose information without a closure get a non-blocking
+`conversion-lossy` **warning** from the check, so the risk is visible.
 
-| Conversion | Automatic | Condition |
+| Conversion | Automatic | Lossy-capable (warning without closure) |
 | --- | --- | --- |
-| int → float | yes | — |
-| int / float → string | yes | — |
-| bool ↔ int | yes | — |
-| backed enum → string / int | yes | via `->value` |
-| string / int → backed enum | yes | `::from()`; a failure becomes a validation error of the older shape |
-| string → int / float | yes | the library adds `numeric` to the rules of the older shape |
-| float → int | no | explicit cast: `Cast::round()`, `Cast::floor()`, `Cast::ceil()` |
+| int → float, int / float / bool → string, bool → int | yes | no |
+| string → int, string → float, float → int, int / string → bool | yes (PHP cast) | **yes** |
+| backed enum → string / int | yes, via `->value` | no |
+| string / int → backed enum | yes, `::from()`; a failure is a validation error (up) or a value error (down) | no |
 | nullable → non-nullable (up) | no | `default:` required |
-| object, list, custom type | no | explicit closure, unless the custom type declares its conversions |
+| object, list, custom type | no: explicit closure, unless the custom type declares its conversions | — |
 
-The direction matters: the same pair may be safe one way and lossy the other. Conversions are **registered** by
-`(source type, target type, direction)`; a custom type registers its own.
+- On the request side, the rules of the older shape get what its type implies (`integer`, `numeric`, the enum
+  values), so an automatic up conversion only sees valid input.
+- Explicit casts remain available: `Cast::round()`, `Cast::floor()`, `Cast::ceil()`.
+- **One direction per declaration kind** (D27): a response is only ever projected down, a request only ever upgraded
+  up. The shape of a response plans and checks the `down` conversions only, the shape of a request the `up` ones only.
+  A descriptor shared by both declares `down:` and `up:`; each side uses its own.
+- Conversions are **registered** by `(source type, target type, direction)`; a custom type registers its own.
 
 ## 6. Response side (projection, "down")
 
@@ -447,11 +450,15 @@ final class StoreOrderRequest extends FormRequest implements Revisioned
 2. The rules of the shape of `R` are generated and the input is validated against them: **error keys use the names
    the client knows** (`state`, not `status`).
 3. The input is upgraded **step by step** from `R` to the head. For each step `X → X->next()`:
-   1. the `was(X)` of every field: rename to the newer name, then `up` conversion (an `up:` closure receives
-      `($value, $input)`, the input as it stands at that step);
+   1. the `was(X)` of every field, all read from a **snapshot** of the input at the start of the step (so rename
+      chains `x → y`, `y → z` lose nothing): rename to the newer name, then `up` conversion. The value is
+      **normalized** to the type of the shape of `X` first, so an `up:` closure receives typed values whatever the
+      wire format (`3`, never `"3"`): it receives `($value, $snapshot)`, the snapshot in the shape of `X`;
    2. the hook `upgrade(X->next(), $input)`;
-   3. the defaults of the fields `since(X->next())`.
-4. `validated()` returns the input in the head shape.
+   3. the defaults of the fields `since(X->next())`, written in the shape of `X->next()` (D23);
+   4. the fields `until(X)` still present are dropped: they do not exist in `X->next()`.
+4. `validated()` returns the input in the head shape, **serialized back to raw values** (`'paid'`, not
+   `OrderStatus::Paid`): exactly what Laravel returns today for a head client (D26).
 
 ### 7.2 Absent or null
 
@@ -525,8 +532,8 @@ discovered classes, so a forgotten path is visible.
 | `since-older-than-group` | a field `since` older than its group's | all |
 | `history-unordered` | two `was()` on the same revision, or a `was()` not older than the head | all |
 | `history-before-since` | a `was()` older than the field's `since` (dead declaration) | all |
-| `conversion-missing` | a type pair neither automatic nor provided | all |
-| `conversion-lossy` | a lossy conversion without explicit cast | all |
+| `conversion-missing` | a type pair neither automatic nor provided, in the direction of the declaration kind | all |
+| `conversion-lossy` | **warning**: a lossy-capable automatic conversion without closure (§5) | all |
 | `name-collision` | two fields under the same name in one revision | all |
 | `required-since-without-default` | `required()->since(R)` without `default:` | requests |
 | `native-condition` | a Laravel `MissingValue` / `MergeValue` in a declaration | all |
@@ -627,5 +634,8 @@ returns the declared type.
 | D22 | In `query()`, renames apply to **keys** only (`filter[state]` → `filter[status]`); a change of the values (`sort=-state`, enum values) is declared like any other change, with `was()` and its conversions | **Decided** (2026-11-11) |
 | D23 | A default of a field added later is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | **Decided** (2026-11-11) |
 | D24 | Group `until()` vs a member's own: the member's earlier `until()` wins, a later one throws (mirror of `since`) | **Decided** (2026-11-11) |
+| D25 | Every scalar pair converts automatically in both directions (PHP casts); `down:` / `up:` when the author wants otherwise; lossy-capable pairs without closure get a `conversion-lossy` **warning** | **Decided** (2026-11-11) |
+| D26 | Upgrade: values normalized to the type of the shape of `X` before each up conversion (`up:` receives typed values and a snapshot of the step); `validated()` serialized back to raw values | **Decided** (2026-11-11) |
+| D27 | One direction per declaration kind: responses plan / check `down`, requests `up` | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.

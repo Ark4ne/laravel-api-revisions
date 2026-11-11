@@ -710,11 +710,11 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q1 | Lock granularity: one file per revision, or per class and revision (smaller diffs)? | US 9.4 | **Decided** (2026-11-11): one file per revision (D11) |
 | Q2 | Is a revision "published" (lockable) by `publishedAt` in `#[Meta]` rather than "all but the head"? | US 9.4 | **Decided** (2026-11-11): `#[Meta]` is informative only and optional; `revision:lock` locks every revision but the head (D21) |
 | Q3 | `query()` arrays (`filter[status]`, `sort=-total`): do renames apply inside values (`sort`) or only keys? | US 8.7 | **Decided** (2026-11-11): renames apply to **keys** only; a change of the values is a revision of its own, declared with `was()` (D22) |
-| Q4 | Automatic conversions per direction (F2): propose — `string → int/float` automatic **up only** (rule `integer` for int, `numeric` for float), explicit down; `int → bool` never automatic; non-scalars never converted | US 4.1 | Open |
-| Q5 | Upgrade values (F3, F9): propose — after validation the input of `R` is **normalized** to the types of the shape of `R` (enum cases, ints, dates), `up:` closures and converters receive normalized values, `$subject` is the snapshot of the step in the shape of `X`; `validated()` returns the head **PHP values** (enum cases, not strings) | US 7.1 | Open |
+| Q4 | Automatic conversions per direction (F2): propose — `string → int/float` automatic **up only** (rule `integer` for int, `numeric` for float), explicit down; `int → bool` never automatic; non-scalars never converted | US 4.1 | **Decided** (2026-11-11): all scalar pairs automatic both ways, `conversion-lossy` warning (D25) |
+| Q5 | Upgrade values (F3, F9): propose — after validation the input of `R` is **normalized** to the types of the shape of `R` (enum cases, ints, dates), `up:` closures and converters receive normalized values, `$subject` is the snapshot of the step in the shape of `X`; `validated()` returns the head **PHP values** (enum cases, not strings) | US 7.1 | **Decided** (2026-11-11): option B — normalize before each up conversion, `validated()` raw (D26) |
 | Q6 | Defaults of fields added later (F5): propose — a default is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | US 3.4, 7.1 | **Decided** (2026-11-11): as proposed (D23) |
 | Q7 | Group `until()` vs a member's own `until()` (F10): propose — mirror of `since`: the member's earlier `until` wins, a later one throws | US 3.2 | **Decided** (2026-11-11): as proposed (D24) |
-| Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | Open |
+| Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | **Decided** (2026-11-11): as proposed (D27) |
 
 ---
 
@@ -726,7 +726,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Chained `was()` inheritance surprises authors used to json-api 2.1 (omitted = head) | `model.md` §13; skill rule; changelog shows the effective names |
 | Closures lost or mismatched after cache (`revision:cache`) | Plans reference `was` indexes; US 5.3 test projects from the cache |
 | A source runs during compilation (side effects, N+1) | The probe throws on any access (US 5.1) |
-| Silent lossy conversion | No automatic lossy converter; `conversion-lossy` / `conversion-missing` in the check |
+| Lossy automatic scalar casts surprise clients | `conversion-lossy` warning in the check; changelog shows the type change; `down:` / `up:` |
 | Static state under Octane | Only `Memo` and the scope provider; `scoped` binding; US 8.1 test |
 | Performance regression on large collections | Compiled plans; benchmark gate US 5.4 |
 | A forgotten `since` leaks a field into old revisions | Lock (US 9.4) |

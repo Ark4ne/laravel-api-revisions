@@ -129,6 +129,8 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
 - Built-ins are one class each (`IntToFloat`, `NumericStringToFloat`, `EnumToBacked`, `BackedToEnum`…), registered
   in `Converters::builtIn()`. `Cast::round()` / `floor()` / `ceil()` are named constructors of explicit converters.
 - A user closure (`down:` / `up:`) becomes a `ClosureConverter`, always considered explicit (so never `conversion-lossy`).
+- Plans hold **one direction**, the one of the declaration kind (`model.md` D27): `down` for responses, `up` for
+  requests.
 - `ConversionChain` is built once per `(field, revision, direction)` at compilation and only **references**
   converters, so it serializes; the closures are re-attached from the fresh descriptors at run time.
 - A conversion failure (`BackedEnum::from()` on an unknown value) throws `ConversionException`, turned into a
