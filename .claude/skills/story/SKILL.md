@@ -42,7 +42,8 @@ case appears that `model.md` does not decide, **stop and ask the maintainer**, t
 3. Ask the `architecture-reviewer` agent to review the diff; address its findings or record why not.
 4. Board: status `done`. Under the story, a **Done** note: what was built (main classes), deviations from the story,
    follow-ups (as new questions in §6 or new stories appended to their epic — never renumber).
-5. Commit with an imperative English message naming the story (`Add the ShapeSelector (US 3.4)`). Do not push, tag
-   or open a PR unless asked.
+5. Commit with an imperative English message naming the story (`Add the ShapeSelector (US 3.4)`).
+6. Merge the story branch into `main` (`git checkout main && git merge --ff-only us/<id>-<slug>`); if a fast-forward
+   is impossible, stop and ask. Do not push, tag or open a PR unless asked.
 
 Report to the maintainer in French: what was done, test results, deviations, the next story available.
