@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Schema;
 
+use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Support\Undefined;
 use BackedEnum;
 use Closure;
 
@@ -106,5 +108,32 @@ final class Schema
     public static function rule(array $rules, mixed $source = null): RuleSchema
     {
         return new RuleSchema($rules, $source);
+    }
+
+    /**
+     * A group added in `$revision` (included): every member exists from it, unless it declares a newer `since()`
+     * itself; an older one throws `DefinitionException::sinceOlderThanGroup()`. `$default` is the default of every
+     * member that declares none (model.md §4.3, §7.3). Returns the array, to spread with its string keys.
+     *
+     * @param array<string, Descriptor<mixed>> $fields
+     *
+     * @return array<string, Descriptor<mixed>>
+     */
+    public static function since(Revision $revision, array $fields, mixed $default = new Undefined()): array
+    {
+        return Groups::since($revision, $fields, $default);
+    }
+
+    /**
+     * A group removed after `$revision` (included): every member exists up to it, unless it declares an older
+     * `until()` itself; a newer one throws `DefinitionException::untilNewerThanGroup()` (model.md D24).
+     *
+     * @param array<string, Descriptor<mixed>> $fields
+     *
+     * @return array<string, Descriptor<mixed>>
+     */
+    public static function until(Revision $revision, array $fields): array
+    {
+        return Groups::until($revision, $fields);
     }
 }

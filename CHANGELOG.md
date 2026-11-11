@@ -47,6 +47,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `Definition\Lifetime` (`covers(Revision)`); a `since` newer than the `until` throws
   `DefinitionException::invertedLifetime()`; a bound set twice keeps the last call and is recorded
   (`Descriptor::repeatedBounds()`).
+- Groups: `Schema::since(Revision, array $fields, $default)` and `Schema::until(Revision, array $fields)` return the
+  array with each member bounded, to spread with its string keys (in a declaration or in `Schema::object()`); a
+  member's own narrower bound and own default win, a wider one throws `DefinitionException::sinceOlderThanGroup()` /
+  `untilNewerThanGroup()`; a group never records a repeated bound.
 - `Configuration\Configuration` (`dateFormat`, `dateTimeFormat`), given to descriptors by `Descriptor::configure()`.
 - `Definition\TypeDefinition` and `Definition\Kind`, the type of a field as read by the tools.
 - `Revisions\RevisionOrder`: `index()`, `compare()`, `previous()`, `next()`, `latest()`, `oldest()`, `between()`.

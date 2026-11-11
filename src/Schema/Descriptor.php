@@ -280,6 +280,20 @@ abstract class Descriptor
         return $clone;
     }
 
+    /**
+     * This descriptor with the lifetime and default a group resolved for it, recording nothing (`Groups`).
+     *
+     * @internal
+     */
+    public function inGroup(Lifetime $lifetime, mixed $default): static
+    {
+        $clone = clone $this;
+        $clone->lifetime = $lifetime;
+        $clone->default = $default;
+
+        return $clone;
+    }
+
     public function lifetime(): Lifetime
     {
         return $this->lifetime;

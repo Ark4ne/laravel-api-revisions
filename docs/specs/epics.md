@@ -382,6 +382,15 @@ code in model.md §9; Q16 (whether the check reports declaration errors, severit
 Tests: `test_a_group_sets_since_on_every_member`, `test_a_member_newer_than_its_group_keeps_its_own_since`,
 `test_a_member_older_than_its_group_throws`, `test_a_member_default_overrides_the_group_default`.
 
+**Done** (2026-11-11): `Schema::since(R, $fields, $default)` / `Schema::until(R, $fields)` behind the `@internal`
+`Schema\Groups`, applied through `Descriptor::inGroup()` (`@internal`, records no repeated bound, callable only from
+`Groups`: disallowed-calls rule). A member's own newer `since` / earlier `until` (D24) and own default win; a wider
+bound throws `DefinitionException::sinceOlderThanGroup()` / `untilNewerThanGroup()`; members are checked
+(`invalidGroupKey()`, `invalidGroupMember()`). Nested groups resolve from the inner one; groups spread in
+`Schema::object()` alike. Coverage 100 %, Infection MSI 100 %. Precision written in model.md §4.3: a member without
+its own default takes the group's even when it keeps a newer own `since`. Follow-ups: `until-newer-than-group` added
+to model.md §9 and to Q16.
+
 #### US 3.3 — `was()` · M · depends US 3.1, US 4.1
 
 - `Descriptor::was(Revision $revision, ?string $name = null, ?Descriptor $schema = null, ?Closure $down = null,
@@ -904,7 +913,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q13 | Dates and enums beyond model.md §6.3 (US 2.2). Applied: a date string is what `DateTimeImmutable` parses **without warning** (`2026-02-30` refused, never rolled over) and without surrounding blanks; relative strings (`tomorrow`, `now`) accepted; a string without offset is read in the default timezone, an int timestamp in UTC. An int-backed enum accepts what `int` accepts (`'3'`, `3.0`); a refused enum value keeps its backed value as lenient cast. Confirm, then record in §14 | US 2.2 | **Decided** (2026-11-11): D33 |
 | Q14 | `DescribesSchema` (US 2.4). Applied: a rule implementing it enriches the type of **any** descriptor (`rules()` too, not only `Schema::rule()`, as model.md §3 words it); keywords merged in declaration order after those of `type()`, a later one wins; refused unless JSON-ready (scalars, arrays, nulls: `DefinitionException::invalidJsonSchema()`). Open for US 10.1: when a rule keyword contradicts the typed ones (`type`, `minimum`, `format`, `enum` against `kind`, `min`, `values`), which wins in the export, and should the check (US 9.2) report it? | US 2.4 | **Decided** (2026-11-11): D36: rule keywords apply last, in order, even over the typed ones; the check warns (`schema-override`) |
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
-| Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | Open |
+| Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | Open |
 
 ---
 
@@ -945,7 +954,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | todo |
 | US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
-| US 3.2 | Groups | S | 3.1 | M1 | todo |
+| US 3.2 | Groups | S | 3.1 | M1 | done |
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | todo |
 | US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | todo |
 | US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |

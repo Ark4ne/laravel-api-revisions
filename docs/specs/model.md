@@ -188,13 +188,17 @@ return [
 ];
 ```
 
-`Schema::since(R, [...], default: …)` also sets the default of every member (§7.3); a member may override it.
+`Schema::since(R, [...], default: …)` also sets the default of every member (§7.3); a member may override it. A
+member without its own default takes the group's even when it keeps a newer own `since`: the clients older than its
+`since` do not send it either.
 
 ### 4.4 Consistency rules
 
 Checked when declared (programming error → `DefinitionException`) or by the check (§9, diagnostic):
 
-1. A field's `since` older than its group's: **error**. Newer: the newer one wins.
+1. A field's `since` older than its group's: **error**. Newer: the newer one wins. Mirror for `until` (D24): a
+   field's `until` newer than its group's is an **error**, an earlier one wins. A group never counts as a second call
+   (rule 5).
 2. `until` must be at or after the `since` of the same field or of its group.
 3. The revisions of the `was()` of a field are distinct; every one is older than the head and at or after the `since`.
 4. A rename cannot target a name already present in the same revision (checked revision by revision).
@@ -534,6 +538,7 @@ discovered classes, so a forgotten path is visible.
 | `order-missing-case` / `order-duplicate-case` | a case absent from `order()`, or present twice | enum |
 | `lifetime-inverted` | `until` before `since` | all |
 | `since-older-than-group` | a field `since` older than its group's | all |
+| `until-newer-than-group` | a field `until` newer than its group's (D24) | all |
 | `bound-repeated` | `since()` or `until()` called twice on one descriptor, naming the replaced revision (§4.4 rule 5; severity: Q16) | all |
 | `history-unordered` | two `was()` on the same revision, or a `was()` not older than the head | all |
 | `history-before-since` | a `was()` older than the field's `since` (dead declaration) | all |

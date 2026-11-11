@@ -121,4 +121,40 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::invalidJsonSchema('App\\Rules\\Postcode')->getMessage(),
         );
     }
+
+    public function test_since_older_than_group_names_the_field_and_both_cases(): void
+    {
+        self::assertSame(
+            sprintf("The field 'notes' cannot exist since %1\$s::Genesis in a group since %1\$s::Atlas: a member's since must be at or after its group's.", ApiRevision::class),
+            DefinitionException::sinceOlderThanGroup('notes', ApiRevision::Genesis, ApiRevision::Atlas)->getMessage(),
+        );
+    }
+
+    public function test_until_newer_than_group_names_the_field_and_both_cases(): void
+    {
+        self::assertSame(
+            sprintf("The field 'name' cannot exist until %1\$s::Atlas in a group until %1\$s::Genesis: a member's until must be at or before its group's.", ApiRevision::class),
+            DefinitionException::untilNewerThanGroup('name', ApiRevision::Atlas, ApiRevision::Genesis)->getMessage(),
+        );
+    }
+
+    public function test_invalid_group_member_names_the_key_and_the_type(): void
+    {
+        self::assertSame(
+            "Invalid member 'total' of a group: a descriptor is expected, got int.",
+            DefinitionException::invalidGroupMember('total', 'int')->getMessage(),
+        );
+    }
+
+    public function test_invalid_group_key_names_the_key(): void
+    {
+        self::assertSame(
+            'Invalid member key 3 of a group: members are keyed by non-empty strings.',
+            DefinitionException::invalidGroupKey(3)->getMessage(),
+        );
+        self::assertSame(
+            "Invalid member key '' of a group: members are keyed by non-empty strings.",
+            DefinitionException::invalidGroupKey('')->getMessage(),
+        );
+    }
 }

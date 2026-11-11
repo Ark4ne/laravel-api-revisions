@@ -350,4 +350,18 @@ final class DescriptorTest extends TestCase
 
         self::assertEquals($schema->toType(), $schema->since(ApiRevision::Genesis)->until(ApiRevision::Atlas)->toType());
     }
+
+    public function test_in_group_returns_a_new_descriptor_and_records_no_repeated_bound(): void
+    {
+        $schema = (new StringSchema())->since(ApiRevision::Atlas, 'own')->until(ApiRevision::Atlas);
+        $lifetime = Lifetime::always()->withSince(ApiRevision::Winter25)->withUntil(ApiRevision::Spring26);
+
+        $grouped = $schema->inGroup($lifetime, null);
+
+        self::assertSame($lifetime, $grouped->lifetime());
+        self::assertNull($grouped->default());
+        self::assertSame([], $grouped->repeatedBounds());
+        self::assertSame(ApiRevision::Atlas, $schema->lifetime()->since);
+        self::assertSame('own', $schema->default());
+    }
 }

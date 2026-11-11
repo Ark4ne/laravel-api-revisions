@@ -33,6 +33,13 @@ parameters:
             allowIn:
                 - src/Laravel/*
                 - tests/*
+    disallowedMethodCalls:
+        -
+            method: 'Ark4ne\ApiRevisions\Schema\Descriptor::inGroup()'
+            message: 'reserved to Schema\Groups: it bypasses the repeated-bound rule (model.md §4.4 rule 5); use Schema::since() / Schema::until()'
+            allowIn:
+                - src/Schema/Groups.php
+                - tests/*
     disallowedFunctionCalls:
         -
             function:

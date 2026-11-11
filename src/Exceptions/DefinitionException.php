@@ -98,6 +98,55 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A member of a `Schema::since()` group declaring an older `since()` than the group.
+     */
+    public static function sinceOlderThanGroup(string $key, BackedEnum $member, BackedEnum $group): self
+    {
+        return new self(sprintf(
+            "The field '%s' cannot exist since %s::%s in a group since %s::%s: a member's since must be at or after its group's.",
+            $key,
+            $member::class,
+            $member->name,
+            $group::class,
+            $group->name,
+        ));
+    }
+
+    /**
+     * A member of a `Schema::until()` group declaring a newer `until()` than the group (model.md D24).
+     */
+    public static function untilNewerThanGroup(string $key, BackedEnum $member, BackedEnum $group): self
+    {
+        return new self(sprintf(
+            "The field '%s' cannot exist until %s::%s in a group until %s::%s: a member's until must be at or before its group's.",
+            $key,
+            $member::class,
+            $member->name,
+            $group::class,
+            $group->name,
+        ));
+    }
+
+    /**
+     * A member of a group that is not a descriptor.
+     */
+    public static function invalidGroupMember(string $key, string $type): self
+    {
+        return new self("Invalid member '{$key}' of a group: a descriptor is expected, got {$type}.");
+    }
+
+    /**
+     * A member of a group under an int or empty key: it would not spread under its name.
+     */
+    public static function invalidGroupKey(int|string $key): self
+    {
+        return new self(sprintf(
+            'Invalid member key %s of a group: members are keyed by non-empty strings.',
+            is_int($key) ? $key : "'{$key}'",
+        ));
+    }
+
+    /**
      * A presence key (`whenHas()`) empty, or with an empty segment.
      */
     public static function invalidPresenceKey(string $key): self
