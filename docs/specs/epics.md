@@ -98,6 +98,7 @@ declaration and every client is compared on one timeline.*
   twice: `DefinitionException::invalidOrder()` at first use (the check also reports it, US 9.2).
 - Fixture `tests/Fixtures/ApiRevision` (`Genesis`, `Winter25`, `Spring26`, `Atlas`), declared in a non-alphabetical
   case order to prove that `order()` wins.
+- Spike M0 findings to address: F4, F12 (§3.1).
 
 Tests: `test_revisions_are_ordered_by_their_order_method_not_by_declaration`,
 `test_the_head_is_the_last_revision_of_the_order`, `test_previous_of_the_oldest_revision_is_null`,
@@ -231,6 +232,7 @@ Tests: `test_until_keeps_the_field_up_to_its_revision_included`, `test_since_kee
   array with each descriptor updated; a member's own newer `since` wins; an older one throws
   `DefinitionException::sinceOlderThanGroup()`; a member's own default wins.
 - Nested in objects: a group inside `Schema::object([...])` works the same.
+- Spike M0 findings to address: F10 (Q7) (§3.1).
 
 Tests: `test_a_group_sets_since_on_every_member`, `test_a_member_newer_than_its_group_keeps_its_own_since`,
 `test_a_member_older_than_its_group_throws`, `test_a_member_default_overrides_the_group_default`.
@@ -242,6 +244,7 @@ Tests: `test_a_group_sets_since_on_every_member`, `test_a_member_newer_than_its_
 - Two `was()` on the same revision, or a `was()` on the head: `DefinitionException::invalidHistory()`.
 - A `schema:` carrying a source: `DefinitionException::sourceInHistory()` (older values derive from the head value).
 - No effect on the head: the descriptor describes itself exactly as without `was()`.
+- Spike M0 findings to address: F10 (§3.1).
 
 Tests: `test_was_returns_a_new_descriptor`, `test_was_entries_are_ordered_by_revision_not_by_call`,
 `test_was_on_the_head_throws`, `test_was_has_no_effect_on_the_head_type`.
@@ -256,6 +259,7 @@ validation, the export and the lock never disagree.*
   inheritance** of omitted `was()` arguments from the next newer shape.
 - Recursive into objects and lists (children have their own history).
 - Name collisions at `R` are recorded on the `Shape` (reported by US 9.2), never thrown.
+- Spike M0 findings to address: F4, F5, F6 (Q6) (§3.1).
 
 Tests (the reference table of `model.md` §4.2, one test per row and per column):
 `test_the_head_shape_ignores_every_was`, `test_a_rename_applies_up_to_its_revision_included`,
@@ -282,6 +286,7 @@ Goal: type changes convert automatically when lossless, explicitly otherwise, in
 - `Definition\Direction` (`Down`, `Up`); `Conversion\Converter` (`convert()`, `lossless()`, `extraRules()`);
   `Conversion\Converters` registry `(Kind from, Kind to, Direction)` with the built-ins of `model.md` §5, one class each.
 - `BackedToEnum` throws `ConversionException::invalidEnumValue()` on an unknown value.
+- Spike M0 findings to address: F2 (Q4) (§3.1).
 
 Tests: one per row of the table of `model.md` §5 and per direction, e.g.
 `test_int_to_float_is_automatic`, `test_float_to_int_has_no_automatic_converter`,
@@ -300,6 +305,7 @@ Tests: `test_cast_round_rounds_half_up`, `test_a_closure_converter_is_explicit`.
 - `ConversionChain::bind(History)` re-attaches the closures from fresh descriptors; `apply(mixed): mixed`.
 - A step with no converter: the chain records it as **missing** (reported by `conversion-missing`, US 9.2); applying
   it throws `ConversionException::missing()`.
+- Spike M0 findings to address: F3, F6, F7, F8 (Q8) (§3.1).
 
 Tests: `test_a_down_chain_converts_from_the_head_to_the_oldest_shape`,
 `test_an_up_chain_converts_from_the_client_shape_to_the_head`, `test_a_chain_survives_serialization`,
@@ -363,6 +369,7 @@ Goal: a subject is rendered in the shape of any revision.
 - Only visible sources evaluated; a renamed field reads its head key; `null` skips normalization and conversions;
   every closure called with `($value, $subject)`; presence conditions before the source, `when()` after the
   normalization.
+- Spike M0 findings to address: F6, F11 (§3.1).
 
 Tests: `test_only_visible_sources_are_evaluated`, `test_a_field_is_written_under_its_name_at_the_revision`,
 `test_a_renamed_field_reads_its_head_key`, `test_a_dotted_source_stops_at_null`,
@@ -385,6 +392,7 @@ Tests: `test_a_child_renamed_in_an_object_is_projected_under_its_old_name`,
 
 - For every fixture class and every revision: projected keys (recursively) = `Shape` names. Extended by US 10.1
   (projected document validates against the exported schema).
+- Spike M0 findings to address: F12 (round trip) (§3.1).
 
 Tests: `test_projection_and_shape_agree_for_every_fixture_at_every_revision`.
 
@@ -397,6 +405,7 @@ production, so that type drift is caught without outages.*
   type, never the value itself); `LenientValues` casts (`(int)`, `(string)`…, the raw value for an unknown enum) and
   passes the error to a reporter (`Closure(ValueException): void`).
 - Chosen from `Configuration::strictValues`; a non-nullable field resolving `null` is a value error.
+- Spike M0 findings to address: F11 (§3.1).
 
 Tests: `test_strict_values_throw_on_a_refused_value`, `test_lenient_values_cast_and_report`,
 `test_null_on_a_non_nullable_field_is_a_value_error`, `test_the_exception_does_not_contain_the_value`.
@@ -412,6 +421,7 @@ Goal: a validated input of revision `R` becomes the input of the head.
 - `Upgrade\Input` (present / absent / explicit null); `Upgrader::upgrade(Shape $from, array $input, ?UpgradesInput
   $hook)`: steps from `R` to the head; per step renames + `up` chains, hook, defaults of `since(next)` fields; never a
   default over an explicit `null`; absent keys stay absent.
+- Spike M0 findings to address: F1, F3, F5, F6, F9, F10, F12 (Q5, Q6) (§3.1).
 
 Tests: `test_a_genesis_input_is_upgraded_to_the_head`, `test_a_renamed_key_is_moved_to_its_head_name`,
 `test_a_default_fills_an_absent_key_added_later`, `test_a_default_never_replaces_an_explicit_null`,
@@ -522,6 +532,7 @@ Tests: `test_a_diagnostic_names_its_class_field_and_revision`, `test_the_checker
 #### US 9.2 — Check rules · M · depends US 9.1
 
 - One class per code of `model.md` §9 except the lock ones.
+- Spike M0 findings to address: F8, F10 (§3.1).
 
 Tests: one passing and one failing declaration per code, e.g.
 `test_a_required_field_added_later_without_default_is_reported`, `test_a_lossy_conversion_without_cast_is_reported`.
@@ -596,6 +607,7 @@ Tests: `test_prune_lists_the_declarations_serving_only_the_oldest_revision`.
 
 - `skills/laravel-api-revisions/` (`SKILL.md` with the rules that prevent most mistakes, `reference.md`, `recipes.md`
   with tested examples); `tests/Unit/SkillTest` checks that the reference names every public entry point.
+- Spike M0 findings to address: F13 (§3.1).
 
 #### US 11.3 — Release 1.0.0 · S · depends all
 
@@ -631,6 +643,39 @@ E11 ── last
 Estimate (S = 1 d, M = 2.5 d, L = 4.5 d): E0 4 · E1 4.5 · E2 9.5 · E3 10 · E4 7 · E5 8.5 · E6 6 · E7 6 · E8 21 ·
 E9 7 · E10 11 · E11 4.5, plus US 2.6 and 6.4 (2) → about **102 days** of nominal work.
 
+
+### 3.1 Spike M0 — results
+
+Branch `spike/core` (commit `df0a523`, throwaway, never merged): `RevisionOrder`, scalar and enum descriptors,
+`since` / `until` / `was` (chained), `ShapeSelector`, `Projector`, `Upgrader`, a static table of automatic conversions,
+on the reference scenario without Laravel. 14 tests, PHPStan max green; reviewed by `architecture-reviewer`.
+
+| Exit criterion | Result |
+| --- | --- |
+| The 4 rows of `model.md` §4.2 | ✅ rendered exactly, `Shape::names()` = projected keys at every revision |
+| `Genesis` input upgraded to the head | ✅ `{state: 'paid', total: 12.5, name: 'Ada Lovelace'}` → `{status, total: 1250, first_name, last_name, priority: 0}` |
+| Chained inheritance | ✅ `was(Winter25, name: 'state')->was(Genesis, schema: string())` renders `state` at `Genesis` (json-api 2.1 would render `status`) |
+| Shape serialized, re-bound to fresh closures | ✅ `serialize()` / `unserialize()`, the `down:` closure of the fresh descriptors runs; compiling runs no source |
+| Retiring `Genesis` | ✅ deleting the case: PHPStan reports exactly the two `was(Genesis)` (`classConstant.notFound`), nothing else |
+
+Findings carried into the stories (the stories cite them):
+
+| # | Finding | Stories |
+| --- | --- | --- |
+| F1 | Renames applied in place lose data on a rename chain in one step (`y→z`, `x→y`): read every old name from a snapshot of the step, unset all, then write | 7.1 |
+| F2 | Automatic conversions must be keyed by **direction**; `string → int/float` down casts silently (`'abc'` → `0`), `int → bool` is lossy, non-scalars become `''` | 4.1 (Q4) |
+| F3 | The upgrade feeds raw input to `up:` closures and converters (`'5'` to `fn (int $n)` → `TypeError`): down receives normalized values, up does not; `string/int → enum` needs the enum class | 4.3, 7.1 (Q5) |
+| F4 | Revisions stored as strings break int-backed enums (`::from((string) 1)`): store the case (or `int\|string`) and compare through `RevisionOrder` | 1.1, 3.4 |
+| F5 | Defaults and drops are planned only for fields visible at `R`: a `since(W)->until(S)` field with a default leaks into the head; a default of a field renamed later is written under the head key | 3.4, 7.1 (Q6) |
+| F6 | Shape decisions recomputed outside `ShapeSelector`: the projector finds the serializer of `R`, the upgrader rebuilds steps from strings, both resolve converters at run time. The `Shape` must carry the type in force at `R`, an ordered list of `UpgradeStep`s, and converter **keys** (an enum, not `'auto'` / `'closure'` strings) | 3.4, 4.3, 6.1, 7.1 |
+| F7 | Plans compare `Kind` only: an enum class / backing type / date format / children change is planned as `identity`. Plan on `TypeDefinition` | 4.3 |
+| F8 | Plans hold both directions: responses never declare `up:`, requests never `down:`, so shapes are full of `missing`. Plan only the direction of the declaration kind | 4.3, 9.2 (Q8) |
+| F9 | What an `up:` closure receives as `$subject` is order-dependent: define it as a snapshot of the input at the start of the step, in the shape of `X` | 7.1 (Q5) |
+| F10 | Model gaps: `until(X)` fields dropped after the hook of step `X → next` (not written in §7.1); a group `until()` widens a member's earlier `until()` silently; a `was()` newer than the field's `until` is not a rule; a `was(schema:)` carrying its own history or default is not refused | 3.2 (Q7), 3.3, 7.1, 9.2 |
+| F11 | Value errors: `normalize()` must report through the `ValueErrorHandler` with class, field, revision; a non-nullable `null` is not reported; `$subject->{$key} ?? null` calls `__isset()` and hides Eloquent strict-mode errors §6.2 wants visible | 6.1, 6.4 |
+| F12 | Tests to add: round trip (down then up gives the head value back: 1250 → 12.5 → 1250), upgrades from every revision, an `until` field the hook does not consume, `mixedRevisions` / `invalidOrder` | 1.1, 6.3, 7.1 |
+| F13 | Author trap: a `down:` closure receives the PHP value of the newer shape (`OrderStatus $s`, not `string`). Show it in the examples and the skill | 11.2 |
+
 ---
 
 ## 4. External epics (other repositories)
@@ -665,6 +710,11 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q1 | Lock granularity: one file per revision, or per class and revision (smaller diffs)? | US 9.4 | Open (D11 proposes per revision) |
 | Q2 | Is a revision "published" (lockable) by `publishedAt` in `#[Meta]` rather than "all but the head"? | US 9.4 | Open |
 | Q3 | `query()` arrays (`filter[status]`, `sort=-total`): do renames apply inside values (`sort`) or only keys? | US 8.7 | Open |
+| Q4 | Automatic conversions per direction (F2): propose — `string → int/float` automatic **up only** (rule `integer` for int, `numeric` for float), explicit down; `int → bool` never automatic; non-scalars never converted | US 4.1 | Open |
+| Q5 | Upgrade values (F3, F9): propose — after validation the input of `R` is **normalized** to the types of the shape of `R` (enum cases, ints, dates), `up:` closures and converters receive normalized values, `$subject` is the snapshot of the step in the shape of `X`; `validated()` returns the head **PHP values** (enum cases, not strings) | US 7.1 | Open |
+| Q6 | Defaults of fields added later (F5): propose — a default is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | US 3.4, 7.1 | Open |
+| Q7 | Group `until()` vs a member's own `until()` (F10): propose — mirror of `since`: the member's earlier `until` wins, a later one throws | US 3.2 | Open |
+| Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | Open |
 
 ---
 
@@ -690,7 +740,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 
 | Story | Title | Size | Depends on | Milestone | Status |
 | --- | --- | --- | --- | --- | --- |
-| M0 | Spike (throwaway) | — | — | M0 | todo |
+| M0 | Spike (throwaway) | — | — | M0 | done |
 | US 0.1 | Package skeleton | S | — | M1 | todo |
 | US 0.2 | Static analysis and style | S | 0.1 | M1 | todo |
 | US 0.3 | Architecture test | S | 0.2 | M1 | todo |
