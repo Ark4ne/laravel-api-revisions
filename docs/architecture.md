@@ -254,7 +254,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | Topic | Rule |
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
-| Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource` (used by no class of the package) |
+| Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
 | Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set once at boot) |
 | Facades and helpers | Only in `src/Laravel/` |
 | Core purity | No `Illuminate\*` left of `Laravel` |

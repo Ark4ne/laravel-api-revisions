@@ -79,8 +79,8 @@ upgrader **walks up**, the exporter **describes**.
 - Definitions (`src/Definition/`) are `final readonly`, serializable, closure-free: the public contract for tools.
 - The current revision lives only in `RevisionScope` (ambient context, `scoped` binding in Laravel): no other static
   state but `Support\Memo`.
-- Classes `final` (except `Schema\Descriptor`); traits only `IsRevision`, `RevisionedRequest`, `RevisionedResource`
-  (declared for applications); `declare(strict_types=1)`; PHPStan max.
+- Classes `final` (except `Schema\Descriptor`); traits only `IsRevision`, `RevisionedRequest`, `RevisionedResource`,
+  `InteractsWithRevisions` (declared for applications); `declare(strict_types=1)`; PHPStan max.
 - The check never throws on application code: it adds a diagnostic (`code`, class, field, revision). Programming
   errors in declarations throw `DefinitionException` (named constructors).
 

@@ -637,5 +637,6 @@ returns the declared type.
 | D25 | Every scalar pair converts automatically in both directions (PHP casts); `down:` / `up:` when the author wants otherwise; lossy-capable pairs without closure get a `conversion-lossy` **warning** | **Decided** (2026-11-11) |
 | D26 | Upgrade: values normalized to the type of the shape of `X` before each up conversion (`up:` receives typed values and a snapshot of the step); `validated()` serialized back to raw values | **Decided** (2026-11-11) |
 | D27 | One direction per declaration kind: responses plan / check `down`, requests `up` | **Decided** (2026-11-11) |
+| D28 | Application test helpers: trait `Testing\InteractsWithRevisions` (`withRevision()`, `assertRevisionsAreConsistent()`) for the application's `TestCase`; `assertMatchesRevisionSchema()` is a `TestResponse` macro | **Decided** (2026-11-11) |
 
 "Proposed" decisions are applied by default until decided.

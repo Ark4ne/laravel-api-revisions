@@ -573,7 +573,7 @@ Tests: one passing and one failing declaration per code, e.g.
 
 - `Laravel\Discovery\PathClassFinder` (`Revisioned` classes under `discovery.paths`, plus `discovery.classes`);
   command `revision:check` (exit code ≠ 0 on error, table output, `--format=json`, `--list` prints the discovered
-  classes); `Testing\RevisionAssertions::assertRevisionsAreConsistent()`.
+  classes); trait `Testing\InteractsWithRevisions` (D28) with `assertRevisionsAreConsistent()`.
 
 Tests: `test_the_check_command_fails_on_an_error`, `test_the_assertion_fails_with_the_diagnostics`,
 `test_explicit_classes_outside_the_paths_are_checked`.
@@ -615,8 +615,9 @@ Tests: `test_the_changelog_lists_a_rename_as_a_rename`, `test_the_changelog_uses
 
 #### US 10.4 — Testing helpers · M · depends US 10.1, US 8.3
 
-- `Testing`: `TestResponse` macro `assertMatchesRevisionSchema(R)`, test case helper `withRevision(R)` (header or
-  path according to the configuration), contract-test helper (head fixture rendered at `R`, validated).
+- `Testing` (D28): `TestResponse` macro `assertMatchesRevisionSchema(R)`; `withRevision(R)` (header or path according
+  to the configuration) and the contract-test helper (head fixture rendered at `R`, validated) on the trait
+  `InteractsWithRevisions`.
 
 Tests: `test_with_revision_sends_the_configured_header`, `test_assert_matches_revision_schema_fails_on_an_extra_field`.
 
@@ -747,7 +748,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q6 | Defaults of fields added later (F5): propose — a default is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | US 3.4, 7.1 | **Decided** (2026-11-11): as proposed (D23) |
 | Q7 | Group `until()` vs a member's own `until()` (F10): propose — mirror of `since`: the member's earlier `until` wins, a later one throws | US 3.2 | **Decided** (2026-11-11): as proposed (D24) |
 | Q8 | Conversion plans per declaration kind (F8): propose — a response shape plans `down` only, a request shape `up` only; `conversion-missing` checks the planned direction | US 4.3, 9.2 | **Decided** (2026-11-11): as proposed (D27) |
-| Q9 | Test helpers for applications (US 9.3 `assertRevisionsAreConsistent()`, US 10.4 `withRevision()`, `assertMatchesRevisionSchema()`): propose — one trait `Testing\\InteractsWithRevisions` for the application's `TestCase` (as Laravel's `InteractsWithDatabase`), added to §16 and to the allowed traits; `assertMatchesRevisionSchema()` as a `TestResponse` macro | US 0.3 review | Open |
+| Q9 | Test helpers for applications (US 9.3 `assertRevisionsAreConsistent()`, US 10.4 `withRevision()`, `assertMatchesRevisionSchema()`): propose — one trait `Testing\\InteractsWithRevisions` for the application's `TestCase` (as Laravel's `InteractsWithDatabase`), added to §16 and to the allowed traits; `assertMatchesRevisionSchema()` as a `TestResponse` macro | US 0.3 review | **Decided** (2026-11-11): as proposed (D28) |
 
 ---
 

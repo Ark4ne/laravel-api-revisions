@@ -23,6 +23,7 @@ final class DeclaredTraitsTest extends TestCase
         'Ark4ne\ApiRevisions\Laravel\Requests\RevisionedRequest',
         'Ark4ne\ApiRevisions\Laravel\Resources\RevisionedResource',
         'Ark4ne\ApiRevisions\Revisions\IsRevision',
+        'Ark4ne\ApiRevisions\Testing\InteractsWithRevisions',
     ];
 
     public function test_only_the_listed_traits_are_declared_in_the_package(): void
