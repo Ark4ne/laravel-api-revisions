@@ -74,6 +74,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   references only (`Conversion\ConversionStep`, `Conversion\StepKind`: registered, explicit, missing) so it
   serializes; two types holding the same values add no step; `ConversionException::missing()` when a step without
   converter is applied.
+- Shapes: `Compilation\ShapeSelector::at($head, $revision, $direction, $converters)`, the one function giving the
+  `Compilation\Shape` of a revision (`names()`, `field()`, the fields added later for a request, the name
+  `Compilation\Collision`s): per visible field a `Compilation\FieldDefinition` (name, type, nullable, required,
+  sometimes, conditional, default and lifetime at the revision, its `Compilation\FieldVersion` at every applicable
+  `was()`, its unbound conversion chain in the direction of the shape, the items of a list, the children of an object as
+  a nested `Shape`), every omitted `was()` argument inherited from the next newer shape. Closure-free and serializable.
 - History: `Descriptor::was(Revision, name:, schema:, down:, up:)` (`down:` / `up:` a closure, kept as a
   `ClosureConverter`, or a `Cast`) adds a `Schema\Change` to the field's
   `Schema\History` (its lifetime and its changes, newest first whatever the call order; `Descriptor::history()`);

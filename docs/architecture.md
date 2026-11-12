@@ -16,7 +16,7 @@ computes a shape.
 ```
                    ┌───────────── once per (class, revision), memoized / cached ─────────────┐
 Declaring class ─► │ Probe ─► toArray() / body() / query() ─► descriptors (head + history)   │
-                   │                                  └─► ShapeSelector::at(R) ─► Shape(R)   │ ─► Definition (public)
+                   │                                  └─► ShapeSelector::at(R) ─► Shape(R)   │ ─► Shape (public)     
                    └──────────────────────────────────────────────────────────────────────────┘
                                                                     │
 Request ─► ResolveRevision (resolvers chain) ─► RevisionScope ──────┤ current()
@@ -51,10 +51,10 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Support | `src/Support/` | Building blocks without internal dependency: `Undefined`, `Memo`, `Invoke`, `Floats`, `Json`, `Diagnostics`, `Diagnostic`, `Severity` |
 | Configuration | `src/Configuration/` | `Configuration`: typed, validated, readonly options of the core (date formats, `missingDefault`, `strictValues`) |
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
-| Definition | `src/Definition/` | Public immutable model: `Shape`, `FieldDefinition`, `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
+| Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
 | Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `Presence`, `Groups` (`@internal`), `Revisioned` |
-| Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), `Shapes` (memo repository), `CompiledShapes` (file cache) |
+| Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradeStep`, `Input` (present / absent / null), `UpgradesInput` hook contract |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
@@ -96,15 +96,13 @@ Context** (`RevisionScope`).
 
 ## 4. The definition model
 
-`src/Definition/` holds what a class declares **at one revision**, independently of any subject and any request. It is
-the **public contract** read by the export, the check, the lock and external tools (`laravel-json-api`,
-`laravel-openapi-generator`). Patterns: **Immutable Value Object**, **Named Constructor**.
+`src/Definition/` holds the **type-level** model: what a field's type, kind and lifetime are, independently of any
+subject and any request. With `Compilation\Shape` (§7), it is the **public contract** read by the export, the check,
+the lock and external tools (`laravel-json-api`, `laravel-openapi-generator`). Patterns: **Immutable Value Object**,
+**Named Constructor**.
 
-- `Shape`: the fields of one class at one revision (`class`, `revision`, `fields` keyed by **head key**), serializable,
-  with no closure.
-- `FieldDefinition`: `headKey`, `name` at the revision, `TypeDefinition` at the revision, `required`, `nullable`,
-  `conditional`, `default` (`Undefined` when none), `lifetime`, and the **conversion plan** as references (the indexes
-  of the `was()` to apply, the converter keys) — never closures.
+- `Shape` and `FieldDefinition` are the same kind of public model, but live in `Compilation` (§7): a field carries its
+  conversion chain, and `Conversion` sits right of `Definition` (`model.md` D45).
 - `TypeDefinition`: a `Kind` (`String`, `Int`, `Float`, `Bool`, `Date`, `DateTime`, `Enum`, `List`, `Object`,
   `Custom`, `Any`), its constraints (`min`, `max`, `format`, `pattern`, `enum` class with its `backing` kind and
   `values`, `items`, `children`; `format` is a PHP date format for dates), its description, examples, deprecation.
@@ -188,10 +186,28 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
 Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Shapes`), **Memoization**.
 
 - `Compiler::compile(class-string<Revisioned>, Revision): Shape` instantiates the class on a `Probe`, calls its
-  declaring hook, flattens the groups, and calls `ShapeSelector::at($descriptors, $revision)`.
+  declaring hook, flattens the groups, and calls `ShapeSelector::at($descriptors, $revision, $direction, $converters)`
+  (the direction of the class's declaration kind, the application's converters).
 - `ShapeSelector` is **the** pure function of the model (`specs/model.md` §4.5). Nothing else decides visibility,
   names or conversion plans. Every story touching shapes tests it, and an **invariant test** compares, for every
-  fixture class and every revision, the projected keys with `Shape::names()`.
+  fixture class and every revision, the projected keys with `Shape::names()`. `ShapeSelector::at($head, $revision, $direction, $converters)` plans the direction of the
+  declaration kind only (`model.md` D27) and returns a `Shape`, public, immutable, closure-free and serializable:
+  - `Shape`: `revision`, `direction`, `fields` (visible, by **head key**, head order), `added` (up only: the fields
+    added after the revision, each defined at its `since`, where its default is written, D23), `collisions` (a name
+    written by two visible fields, recorded, never thrown); `names()`, `field()`.
+  - `FieldDefinition`: `headKey`, `revision`, `name` and `type` at the revision (a composite's items and visible
+    children resolved there, the children under their name there), `nullable` (from the descriptor in force: the
+    head or a `was()` schema), `required`, `sometimes`, `conditional` (`Descriptor::isConditional()`), `default`,
+    `lifetime` (from the head, D46), `schemaChange` (the `was()` whose schema is in force, the reference to its fresh
+    descriptor: rules, closures), `versions` (a `FieldVersion` — revision, `was` index, name, type — per applicable
+    `was()`, newest first: what the upgrader renames from), the unbound `ConversionChain`, `items` (a list: a
+    `FieldDefinition` under the key `*`) and `children` (an object: a nested `Shape`, with its own `added` and
+    `collisions`).
+  - Each `was()` at or after the revision applies, newest first, as a delta from the next newer shape. A chain step
+    crosses the type of the newer shape at `X->next()` and of the older one at `X`; a composite's own chain only
+    covers its own `was()`, and a `was()` without `schema:` converts only through an explicit converter: its children
+    and items carry theirs. Two children under one name keep the first in the object's type; the nested `Shape`
+    records the collision.
 - `Shapes::for($class, $revision)` memoizes; `CompiledShapes` reads/writes the file of `revision:cache`
   (`bootstrap/cache/revisions.php`, `var_export`, OPcache friendly). The Laravel layer registers `revision:cache` /
   `revision:clear` with `ServiceProvider::optimizes()`, so `artisan optimize` / `optimize:clear` handle it. A stale

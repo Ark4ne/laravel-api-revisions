@@ -475,6 +475,32 @@ Tests (the reference table of `model.md` §4.2, one test per row and per column)
 Follow-up (from US 2.4): `FieldDefinition::$conditional` is read from `Descriptor::isConditional()`, nowhere
 recomputed.
 
+**Done** (2026-11-12): `Compilation\ShapeSelector::at($head, $revision, $direction, $converters)` (pure, runs no
+source, condition nor converter), `Compilation\Shape` (`revision`, `direction`, `fields` by head key, `added`,
+`collisions`; `names()`, `field()`), `Compilation\FieldDefinition` (name, type, nullable at the revision; required,
+sometimes, conditional, default, lifetime from the head; `schemaChange`; `versions`; the unbound `ConversionChain`;
+`items` under the key `*`; `children` as a nested `Shape`; `versionAt()`), `Compilation\FieldVersion` (the shape at
+one `was()`), `Compilation\Collision`. Chained inheritance of `name:` and `schema:`; a chain step crosses the types
+of both shapes at their revisions; a `was()` without `schema:` adds a step only through an explicit converter of the
+direction (a renamed composite whose children change plans nothing: they carry their own steps); objects and lists
+recurse with their own histories, the type at `R` holds the children under their name at `R` (the first one of a
+colliding name). Decisions taken with the maintainer: **D45** (`Shape` and `FieldDefinition` in `Compilation`: a
+field carries its `ConversionChain`, right of `Definition`) and **D46** (a `was()` schema gives the value — type,
+nullable, rules —, the head the presence). Spike findings: **F4** (revisions kept as cases, compared through
+`RevisionOrder`, int-backed enum tested), **F5** (fields added after `R` are defined at their `since`, named and
+typed there, with their lifetime: the upgrader drops a `since(W)->until(S)` field), **F6** (the type at `R`, the
+chains with registry keys and `StepKind`, the `versions` the upgrader renames from). Coverage 99.88 %, Infection MSI
+95 % (3 equivalent mutants: `> 0` / `>= 0` on a `since` already covered, `break` / `continue` on changes sorted newest
+first, the unreachable throw of a `was()` on the head). Review: a renamed composite whose children or items changed
+planned a false missing step (fixed, three tests added); the first child of a colliding name is kept in the type. Deviations: `at()` takes the `Direction` of the declaration
+kind (D27, F8: one direction planned per shape, not "down and up") and the `Converters` (built-in by default); the
+`Shape` has no `class` yet; the seven story tests exist, the reference table is one data-provider test
+(`test_each_row_of_the_reference_table_is_selected`). Follow-ups: US 5.1 maps the declaration kind to the direction,
+passes the application's `Converters` and adds `Shape::$class`; US 7.1 builds its steps from `R` to the head by
+reading `FieldDefinition::versionAt()` and `ConversionChain::stepOf()` only (no step list on the `Shape`, F6), and the
+`added` fields; the Laravel rules read the rules of the descriptor in force through `schemaChange`; the check
+(US 9.2) reports `Shape::$collisions` and ignores `required()` / `sometimes()` on a `was()` schema (D46).
+
 #### US 3.5 — Defaults and the `Undefined` sentinel · S · depends US 3.4
 
 - `Support\Undefined` (singleton-free value object, `Undefined::is()`); a field `since(R)` has a default in every
@@ -591,6 +617,8 @@ Goal: the shape of a class is computed once per revision, without a subject, and
   `ShapeSelector::at()`. A source closure run during compilation is a bug: the probe throws on any access.
 - The compiler receives the `Configuration` and calls `configure()` on every descriptor, recursively for composites
   (model.md D29, from US 2.2).
+- Note (from US 3.4): `ShapeSelector::at()` takes the `Direction` of the declaration kind (`Response` → down, request
+  → up, D27) and the `Converters` (custom types, US 4.4); the compiler passes both and adds the class to the `Shape`.
 
 Tests: `test_compiling_a_class_runs_no_source`, `test_compiling_gives_the_shape_of_the_revision`,
 `test_compiling_resolves_the_configured_date_format`.
@@ -1059,7 +1087,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
 | US 3.2 | Groups | S | 3.1 | M1 | done |
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | done |
-| US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | todo |
+| US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | done |
 | US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |
 | US 4.1 | Converters and directions | M | 2.1 | M1 | done |
 | US 4.2 | Explicit casts and closures | S | 4.1 | M1 | done |
