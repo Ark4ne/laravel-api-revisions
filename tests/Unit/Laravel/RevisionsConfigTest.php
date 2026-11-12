@@ -7,6 +7,7 @@ namespace Test\Unit\Laravel;
 use Ark4ne\ApiRevisions\Configuration\MissingDefault;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\PathResolver;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
@@ -109,6 +110,33 @@ final class RevisionsConfigTest extends TestCase
 
         self::assertSame(AccountPinnedResolver::class, $config->default);
         self::assertNull($config->fixedDefault());
+    }
+
+    public function test_the_path_parameter_is_the_option_of_the_first_path_resolver(): void
+    {
+        self::assertSame('revision', RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'resolvers' => [HeaderResolver::class, PathResolver::class]])->pathParameter());
+        self::assertSame('v', RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'resolvers' => [HeaderResolver::class, PathResolver::class => ['parameter' => 'v'], 1 => PathResolver::class]])->pathParameter());
+    }
+
+    public function test_a_path_resolver_as_default_reads_the_revision_parameter(): void
+    {
+        self::assertSame('revision', RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'default' => PathResolver::class])->pathParameter());
+    }
+
+    public function test_the_path_parameter_needs_a_path_resolver(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Route::revisioned() reads the revision from the path');
+
+        RevisionsConfig::fromArray(['enum' => ApiRevision::class])->pathParameter();
+    }
+
+    public function test_a_path_parameter_option_that_is_not_a_name_is_refused(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('revisions.resolvers.PathResolver.parameter must be a non-empty string, got int.');
+
+        RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'resolvers' => [PathResolver::class => ['parameter' => 1]]])->pathParameter();
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Test\Unit\Laravel\Http\Resolvers;
 
 use Ark4ne\ApiRevisions\Exceptions\UnknownRevisionException;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\PathResolver;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\QueryResolver;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
@@ -67,6 +68,18 @@ final class ResolverChainTest extends TestCase
         self::assertSame(['Api-Revision', 'X-Version', 'Authorization'], $chain->headers());
         self::assertSame(['Api-Revision'], (new ResolverChain(ApiRevision::class, [], new HeaderResolver(self::config())))->headers());
         self::assertSame([], (new ResolverChain(ApiRevision::class, [new QueryResolver(self::config())], ApiRevision::Atlas))->headers());
+    }
+
+    public function test_it_names_the_route_parameters_its_path_resolvers_read_each_once(): void
+    {
+        $chain = new ResolverChain(ApiRevision::class, [
+            new PathResolver(self::config()),
+            new HeaderResolver(self::config()),
+            new PathResolver(self::config(), 'v'),
+        ], new PathResolver(self::config()));
+
+        self::assertSame(['revision', 'v'], $chain->parameters());
+        self::assertSame([], (new ResolverChain(ApiRevision::class, [new HeaderResolver(self::config())], ApiRevision::Atlas))->parameters());
     }
 
     private static function config(): RevisionsConfig

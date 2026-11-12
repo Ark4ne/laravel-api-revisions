@@ -12,27 +12,30 @@ use PHPStan\TrinaryLogic;
 use PHPStan\Type\Type;
 
 /**
- * `Schema::<name>()` of a mapped custom type: public, static, its constructor's variants returning the type's class.
+ * A public method an extension of the package declares: `Schema::<name>()` of a mapped custom type (static, its
+ * constructor's variants returning the type's class), `Router::revisioned()` (a macro, with side effects).
  */
-final class CustomTypeMethod implements MethodReflection
+final class DeclaredMethod implements MethodReflection
 {
     /**
      * @param list<FunctionVariant> $variants
      */
     public function __construct(
-        private readonly ClassReflection $schema,
+        private readonly ClassReflection $class,
         private readonly string $name,
         private readonly array $variants,
+        private readonly bool $static = true,
+        private readonly bool $sideEffects = false,
     ) {}
 
     public function getDeclaringClass(): ClassReflection
     {
-        return $this->schema;
+        return $this->class;
     }
 
     public function isStatic(): bool
     {
-        return true;
+        return $this->static;
     }
 
     public function isPrivate(): bool
@@ -92,6 +95,6 @@ final class CustomTypeMethod implements MethodReflection
 
     public function hasSideEffects(): TrinaryLogic
     {
-        return TrinaryLogic::createNo();
+        return TrinaryLogic::createFromBoolean($this->sideEffects);
     }
 }

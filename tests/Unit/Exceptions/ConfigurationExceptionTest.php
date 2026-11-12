@@ -23,4 +23,12 @@ final class ConfigurationExceptionTest extends TestCase
             ConfigurationException::invalidValue('date_format', 'a non-empty string', 'int')->getMessage(),
         );
     }
+
+    public function test_path_mode_without_path_resolver_says_what_to_add(): void
+    {
+        self::assertSame(
+            'Route::revisioned() reads the revision from the path: add Ark4ne\\ApiRevisions\\Laravel\\Http\\Resolvers\\PathResolver to revisions.resolvers.',
+            ConfigurationException::pathModeWithoutResolver()->getMessage(),
+        );
+    }
 }

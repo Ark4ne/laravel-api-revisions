@@ -53,7 +53,7 @@ final class CustomTypesExtension implements MethodsClassReflectionExtension
             $type->getConstructor()->getVariants(),
         );
 
-        return new CustomTypeMethod($classReflection, $methodName, $variants);
+        return new DeclaredMethod($classReflection, $methodName, $variants);
     }
 
     /**

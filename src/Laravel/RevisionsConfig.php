@@ -8,6 +8,7 @@ use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Configuration\MissingDefault;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\PathResolver;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
@@ -96,6 +97,31 @@ final readonly class RevisionsConfig
     public function fixedDefault(): ?Revision
     {
         return $this->default instanceof Revision ? $this->default : null;
+    }
+
+    /**
+     * The route parameter of path mode: the `parameter` option of the first `PathResolver` of `resolvers` (`revision`
+     * by default), else `revision` when the `default` is the `PathResolver` class; `ConfigurationException::pathModeWithoutResolver()` without one, `invalidValue()` when the option is
+     * not a non-empty string.
+     */
+    public function pathParameter(): string
+    {
+        foreach ($this->resolvers as [$class, $options]) {
+            if ($class === PathResolver::class) {
+                $parameter = $options['parameter'] ?? 'revision';
+                if (!is_string($parameter) || $parameter === '') {
+                    throw ConfigurationException::invalidValue('resolvers.PathResolver.parameter', 'a non-empty string', get_debug_type($parameter));
+                }
+
+                return $parameter;
+            }
+        }
+
+        if ($this->default === PathResolver::class) {
+            return 'revision';
+        }
+
+        throw ConfigurationException::pathModeWithoutResolver();
     }
 
     /**

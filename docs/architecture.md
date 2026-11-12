@@ -62,7 +62,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits, commands, queue capture |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
-| PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extension of the custom types (`CustomTypesExtension`, `CustomTypeMethod`); loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
+| PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`) and the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
 
 - A layer depends only on the layers to its left. Checked by `phpat` (`tests/Architecture/ArchitectureTest.php`).
@@ -360,7 +360,11 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   Since US 8.3 (`model.md` D58): alias `revision`, registered in `boot()`; resolved by the container on each request
   (the scoped `ResolverChain` and `RevisionScope` injected); it answers the 400 itself from `UnknownRevisionException`
   (no exception renderer, nothing reported); the days of `#[Meta]` read in `app.timezone`.
-  `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn` (D59).
+  `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn` (D59). Since US 8.4 (D60):
+  it forgets the route parameters of the chain's `PathResolver`s and sets them as URL defaults.
+- `Laravel\Routing\RevisionedRoutes::group()` — the body of the route macro `revisioned`, registered on the `Router` in
+  the provider's `boot()` (a macro closure is bound to the router, so it is not static); prefix, enum constraint and
+  `revision` middleware.
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
   producing Laravel rules under the names of the revision.
 - `Laravel\Requests\RevisionedRequest` and `Laravel\Resources\RevisionedResource` — traits **declared for
@@ -434,7 +438,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container) |
 | Facades and helpers | Only in `src/Laravel/` |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |

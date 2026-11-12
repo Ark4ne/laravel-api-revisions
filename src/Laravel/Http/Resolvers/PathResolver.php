@@ -21,6 +21,14 @@ final readonly class PathResolver implements RevisionResolver
         private string $parameter = 'revision',
     ) {}
 
+    /**
+     * The route parameter it reads (forgotten by the middleware, the prefix of `Route::revisioned()`).
+     */
+    public function parameter(): string
+    {
+        return $this->parameter;
+    }
+
     public function resolve(Request $request): ?Revision
     {
         return RevisionValue::parse($this->config->enum, $request->route($this->parameter));

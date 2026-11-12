@@ -122,6 +122,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   answered 400 with `{message, revision, accepted}`. `UnknownRevisionException` cuts the value it echoes to 64
   characters. A resolver reading request headers implements the optional `Laravel\Http\VariesOn` contract
   (`headers()`, implemented by `HeaderResolver`): `ResolverChain::headers()` collects them for `Vary`.
+- Path mode: the route macro `Route::revisioned(fn (Router $router) => …)` (`Laravel\Routing\RevisionedRoutes`)
+  prefixes its routes with `{revision}` (the `parameter` of the configured `PathResolver`, required:
+  `ConfigurationException::pathModeWithoutResolver()`), constrained to the revision values, under the `revision`
+  middleware; the middleware forgets the parameter and sets it as a URL default, so controllers never receive it and
+  generated URLs keep the revision. `PathResolver::parameter()`, `ResolverChain::parameters()`,
+  `RevisionsConfig::pathParameter()`. `extension.neon` declares the macro to PHPStan (`PHPStan\RevisionedRouteExtension`;
+  `PHPStan\CustomTypeMethod` becomes `PHPStan\DeclaredMethod`).
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.

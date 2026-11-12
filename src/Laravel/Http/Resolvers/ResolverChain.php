@@ -65,4 +65,22 @@ final readonly class ResolverChain
 
         return array_keys($headers);
     }
+
+    /**
+     * The route parameters the chain reads, each once: those of its `PathResolver`s, the default included (path mode,
+     * model.md D60).
+     *
+     * @return list<string>
+     */
+    public function parameters(): array
+    {
+        $parameters = [];
+        foreach ([...$this->resolvers, $this->default] as $resolver) {
+            if ($resolver instanceof PathResolver) {
+                $parameters[$resolver->parameter()] = true;
+            }
+        }
+
+        return array_keys($parameters);
+    }
 }

@@ -37,4 +37,12 @@ final class ConfigurationException extends InvalidArgumentException implements R
     {
         return new self("revisions.{$key} must be {$expected}, got {$type}.");
     }
+
+    /**
+     * `Route::revisioned()` declared while `revisions.resolvers` holds no `PathResolver` (the path would never be read).
+     */
+    public static function pathModeWithoutResolver(): self
+    {
+        return new self('Route::revisioned() reads the revision from the path: add Ark4ne\\ApiRevisions\\Laravel\\Http\\Resolvers\\PathResolver to revisions.resolvers.');
+    }
 }

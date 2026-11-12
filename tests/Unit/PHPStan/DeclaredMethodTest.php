@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace Test\Unit\PHPStan;
 
 use Ark4ne\ApiRevisions\PHPStan\CustomTypesExtension;
+use Ark4ne\ApiRevisions\PHPStan\DeclaredMethod;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Illuminate\Routing\Router;
 use PHPStan\Testing\PHPStanTestCase;
 use PHPStan\TrinaryLogic;
 use PHPStan\Type\VerbosityLevel;
 use Test\Fixtures\MoneySchema;
 
 /**
- * The method a mapped custom type adds to `Schema`, as built by `CustomTypesExtension`.
+ * The methods the extensions declare: a mapped custom type on `Schema` (`CustomTypesExtension`), the route macro
+ * (`RevisionedRouteExtension`).
  */
-final class CustomTypeMethodTest extends PHPStanTestCase
+final class DeclaredMethodTest extends PHPStanTestCase
 {
     public function test_the_method_is_public_static_and_takes_the_constructor_parameters(): void
     {
@@ -37,5 +40,15 @@ final class CustomTypeMethodTest extends PHPStanTestCase
         $variant = $method->getVariants()[0];
         self::assertSame(['source', 'currency'], array_map(static fn($parameter): string => $parameter->getName(), $variant->getParameters()));
         self::assertSame(MoneySchema::class, $variant->getReturnType()->describe(VerbosityLevel::typeOnly()));
+    }
+
+    public function test_a_method_may_be_an_instance_method_with_side_effects(): void
+    {
+        $router = self::createReflectionProvider()->getClass(Router::class);
+
+        $method = new DeclaredMethod($router, 'revisioned', [], static: false, sideEffects: true);
+
+        self::assertFalse($method->isStatic());
+        self::assertTrue($method->hasSideEffects()->yes());
     }
 }

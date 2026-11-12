@@ -1,4 +1,5 @@
-# PHPStan extension of ark4ne/laravel-api-revisions: types the custom types served by Schema::__callStatic().
+# PHPStan extension of ark4ne/laravel-api-revisions: types the custom types served by Schema::__callStatic() and the
+# route macro Route::revisioned().
 # Included automatically with phpstan/extension-installer, or by hand:
 #   includes: [vendor/ark4ne/laravel-api-revisions/extension.neon]
 # then map each registered name to its class, as given to TypeRegistry::register():
@@ -20,5 +21,9 @@ services:
         class: Ark4ne\ApiRevisions\PHPStan\CustomTypesExtension
         arguments:
             types: %apiRevisions.types%
+        tags:
+            - phpstan.broker.methodsClassReflectionExtension
+    -
+        class: Ark4ne\ApiRevisions\PHPStan\RevisionedRouteExtension
         tags:
             - phpstan.broker.methodsClassReflectionExtension

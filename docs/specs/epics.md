@@ -1096,6 +1096,22 @@ classes are tested in `tests/Feature/` only, like the provider. Coverage 99.66 %
 Tests: `test_a_revisioned_route_resolves_the_revision_from_the_path`,
 `test_the_controller_does_not_receive_the_revision_parameter`, `test_generated_urls_keep_the_revision`.
 
+**Done** (2026-11-12): `Laravel\Routing\RevisionedRoutes::group()` behind the macro `Router::revisioned()` (registered in
+`boot()`): prefix `{parameter}` from `RevisionsConfig::pathParameter()` (the first `PathResolver`'s option, else
+`revision`; `ConfigurationException::pathModeWithoutResolver()` without a `PathResolver`, `invalidValue()` for a
+non-string option), constraint on the backed values, `revision` middleware. `ResolveRevision` forgets the parameters
+of `ResolverChain::parameters()` (`PathResolver::parameter()`) and sets them as URL defaults. PHPStan:
+`PHPStan\RevisionedRouteExtension` declares the macro on the `Router` and the `Route` facade (a stub file was tried:
+PHPStan ignores a stub's class-level `@method`), `CustomTypeMethod` generalized as `DeclaredMethod` (static or not, side
+effects or not); the phpat rule of the tooling allows `RevisionedRoutes` (its signature types the macro). Decision
+**D60**. Tests beyond the story's: a request resolved by header generates path URLs, a path naming no revision is a
+404, the parameter option, a group already under `revision` runs it once, the macro without `PathResolver`. Coverage
+99.5 %, Infection MSI 97 %. Deviations: the macro adds the `revision` middleware (the story leaves it implicit); URL
+defaults are set on every request the middleware handles, not only on revisioned routes (the parameter name is reserved
+for path mode, D60). Review: a `PathResolver` as `default` counts for the macro; the macro reads the router's
+container, not the booting application; the macro listed in the allowed global state; D60 notes `route:cache` and the
+reserved name.
+
 #### US 8.5 — `RevisionedResource` · M · depends US 6.2, US 8.1
 
 - Trait for `JsonResource`: `toArray()` returns descriptors; `resolve()` projects them on `$this->resource` at
@@ -1423,7 +1439,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.1 | Service provider and configuration | S | 1.3 | M2 | done |
 | US 8.2 | Resolvers | M | 8.1 | M2 | done |
 | US 8.3 | `ResolveRevision` middleware | M | 8.2 | M2 | done |
-| US 8.4 | Path mode | M | 8.3 | M2 | todo |
+| US 8.4 | Path mode | M | 8.3 | M2 | done |
 | US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | todo |
 | US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | todo |
 | US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | todo |

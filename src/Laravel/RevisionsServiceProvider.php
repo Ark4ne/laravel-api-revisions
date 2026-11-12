@@ -14,11 +14,13 @@ use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
 use Ark4ne\ApiRevisions\Laravel\Http\ResolveRevision;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
+use Ark4ne\ApiRevisions\Laravel\Routing\RevisionedRoutes;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
 use Ark4ne\ApiRevisions\Projection\StrictValues;
 use Ark4ne\ApiRevisions\Projection\ValueErrorHandler;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Closure;
 use Illuminate\Container\Container as ContainerInstance;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
@@ -106,6 +108,12 @@ final class RevisionsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $router = $this->app->make(Router::class);
+        // a macro is bound to the router: its closure cannot be static, and reads the router's own container (the
+        // macro is static, it outlives the application booting it)
+        Router::macro('revisioned', function (Closure $routes): void {
+            /** @var Router $this */
+            RevisionedRoutes::group($this, $this->container->make(RevisionsConfig::class), $routes);
+        });
         // an alias the application already defines under that name wins
         if (!array_key_exists('revision', $router->getMiddleware())) {
             $router->aliasMiddleware('revision', ResolveRevision::class);

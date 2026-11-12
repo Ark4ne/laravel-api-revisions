@@ -37,6 +37,12 @@ final class PathResolverTest extends TestCase
         (new PathResolver(self::config()))->resolve(self::request('{revision}/orders', '/v1/orders'));
     }
 
+    public function test_it_names_the_parameter_it_reads(): void
+    {
+        self::assertSame('revision', (new PathResolver(self::config()))->parameter());
+        self::assertSame('v', (new PathResolver(self::config(), 'v'))->parameter());
+    }
+
     private static function request(string $uri, string $path): Request
     {
         $request = Request::create($path);

@@ -15,6 +15,7 @@ use DateTimeZone;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\UrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -22,7 +23,8 @@ use Symfony\Component\HttpFoundation\Response;
  * the revision as the base of the request's `RevisionScope`, then adds to the response the configured
  * `response_header`, `Vary` on the headers the chain reads, and `Deprecation` (RFC 9745, `@` + Unix time) / `Sunset`
  * (RFC 8594, HTTP-date) from the revision's `#[Meta]` as soon as they are declared, at midnight of the day in the
- * application timezone (D30, D58). An unknown revision is answered **400** with a JSON body naming the accepted
+ * application timezone (D30, D58). In path mode it forgets the route parameters of the chain's `PathResolver`s, so
+ * no controller receives them, and makes the revision their default for the URLs generated (D60). An unknown revision is answered **400** with a JSON body naming the accepted
  * values, never reported (a client error). The `Vary` covers the headers of every resolver implementing `VariesOn`
  * (D59).
  */
@@ -33,6 +35,7 @@ final readonly class ResolveRevision
         private ResolverChain $chain,
         private RevisionScope $scope,
         private Repository $repository,
+        private UrlGenerator $url,
     ) {}
 
     /**
@@ -50,6 +53,11 @@ final readonly class ResolveRevision
             ));
         }
         $this->scope->setBase($revision);
+        // path mode (D60): the controller never receives the revision, the URLs generated keep it
+        foreach ($this->chain->parameters() as $parameter) {
+            $request->route()?->forgetParameter($parameter);
+            $this->url->defaults([$parameter => $revision->value]);
+        }
 
         $response = $this->vary($next($request));
         $response->headers->set($this->config->responseHeader, (string) $revision->value);
