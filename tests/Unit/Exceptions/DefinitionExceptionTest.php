@@ -225,4 +225,18 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::invalidConversionSide('custom')->getMessage(),
         );
     }
+
+    public function test_the_compilation_errors_name_the_class(): void
+    {
+        self::assertSame('stdClass must implement Ark4ne\\ApiRevisions\\Schema\\Revisioned to be compiled.', DefinitionException::notRevisioned('stdClass')->getMessage());
+        self::assertSame("App\\Order declares no 'request-body'.", DefinitionException::undeclaredKind('App\\Order', 'request-body')->getMessage());
+        self::assertSame(
+            "The declaration of App\\Order must map string keys to descriptors, got string under 'title'.",
+            DefinitionException::invalidDeclaration('App\\Order', 'title', 'string')->getMessage(),
+        );
+        self::assertSame(
+            'App\\Order read its subject (->title) while compiling: declarations must stay lazy (a key, a dotted path or a closure).',
+            DefinitionException::subjectReadAtCompilation('App\\Order', '->title')->getMessage(),
+        );
+    }
 }

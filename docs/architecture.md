@@ -14,7 +14,7 @@ computes a shape.
 ## 1. Lifecycle
 
 ```
-                   ┌───────────── once per (class, revision), memoized / cached ─────────────┐
+                   ┌────────── once per (class, kind, revision), memoized / cached ──────────┐
 Declaring class ─► │ Probe ─► toArray() / body() / query() ─► descriptors (head + history)   │
                    │                                  └─► ShapeSelector::at(R) ─► Shape(R)   │ ─► Shape (public)     
                    └──────────────────────────────────────────────────────────────────────────┘
@@ -53,7 +53,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `Groups` (`@internal`), `Revisioned` |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned` |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradeStep`, `Input` (present / absent / null), `UpgradesInput` hook contract |
@@ -122,8 +122,11 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
   `Source::declaredKey()`. **Every closure the library calls has one signature, `($value, $subject)`** (`model.md`
   §3): sources, conditions, `down:` / `up:` converters. One invoker (`Support\Invoke::value()`) calls them all. Their
   PHPDoc type is a plain `Closure`: `Closure(mixed, mixed)` would refuse `fn (int $cents, Order $order)`. A `Change` (`was()`) never holds a source (`model.md` §6.4).
-- Configured defaults reach a descriptor through `configure(Configuration): static`, called by the compiler (a date
-  without `format()` takes the configured format, `model.md` D29): a descriptor never reads configuration itself.
+- Configured defaults reach a descriptor through the final `configured(Configuration): static`, called by the
+  compiler on every head descriptor: it applies the overridable `configure()` (a date without `format()` takes the
+  configured format, `model.md` D29) and configures the schemas of its `was()` (`History::configured()`). A composite
+  or custom type configures the descriptors it holds with their `configured()`. A descriptor never reads
+  configuration itself.
 - A descriptor builds its `TypeDefinition` (`toType()`); it never builds a `Shape` (that is the compiler's job) and
   never reads a revision other than those declared in its `History`.
 - Composites (`ListSchema`, `ObjectSchema`) normalize only their own value: a list to `list` of elements, an object
@@ -135,7 +138,10 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
   throws) and `serialize(mixed): mixed` (PHP value → JSON-ready value), `model.md` §6.3. It never reads the
   subject itself: that is the `SourceReader`'s job.
 - `DescribesSchema` (implemented by a rule object) and `Revisioned` (implemented by a declaring class) are the two
-  contracts of this layer an application implements. `Descriptor::toType()` merges the keywords of every declared
+  contracts of this layer an application implements. `Revisioned` is static and per `DeclarationKind` (`Response`,
+  `RequestBody`, `RequestQuery`; `direction()`: down for a response, up for a request): `declarationKinds()` and the
+  `@internal` bridge `describeRevisioned($kind, $probe)`, in which the class builds itself on the probe (`mixed`: the
+  `Probe` lives in `Compilation`); the Laravel traits implement it (`model.md` D48). `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
   and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
 - `Descriptor::inGroup()` is a public `@internal` entry point: it sets the lifetime and default a group resolved
@@ -190,10 +196,16 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
 
 Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Shapes`), **Memoization**.
 
-- `Compiler::compile(class-string<Revisioned>, Revision): Shape` instantiates the class on a `Probe`, calls its
-  declaring hook, flattens the groups, and calls
+- `Probe` stands for the subject: any access (property, method, offset, `isset`, count, iteration, string cast)
+  throws `DefinitionException::subjectReadAtCompilation()` naming the class and the access.
+- `Compiler` (`final readonly`, built with the `Configuration` and optional `Converters`, `TypeRegistry::converters()`
+  by default) `compile(class-string, DeclarationKind, Revision): Shape` checks the class is `Revisioned`
+  (`notRevisioned()`) and declares the kind (`undeclaredKind()`), calls `describeRevisioned($kind, new Probe($class))`,
+  checks every entry is a descriptor under a string key (`invalidDeclaration()`), configures it (`configured()`), and
+  calls
   `ShapeSelector::at($descriptors, $revision, $direction, $converters, $configuration)` (the direction of the class's
-  declaration kind, the application's converters, the configuration whose `missingDefault` the selector resolves).
+  declaration kind, the application's converters, the configuration whose `missingDefault` the selector resolves); the
+  `Shape` then names its class and kind (`Shape::of()`).
 - `ShapeSelector` is **the** pure function of the model (`specs/model.md` §4.5). Nothing else decides visibility,
   names or conversion plans. Every story touching shapes tests it, and an **invariant test** compares, for every
   fixture class and every revision, the projected keys with `Shape::names()`.
@@ -216,7 +228,7 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
     covers its own `was()`, and a `was()` without `schema:` converts only through an explicit converter: its children
     and items carry theirs. Two children under one name keep the first in the object's type; the nested `Shape`
     records the collision.
-- `Shapes::for($class, $revision)` memoizes; `CompiledShapes` reads/writes the file of `revision:cache`
+- `Shapes::for($class, $kind, $revision)` memoizes (one shape per declaration kind, `model.md` D48); `CompiledShapes` reads/writes the file of `revision:cache`
   (`bootstrap/cache/revisions.php`, `var_export`, OPcache friendly). The Laravel layer registers `revision:cache` /
   `revision:clear` with `ServiceProvider::optimizes()`, so `artisan optimize` / `optimize:clear` handle it. A stale
   file is the application's responsibility, as for `route:cache`.

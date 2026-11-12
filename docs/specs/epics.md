@@ -651,9 +651,32 @@ Goal: the shape of a class is computed once per revision, without a subject, and
 Tests: `test_compiling_a_class_runs_no_source`, `test_compiling_gives_the_shape_of_the_revision`,
 `test_compiling_resolves_the_configured_date_format`.
 
+**Done** (2026-11-12): `Schema\Revisioned` (static `declarationKinds()`, `@internal` static
+`describeRevisioned(DeclarationKind, mixed $probe)`), `Schema\DeclarationKind` (`direction()`: D27),
+`Compilation\Probe` (Null Object: property, method, offset, `isset`, `unset`, count, iteration and string cast all throw
+`DefinitionException::subjectReadAtCompilation()`), `Compilation\Compiler` (`Configuration`, `Converters` defaulting
+to `TypeRegistry::converters()`; `compile($class, $kind, $revision)`: `notRevisioned()`, `undeclaredKind()`,
+`invalidDeclaration()`, configured descriptors, `ShapeSelector::at()` with the direction, converters and
+configuration, `Shape::of()` naming class and kind), `Descriptor::configured()` (final: `configure()` plus the
+schemas of the history, `History::configured()`; `ObjectSchema` / `ListSchema` configure their parts through it).
+Fixtures without Laravel: `Declarations\OrderDeclaration`, `StoreOrderDeclaration` (body and query),
+`EagerDeclaration`, `InvalidDeclaration`, `Customer`. Decision taken with the maintainer: **D48** (static
+contract per declaration kind: a `FormRequest` declares body and query; the class builds itself on the probe).
+Coverage 99.89 %, Infection MSI 99 % (one equivalent mutant of `ObjectSchema::parts()`, older). Review: the probe keeps its class private
+(a `->class` read throws too), `configured()` configures the history of the configured copy, the no-source test
+compiles a declaration whose source, `when()`, `down:` and `up:` throw (`ThrowingDeclaration`), the shape test compares
+the whole shape. Deviations: the
+contract is `declarationKinds()` (a list) and a static `describeRevisioned($kind, $probe)` instead of
+`declarationKind()` and an instance bridge (D48); `compile()` takes the kind; `was()` schemas were never configured
+(a date `was(schema:)` kept no format): `Descriptor::configured()` fixes it, `configure()` stays the override point.
+Follow-ups: US 5.2 memoizes per `(class, kind, revision)`; US 8.5 / US 8.7 implement the bridge in the traits
+(a resource built on the probe, a request without subject; eager values wrapped, US 8.5); US 2.6 compiles the
+class of a `ResourceSchema` through the same compiler; a disallowed-calls rule could keep `describeRevisioned()` to
+the compiler.
+
 #### US 5.2 — Shapes repository · S · depends US 5.1
 
-- `Compilation\Shapes::for(class, R)` memoized via `Support\Memo`; `Shapes::flush()` (Octane, tests).
+- `Compilation\Shapes::for(class, kind, R)` memoized (one shape per declaration kind, D48) via `Support\Memo`; `Shapes::flush()` (Octane, tests).
 
 Tests: `test_a_shape_is_compiled_once_per_class_and_revision`, `test_flush_forgets_compiled_shapes`.
 
@@ -1121,7 +1144,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 4.2 | Explicit casts and closures | S | 4.1 | M1 | done |
 | US 4.3 | Conversion chains | M | 4.2 | M1 | done |
 | US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | done |
-| US 5.1 | Probe and compiler | M | 3.4 | M1 | todo |
+| US 5.1 | Probe and compiler | M | 3.4 | M1 | done |
 | US 5.2 | Shapes repository | S | 5.1 | M1 | todo |
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | todo |

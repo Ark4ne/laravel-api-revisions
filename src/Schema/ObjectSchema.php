@@ -64,7 +64,7 @@ final class ObjectSchema extends Descriptor
     {
         $clone = clone $this;
         $clone->children = array_map(
-            static fn(Descriptor $child): Descriptor => $child->configure($configuration),
+            static fn(Descriptor $child): Descriptor => $child->configured($configuration),
             $this->children,
         );
 

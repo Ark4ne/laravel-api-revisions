@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Unit\Schema;
 
+use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Conversion\ClosureConverter;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Change;
+use Ark4ne\ApiRevisions\Schema\DateSchema;
 use Ark4ne\ApiRevisions\Schema\History;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Revisions\IntRevision;
@@ -75,5 +78,23 @@ final class HistoryTest extends TestCase
         $this->expectExceptionMessage('Revisions of two enums cannot be mixed');
 
         History::none()->withChange(new Change(ApiRevision::Winter25))->withChange(new Change(IntRevision::First));
+    }
+
+    public function test_configured_resolves_the_schema_of_every_change_and_keeps_the_rest(): void
+    {
+        $down = new ClosureConverter(static fn(): string => '');
+        $history = History::none()
+            ->withLifetime(Lifetime::always()->withUntil(ApiRevision::Spring26))
+            ->withChange(new Change(ApiRevision::Winter25, 'placed', new DateSchema(), $down))
+            ->withChange(new Change(ApiRevision::Genesis, 'day'));
+
+        $configured = $history->configured(new Configuration(dateFormat: 'd/m/Y'));
+
+        self::assertSame($history->lifetime, $configured->lifetime);
+        self::assertSame('d/m/Y', $configured->changes[0]->schema?->toType()->format);
+        self::assertSame('placed', $configured->changes[0]->name);
+        self::assertSame(ApiRevision::Winter25, $configured->changes[0]->revision);
+        self::assertSame($down, $configured->changes[0]->down);
+        self::assertSame($history->changes[1], $configured->changes[1]);
     }
 }

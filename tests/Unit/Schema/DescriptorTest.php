@@ -13,6 +13,8 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\Change;
+use Ark4ne\ApiRevisions\Schema\DateSchema;
+use Ark4ne\ApiRevisions\Schema\DateTimeSchema;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\FloatSchema;
 use Ark4ne\ApiRevisions\Schema\IntSchema;
@@ -544,5 +546,26 @@ final class DescriptorTest extends TestCase
         $this->expectExceptionMessage('Revisions of two enums cannot be mixed');
 
         (new StringSchema())->was(ApiRevision::Winter25, name: 'old')->until(IntRevision::Third);
+    }
+
+    public function test_configured_resolves_the_schemas_of_the_history(): void
+    {
+        $descriptor = (new DateTimeSchema())->was(ApiRevision::Winter25, schema: new DateSchema());
+
+        $configured = $descriptor->configured(new Configuration(dateFormat: 'd/m/Y', dateTimeFormat: 'Y-m-d H:i'));
+
+        self::assertSame('Y-m-d H:i', $configured->toType()->format);
+        self::assertSame('d/m/Y', $configured->history()->changes[0]->schema?->toType()->format);
+        self::assertSame('Y-m-d', $descriptor->history()->changes[0]->schema?->toType()->format);
+    }
+
+    public function test_configured_returns_a_new_descriptor_even_with_nothing_to_resolve(): void
+    {
+        $schema = new StringSchema();
+
+        $configured = $schema->configured(new Configuration());
+
+        self::assertNotSame($schema, $configured);
+        self::assertEquals($schema, $configured);
     }
 }

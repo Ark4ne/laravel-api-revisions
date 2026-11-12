@@ -14,6 +14,7 @@ use ArrayIterator;
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
+use Test\Fixtures\ApiRevision;
 use Test\TestCase;
 
 final class ListSchemaTest extends TestCase
@@ -111,5 +112,13 @@ final class ListSchemaTest extends TestCase
         self::assertNull($list->toType()->min);
         self::assertNull($list->toType()->max);
         self::assertSame('Y-m-d', $list->toType()->items?->format);
+    }
+
+    public function test_configure_reaches_the_history_of_the_items(): void
+    {
+        $list = (new ListSchema((new StringSchema())->was(ApiRevision::Winter25, schema: new DateSchema())))
+            ->configure(new Configuration(dateFormat: 'd/m/Y'));
+
+        self::assertSame('d/m/Y', $list->items()->history()->changes[0]->schema?->toType()->format);
     }
 }

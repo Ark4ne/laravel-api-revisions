@@ -125,12 +125,25 @@ abstract class Descriptor
     }
 
     /**
-     * This descriptor with the configured defaults resolved (a date without `format()` takes the configured format).
-     * Called by the compiler, once (model.md D29); nothing to resolve by default.
+     * This descriptor with its own configured defaults resolved (a date without `format()` takes the configured format,
+     * model.md D29); nothing to resolve by default. A composite or custom type holding descriptors resolves them with
+     * their `configured()`. Called through `configured()`, never directly.
      */
     public function configure(Configuration $configuration): static
     {
         return $this;
+    }
+
+    /**
+     * A copy with the configured defaults resolved: its own (`configure()`) and those of the schemas of its `was()`.
+     * Called by the compiler, once per declaration (model.md D29).
+     */
+    final public function configured(Configuration $configuration): static
+    {
+        $clone = clone $this->configure($configuration);
+        $clone->history = $clone->history->configured($configuration);
+
+        return $clone;
     }
 
     public function source(): Source

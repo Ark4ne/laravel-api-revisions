@@ -155,6 +155,38 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A class compiled that does not implement `Schema\Revisioned`.
+     */
+    public static function notRevisioned(string $class): self
+    {
+        return new self("{$class} must implement Ark4ne\\ApiRevisions\\Schema\\Revisioned to be compiled.");
+    }
+
+    /**
+     * A declaration kind compiled that the class does not declare (`Revisioned::declarationKinds()`).
+     */
+    public static function undeclaredKind(string $class, string $kind): self
+    {
+        return new self("{$class} declares no '{$kind}'.");
+    }
+
+    /**
+     * An entry of a declaration that is not a descriptor under a string key.
+     */
+    public static function invalidDeclaration(string $class, int|string $key, string $type): self
+    {
+        return new self("The declaration of {$class} must map string keys to descriptors, got {$type} under '{$key}'.");
+    }
+
+    /**
+     * The subject read while compiling: a declaration reading it eagerly, or a source run (model.md §6.1).
+     */
+    public static function subjectReadAtCompilation(string $class, string $access): self
+    {
+        return new self("{$class} read its subject ({$access}) while compiling: declarations must stay lazy (a key, a dotted path or a closure).");
+    }
+
+    /**
      * A conversion registered for a side no type can have: an empty custom type name, or `Kind::Custom` without a name
      * (`$side` is the side as keyed: `''` or `'custom'`).
      */

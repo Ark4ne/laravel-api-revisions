@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Schema;
 
+use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
@@ -68,6 +69,25 @@ final readonly class History
         $history->assertOneEnum();
 
         return $history;
+    }
+
+    /**
+     * This history with the schema of every `was()` configured (`Descriptor::configured()`).
+     *
+     * @internal called by `Descriptor::configured()`
+     */
+    public function configured(Configuration $configuration): self
+    {
+        return new self($this->lifetime, array_map(
+            static fn(Change $change): Change => $change->schema === null ? $change : new Change(
+                $change->revision,
+                $change->name,
+                $change->schema->configured($configuration),
+                $change->down,
+                $change->up,
+            ),
+            $this->changes,
+        ));
     }
 
     /**

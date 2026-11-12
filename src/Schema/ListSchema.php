@@ -76,7 +76,7 @@ final class ListSchema extends Descriptor
     public function configure(Configuration $configuration): static
     {
         $clone = clone $this;
-        $clone->items = $this->items->configure($configuration);
+        $clone->items = $this->items->configured($configuration);
 
         return $clone;
     }

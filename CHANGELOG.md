@@ -80,6 +80,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   sometimes, conditional, default and lifetime at the revision, its `Compilation\FieldVersion` at every applicable
   `was()`, its unbound conversion chain in the direction of the shape, the items of a list, the children of an object as
   a nested `Shape`), every omitted `was()` argument inherited from the next newer shape. Closure-free and serializable.
+- Compilation: `Schema\Revisioned` (static `declarationKinds()` and the `@internal` bridge
+  `describeRevisioned(DeclarationKind, $probe)`), `Schema\DeclarationKind` (`Response`, `RequestBody`,
+  `RequestQuery`; `direction()`), `Compilation\Probe` (throws `DefinitionException::subjectReadAtCompilation()` on any
+  access), `Compilation\Compiler::compile($class, $kind, $revision)` (configured descriptors, the shape of the
+  revision naming its class and kind: `Shape::$class`, `Shape::$kind`); `DefinitionException::notRevisioned()`,
+  `undeclaredKind()`, `invalidDeclaration()`. `Descriptor::configured()` configures a descriptor and the schemas of its
+  `was()`; composites configure their parts through it.
 - Conversions of custom types: a custom type implementing `Schema\DeclaresConversions` registers its conversions
   (`conversions(Converters): Converters`); `TypeRegistry::converters()` gives the built-in registry with those of every
   registered type, to give to `ShapeSelector::at()`. `Converters::register()` takes a custom type's name as a

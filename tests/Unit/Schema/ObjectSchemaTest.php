@@ -15,6 +15,7 @@ use Ark4ne\ApiRevisions\Schema\StringSchema;
 use ArrayObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
+use Test\Fixtures\ApiRevision;
 use Test\TestCase;
 
 final class ObjectSchemaTest extends TestCase
@@ -126,5 +127,14 @@ final class ObjectSchemaTest extends TestCase
         $this->expectExceptionMessage($message);
 
         new ObjectSchema($children); // @phpstan-ignore argument.type
+    }
+
+    public function test_configure_reaches_the_histories_of_the_children(): void
+    {
+        $object = (new ObjectSchema([
+            'day' => (new StringSchema())->was(ApiRevision::Winter25, schema: new DateSchema()),
+        ]))->configure(new Configuration(dateFormat: 'd/m/Y'));
+
+        self::assertSame('d/m/Y', $object->children()['day']->history()->changes[0]->schema?->toType()->format);
     }
 }

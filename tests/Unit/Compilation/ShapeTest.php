@@ -11,8 +11,10 @@ use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Support\Undefined;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\TestCase;
 
 final class ShapeTest extends TestCase
@@ -66,6 +68,21 @@ final class ShapeTest extends TestCase
             null,
             [],
             ConversionChain::empty(Direction::Down),
+        );
+    }
+
+    public function test_a_shape_names_the_declaration_it_was_compiled_from(): void
+    {
+        $shape = new Shape(ApiRevision::Winter25, Direction::Down, ['status' => self::field('status', 'state')]);
+
+        $named = $shape->of(OrderDeclaration::class, DeclarationKind::Response);
+
+        self::assertNull($shape->class);
+        self::assertSame(OrderDeclaration::class, $named->class);
+        self::assertSame(DeclarationKind::Response, $named->kind);
+        self::assertEquals(
+            new Shape(ApiRevision::Winter25, Direction::Down, $shape->fields, [], [], OrderDeclaration::class, DeclarationKind::Response),
+            $named,
         );
     }
 }
