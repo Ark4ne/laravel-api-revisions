@@ -50,7 +50,7 @@ final readonly class Projector
     public function __construct(
         private Configuration $configuration = new Configuration(),
         private ?Converters $converters = null,
-        private SourceReader $reader = new SourceReader(),
+        private SourceReader $reader = new PlainSourceReader(),
         ?Shapes $shapes = null,
         ?ValueErrorHandler $values = null,
     ) {
@@ -175,7 +175,7 @@ final readonly class Projector
 
     /**
      * Every presence condition holds: a `Presence` without path checks the source path, or the declared key when the
-     * source has none (model.md D37).
+     * source has none (model.md D37); a relation presence asks the reader whether it is loaded (model.md D61).
      *
      * @param Descriptor<mixed> $descriptor
      */
@@ -190,7 +190,7 @@ final readonly class Projector
                 }
                 $path = [$key];
             }
-            if (!$this->reader->has($subject, $path)) {
+            if (!($presence->relation ? $this->reader->loaded($subject, $path) : $this->reader->has($subject, $path))) {
                 return false;
             }
         }

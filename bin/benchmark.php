@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 /*
  * The benchmark gate (docs/specs/epics.md US 5.4): renders 1 000 orders of the reference scenario at the head and at
- * the oldest revision through the core `Projector`, and with a plain `JsonResource` as baseline. Each projection is
+ * the oldest revision through a `RevisionedResource` (US 8.5; a bare container holds the services the provider binds),
+ * and with a plain `JsonResource` as baseline. Each projection is
  * compared with the baseline as a ratio (time and peak memory), so the gate holds on any machine; a ratio beyond the
  * reference by more than its tolerance fails. The scenarios are interleaved in each run and the gate reads the median of
  * the per-run ratios, so a drift of the machine hits both sides of a ratio. Refuses to run under Xdebug, which slows the
@@ -14,16 +15,19 @@ declare(strict_types=1);
  */
 
 use Ark4ne\ApiRevisions\Compilation\Shapes;
+use Ark4ne\ApiRevisions\Laravel\Resources\EloquentSourceReader;
+use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\Revision;
-use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Customer;
-use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Order;
+use Test\Fixtures\Resources\PlainOrderResource;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -54,8 +58,17 @@ for ($i = 0; $i < ORDERS; ++$i) {
 }
 
 $shapes = new Shapes();
-$projector = new Projector(shapes: $shapes);
 $request = Request::create('/orders');
+$scope = new RevisionScope();
+// what RevisionsServiceProvider binds, without booting an application
+$container = new Container();
+Container::setInstance($container);
+$container->instance(RevisionsConfig::class, RevisionsConfig::fromArray(['enum' => ApiRevision::class]));
+$container->instance(Shapes::class, $shapes);
+$container->instance(Projector::class, new Projector(reader: new EloquentSourceReader(), shapes: $shapes));
+$container->instance(RevisionScope::class, $scope);
+$container->instance('request', $request);
+RevisionScope::provider(static fn(): RevisionScope => $scope);
 
 /**
  * A scenario renders every order and returns the outputs, so the memory measured holds the real work.
@@ -64,15 +77,14 @@ $request = Request::create('/orders');
  *
  * @return Closure(): list<array<string, mixed>>
  */
-$project = static fn(array $orders, Revision $revision): Closure => static function () use ($orders, $revision, $shapes, $projector): array {
-    $shape = $shapes->for(OrderDeclaration::class, DeclarationKind::Response, $revision);
+$project = static fn(array $orders, Revision $revision): Closure => static fn(): array => ApiRevision::using($revision, static function () use ($orders, $request): array {
     $outputs = [];
     foreach ($orders as $order) {
-        $outputs[] = $projector->project($shape, OrderDeclaration::describeRevisioned(DeclarationKind::Response, $order), $order);
+        $outputs[] = (new PlainOrderResource($order))->resolve($request);
     }
 
     return $outputs;
-};
+});
 
 $scenarios = [
     'baseline' => static function () use ($orders, $request): array {

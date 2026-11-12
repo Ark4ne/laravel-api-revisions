@@ -4,95 +4,37 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Projection;
 
-use ArrayAccess;
-
 /**
- * Reads keys and dotted paths on a subject (model.md §6.2): arrays and `ArrayAccess` by offset, objects by public
- * property, then `__get()`. A key the subject does not have reads `null`; `null` in a path stops it. The errors of the
- * subject itself (a strict mode refusing a missing attribute) are never hidden: no `isset()` before `__get()`.
+ * How the projector reads a subject (model.md §6.2, Strategy): `PlainSourceReader` in the core, decorated by the
+ * Laravel layer for Eloquent models (`EloquentSourceReader`: `peek()` and the presences without lazy load). A key the
+ * subject does not have reads `null`; the errors of the subject itself are never hidden.
  */
-final class SourceReader
+interface SourceReader
 {
     /**
      * The value at `$path` on `$subject`, `null` when a segment is missing or `null`.
      *
      * @param non-empty-list<string> $path
      */
-    public function read(mixed $subject, array $path): mixed
-    {
-        foreach ($path as $key) {
-            $subject = $this->key($subject, $key);
-        }
-
-        return $subject;
-    }
+    public function read(mixed $subject, array $path): mixed;
 
     /**
      * Whether the subject has every segment of `$path` (a `whenHas()`), a key holding `null` included.
      *
      * @param non-empty-list<string> $path
      */
-    public function has(mixed $subject, array $path): bool
-    {
-        foreach ($path as $key) {
-            if (!$this->holds($subject, $key)) {
-                return false;
-            }
-            $subject = $this->key($subject, $key);
-        }
-
-        return true;
-    }
+    public function has(mixed $subject, array $path): bool;
 
     /**
-     * The value of `$key` when the subject already holds it without side effect (an array offset that exists, an
-     * initialized public property), `null` otherwise: never a magic getter, never an `ArrayAccess` call. The `$value`
-     * given to a source closure.
+     * Whether every relation of `$path` is loaded on the subject, without loading it (a `whenLoaded()`).
+     *
+     * @param non-empty-list<string> $path
      */
-    public function peek(mixed $subject, string $key): mixed
-    {
-        return match (true) {
-            is_array($subject) => $subject[$key] ?? null,
-            is_object($subject) => get_object_vars($subject)[$key] ?? null,
-            default => null,
-        };
-    }
+    public function loaded(mixed $subject, array $path): bool;
 
     /**
-     * The subject holds `$key`, checked in the order `key()` reads it: offset of an array, public property, `__isset()`,
-     * `ArrayAccess`. Never reads the key itself.
+     * The value of `$key` when the subject already holds it without side effect, `null` otherwise: the `$value` given
+     * to a source closure.
      */
-    private function holds(mixed $subject, string $key): bool
-    {
-        return match (true) {
-            is_array($subject) => array_key_exists($key, $subject),
-            !is_object($subject) => false,
-            array_key_exists($key, get_object_vars($subject)) => true,
-            method_exists($subject, '__isset') => $subject->__isset($key) === true,
-            $subject instanceof ArrayAccess => $subject->offsetExists($key),
-            default => false,
-        };
-    }
-
-    private function key(mixed $subject, string $key): mixed
-    {
-        if (is_array($subject)) {
-            return $subject[$key] ?? null;
-        }
-        if (!is_object($subject)) {
-            return null;
-        }
-        $properties = get_object_vars($subject);
-        if (array_key_exists($key, $properties)) {
-            return $properties[$key];
-        }
-        if (method_exists($subject, '__get')) {
-            return $subject->__get($key);
-        }
-        if ($subject instanceof ArrayAccess) {
-            return $subject->offsetExists($key) ? $subject->offsetGet($key) : null;
-        }
-
-        return null;
-    }
+    public function peek(mixed $subject, string $key): mixed;
 }

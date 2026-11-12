@@ -204,6 +204,15 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * `toArray()` of the resource `$class` failed on the empty subject of the compilation (model.md D61): a plain value
+     * reading its subject is evaluated there, every read giving `null`.
+     */
+    public static function failedDescribing(string $class, Throwable $error): self
+    {
+        return new self("{$class}::toArray() failed while compiling on an empty subject ({$error->getMessage()}): a plain value is evaluated with every read giving null, make it null-safe (?->) or declare a descriptor.", previous: $error);
+    }
+
+    /**
      * A conversion registered for a side no type can have: an empty custom type name, or `Kind::Custom` without a name
      * (`$side` is the side as keyed: `''` or `'custom'`).
      */

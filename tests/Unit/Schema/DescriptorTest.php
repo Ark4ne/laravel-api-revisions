@@ -205,6 +205,17 @@ final class DescriptorTest extends TestCase
         self::assertEquals([Presence::has(), Presence::has('customer.email')], $present->presences());
     }
 
+    public function test_a_relation_presence_makes_the_field_conditional(): void
+    {
+        $schema = new StringSchema();
+
+        $loaded = $schema->whenLoaded('customer')->whenHas();
+
+        self::assertSame([], $schema->presences());
+        self::assertTrue($loaded->isConditional());
+        self::assertEquals([Presence::loaded('customer'), Presence::has()], $loaded->presences());
+    }
+
     public function test_a_presence_condition_refuses_an_empty_key(): void
     {
         $this->expectException(DefinitionException::class);

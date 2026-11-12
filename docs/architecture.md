@@ -54,13 +54,13 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned` |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `EagerSchema` (a plain value wrapped by a bridge) |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
-| Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
+| Projection | `src/Projection/` | `Projector`, `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
-| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits, commands, queue capture |
+| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`) and the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
@@ -124,6 +124,8 @@ types).
   `Source::declaredKey()`. **Every closure the library calls has one signature, `($value, $subject)`** (`model.md`
   §3): sources, conditions, `down:` / `up:` converters. One invoker (`Support\Invoke::value()`) calls them all. Their
   PHPDoc type is a plain `Closure`: `Closure(mixed, mixed)` would refuse `fn (int $cents, Order $order)`. A `Change` (`was()`) never holds a source (`model.md` §6.4).
+  The only descriptor carrying a captured value is `EagerSchema` (a closure source returning it, nullable `any`, always
+  conditional), built only by the bridge of a declaring class for a plain value (`RevisionedResource`, `model.md` D61).
 - Configured defaults reach a descriptor through the final `configured(Configuration): static`, called by the
   compiler on every head descriptor: it applies the overridable `configure()` (a date without `format()` takes the
   configured format, `model.md` D29) and configures the schemas of its `was()` (`History::configured()`). A composite
@@ -272,7 +274,8 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   the `Converters` the unbound chains are bound to (`TypeRegistry::converters()` by default; explicit steps take the
   `down:` of the fresh descriptors) and a `SourceReader`. Descriptors missing a field of the shape throw
   `DefinitionException::missingDescriptor()`. A `when()` passes only when it returns `true`.
-- `SourceReader` reads keys and dotted paths on arrays, `ArrayAccess` and objects (public property, then `__get()`
+- `SourceReader` (**Strategy**, an interface since US 8.5: `PlainSourceReader` in the core, decorated by the Laravel
+  layer's `EloquentSourceReader`) reads keys and dotted paths on arrays, `ArrayAccess` and objects (public property, then `__get()`
   called directly, never after an `isset()`: the subject's own errors show, spike F11); a missing key reads `null`;
   `has()` answers `whenHas()` (a `Presence` without key checks the source path, else the declared key, D37),
   checking each segment before reading it, in the order of `read()` (array offset, public property, `__isset()`,
@@ -280,6 +283,8 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   closures are called with `($value, $subject)`, `$value` being the declared key read **without side effect**
   (`SourceReader::peek()`: an array offset or an initialized public property, never a magic getter nor an
   `ArrayAccess` call; the Laravel layer decorates it for Eloquent: attributes present, relations loaded).
+  `loaded()` answers `whenLoaded()` (a `Presence` with `relation`): `has()` for a plain subject, `relationLoaded()`
+  per segment on an Eloquent model (`model.md` D61).
 - **Nesting** changes the subject, never the pipeline: an object with a source projects its children on the source's
   value (without one, on the parent's subject: `Source::parent()`), a list on each item (an item without source is
   the element itself; an item whose condition fails is dropped, `model.md` D51), `ResourceSchema` delegates to the
@@ -362,6 +367,14 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   (no exception renderer, nothing reported); the days of `#[Meta]` read in `app.timezone`.
   `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn` (D59). Since US 8.4 (D60):
   it forgets the route parameters of the chain's `PathResolver`s and sets them as URL defaults.
+- `Laravel\Resources\RevisionedResource` (since US 8.5, `model.md` D61) — overrides `JsonResource::resolve()` only:
+  projects the descriptors of `toArray()` with the container's `Projector` (`scoped`: `EloquentSourceReader`, the
+  `Shapes`, the `ValueErrorHandler`) on the shape of `current()`, then walks the `filter()`ed `toArray()` to keep its
+  order and its plain values / native conditions. Its bridge builds the resource on `DescribeSubject` (a permissive
+  **Null Object**, `@internal`) with an empty `Request` at compilation (the shape never depends on the request served;
+  a plain value failing there throws `DefinitionException::failedDescribing()`); at a nested render it adds a never-rendered field for each declared key
+  missing (the declared keys memoized per class, `Support\Memo`). Its private helpers are prefixed `revisioned` (a
+  trait shares the namespace of the application's class).
 - `Laravel\Routing\RevisionedRoutes::group()` — the body of the route macro `revisioned`, registered on the `Router` in
   the provider's `boot()` (a macro closure is bound to the router, so it is not static); prefix, enum constraint and
   `revision` middleware.
@@ -500,4 +513,4 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
 | Coverage ≥ 90 % (`bin/coverage-check.php`) | Tested lines |
 | Infection (MSI ≥ 80 %) | Test quality; a change generating no mutant is not measured (`ignoreMsiWithNoMutations`) |
-| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of 1 000 orders at the head and the oldest revision (core `Projector`, descriptors built per order, shapes compiled once) as **ratios** to a plain `JsonResource`: scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |
+| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of 1 000 orders at the head and the oldest revision (a `RevisionedResource` resolved per order in a bare container holding the services the provider binds, shapes compiled once; since US 8.5) as **ratios** to a plain `JsonResource`: scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |

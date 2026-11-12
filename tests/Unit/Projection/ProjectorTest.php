@@ -12,7 +12,9 @@ use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
+use Ark4ne\ApiRevisions\Projection\PlainSourceReader;
 use Ark4ne\ApiRevisions\Projection\Projector;
+use Ark4ne\ApiRevisions\Projection\SourceReader;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
@@ -221,6 +223,55 @@ final class ProjectorTest extends TestCase
 
         self::assertSame(['ref' => 'A1'], self::project($head, ApiRevision::Atlas, ['reference' => 'A1', 'ref' => 'no']));
         self::assertSame(['title' => 'Book', 'label' => 'computed'], self::project($head, ApiRevision::Atlas, ['title' => 'Book', 'label' => 'x']));
+    }
+
+    public function test_a_relation_presence_asks_the_reader_whether_it_is_loaded(): void
+    {
+        $head = [
+            'customer' => Schema::string('customer.name')->whenLoaded('customer'),
+            'title' => Schema::string(static fn(): never => throw new LogicException('The source ran.'))->whenLoaded('missing'),
+        ];
+        $reader = new class implements SourceReader {
+            /** @var list<string> */
+            public array $calls = [];
+
+            public function read(mixed $subject, array $path): mixed
+            {
+                return (new PlainSourceReader())->read($subject, $path);
+            }
+
+            public function has(mixed $subject, array $path): bool
+            {
+                $this->calls[] = 'has:' . implode('.', $path);
+
+                return true;
+            }
+
+            public function loaded(mixed $subject, array $path): bool
+            {
+                $this->calls[] = 'loaded:' . implode('.', $path);
+
+                return $path === ['customer'];
+            }
+
+            public function peek(mixed $subject, string $key): mixed
+            {
+                return null;
+            }
+        };
+
+        $projected = (new Projector(reader: $reader))->project(self::shape($head, ApiRevision::Atlas), $head, ['customer' => ['name' => 'Ada']]);
+
+        self::assertSame(['customer' => 'Ada'], $projected);
+        self::assertSame(['loaded:customer', 'loaded:missing'], $reader->calls);
+    }
+
+    public function test_a_relation_presence_on_a_plain_subject_checks_the_key(): void
+    {
+        $head = ['customer' => Schema::string('customer.name')->nullable()->whenLoaded('customer')];
+
+        self::assertSame(['customer' => null], self::project($head, ApiRevision::Atlas, ['customer' => null]));
+        self::assertSame([], self::project($head, ApiRevision::Atlas, []));
     }
 
     public function test_projecting_twice_gives_the_same_result(): void

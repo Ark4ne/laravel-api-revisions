@@ -21,6 +21,22 @@ final class PresenceTest extends TestCase
         self::assertSame(['customer', 'email'], Presence::has('customer.email')->path);
     }
 
+    public function test_a_relation_presence_names_a_relation_or_a_dotted_path_of_relations(): void
+    {
+        self::assertSame(['customer'], Presence::loaded('customer')->path);
+        self::assertTrue(Presence::loaded('customer.address')->relation);
+        self::assertSame(['customer', 'address'], Presence::loaded('customer.address')->path);
+        self::assertFalse(Presence::has('customer')->relation);
+    }
+
+    public function test_a_relation_presence_refuses_an_empty_segment(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage("Invalid presence key '.address': a key or each segment of a dotted path must not be empty.");
+
+        Presence::loaded('.address');
+    }
+
     public function test_a_presence_refuses_an_empty_segment(): void
     {
         $this->expectException(DefinitionException::class);

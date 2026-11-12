@@ -129,6 +129,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   generated URLs keep the revision. `PathResolver::parameter()`, `ResolverChain::parameters()`,
   `RevisionsConfig::pathParameter()`. `extension.neon` declares the macro to PHPStan (`PHPStan\RevisionedRouteExtension`;
   `PHPStan\CustomTypeMethod` becomes `PHPStan\DeclaredMethod`).
+- `Laravel\Resources\RevisionedResource`, the trait of a revisioned `JsonResource`: `toArray()` returns descriptors,
+  `resolve()` projects them on the model at the current revision, in the order of `toArray()`; `with()`,
+  `additional()`, wrapping, collections and pagination unchanged; implements the `Revisioned` bridge (a response).
+  A plain value is rendered as it is (a nullable `any` in the shape: `Schema\EagerSchema`); a native `when()`,
+  `whenLoaded()` or `mergeWhen()` is honoured at run time and kept out of the shape; `Arrayable` values are rendered as
+  arrays; lenient value errors are reported. The `Projector` is bound in the container (`scoped`).
+- `Descriptor::whenLoaded('relation')` (dotted for a nested relation, `Schema\Presence::loaded()`): the field is kept
+  only when the relation is loaded, checked before the source; on a subject without relations, the key is present.
+- `Projection\SourceReader` is now an interface (`read()`, `has()`, `peek()`, `loaded()`), implemented by
+  `Projection\PlainSourceReader` (the former class) and decorated for Eloquent by
+  `Laravel\Resources\EloquentSourceReader` (attributes present in `getAttributes()`, relations loaded, never a lazy
+  load).
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.

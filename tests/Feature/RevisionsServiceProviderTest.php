@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Test\Feature;
 
 use Ark4ne\ApiRevisions\Compilation\Shapes;
+use Ark4ne\ApiRevisions\Compilation\ShapeSelector;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
@@ -14,9 +16,11 @@ use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Laravel\RevisionsServiceProvider;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
+use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Projection\StrictValues;
 use Ark4ne\ApiRevisions\Projection\ValueErrorHandler;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Ark4ne\ApiRevisions\Schema\Schema;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
@@ -24,6 +28,7 @@ use Illuminate\Support\ServiceProvider;
 use stdClass;
 use Test\FeatureTestCase;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Eloquent\Order;
 use Test\Fixtures\Resolvers\AccountPinnedResolver;
 use Throwable;
 
@@ -101,6 +106,20 @@ final class RevisionsServiceProviderTest extends FeatureTestCase
         self::assertSame($configuration, $this->application()->make(Configuration::class));
         self::assertSame($this->application()->make(Shapes::class), $this->application()->make(Shapes::class));
         self::assertInstanceOf(StrictValues::class, $this->application()->make(ValueErrorHandler::class));
+    }
+
+    public function test_the_projector_reads_eloquent_models_with_the_shapes_and_is_rebuilt_per_request(): void
+    {
+        $this->configure(['enum' => ApiRevision::class]);
+        $projector = $this->application()->make(Projector::class);
+        $head = ['exists' => Schema::bool()->whenHas()];
+        $shape = ShapeSelector::at($head, ApiRevision::Atlas, Direction::Down);
+
+        // a public property of the model, not an attribute: held for the core reader, not for the Eloquent one
+        self::assertSame([], $projector->project($shape, $head, new Order()));
+        self::assertSame($projector, $this->application()->make(Projector::class));
+        $this->application()->forgetScopedInstances();
+        self::assertNotSame($projector, $this->application()->make(Projector::class));
     }
 
     public function test_strict_values_without_a_value_follow_app_debug(): void

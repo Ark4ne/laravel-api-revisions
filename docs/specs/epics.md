@@ -1128,6 +1128,27 @@ Tests (Feature, reference scenario): `test_order_resource_renders_each_revision_
 Follow-up (from US 2.4): an eager value is rendered as is, `null` included, while `RuleSchema::normalize()` refuses
 `null` like every descriptor: an eager value is typed as a nullable `any`, not a `RuleSchema` reused as is.
 
+**Done** (2026-11-12): `Laravel\Resources\RevisionedResource` (the bridge declares a response; `resolve()` projects
+the descriptors of `toArray()` with the container's `Projector` on the shape of `current()`, then walks the
+`filter()`ed `toArray()` to keep its order, its plain values and its native conditions; `Arrayable` values rendered as
+arrays), `Laravel\Resources\DescribeSubject` (`@internal`, the permissive subject of the compilation, with an empty
+`Request`), `Laravel\Resources\EloquentSourceReader`, `Schema\EagerSchema` (nullable `any`, always conditional),
+`Descriptor::whenLoaded()` / `Presence::loaded()`, `Projection\SourceReader` turned into an interface
+(`PlainSourceReader`, new `loaded()`), `DefinitionException::failedDescribing()`, the `Projector` bound `scoped` in the
+provider. Decision **D61** (permissive subject chosen by the maintainer). Tests beyond the story's: pagination,
+`additional()`, the order of `toArray()`, `Arrayable`, lenient reporting, the request given to `resolve()`, a shape
+independent of the request served, a nested resource omitting a missing native condition, a failing plain value,
+`ResourceInvariantTest` (the invariant over `Fixtures/Resources`, JSON Schema half with US 10.1), the provider's
+`Projector`. Coverage 99.7 %, Infection covered MSI 96 %. Benchmark: now renders `PlainOrderResource` (the trait on
+the plain `Order`) in a bare container; the reference moves from ×19.4 to ×22.0 of the plain resource (the scenario
+changed: `filter()`, order walk and `Arrayable` pass of the resource on top of the projector, not a regression).
+Deviations: a nested resource renders only its shape's fields (a native condition met inside it renders nothing, one
+missing omits its field, declared keys memoized per class); `whenLoaded()` takes the relation (no default key).
+Review: eager fields conditional, empty request at compilation, `failedDescribing()`, invariant over the resources,
+provider test, docs rows. Follow-ups: US 9.2 reports `eager-value` (an `EagerSchema` in the head) and
+`native-condition` (it needs the raw `toArray()`: the bridge drops `MissingValue` / `MergeValue`); US 10.1 exports an
+`EagerSchema` as an optional `any`.
+
 #### US 8.6 — Validation rules of a shape · L · depends US 5.2, US 8.1
 
 - `Laravel\Validation\RuleCompiler` + one `RuleMapper` per `Kind`: rules under the **names of the revision**, with the
@@ -1440,7 +1461,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.2 | Resolvers | M | 8.1 | M2 | done |
 | US 8.3 | `ResolveRevision` middleware | M | 8.2 | M2 | done |
 | US 8.4 | Path mode | M | 8.3 | M2 | done |
-| US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | todo |
+| US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | done |
 | US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | todo |
 | US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | todo |
 | US 8.8 | Outside HTTP | S | 8.1 | M2 | todo |

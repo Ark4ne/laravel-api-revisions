@@ -242,6 +242,19 @@ abstract class Descriptor
     }
 
     /**
+     * Keeps the field only when the relation `$relation` (dotted for a nested one) is loaded on the subject, checked
+     * before the source: the source never triggers a lazy load (model.md §6.4, D61). On a subject without relations,
+     * `whenHas($relation)`. The field becomes conditional (optional in the export).
+     */
+    public function whenLoaded(string $relation): static
+    {
+        $clone = clone $this;
+        $clone->presences[] = Presence::loaded($relation);
+
+        return $clone;
+    }
+
+    /**
      * Whether the field may be omitted: it has a `when()` or a presence condition.
      */
     public function isConditional(): bool
