@@ -20,7 +20,7 @@ final class MetaReaderTest extends TestCase
         $meta = MetaReader::of(ApiRevision::Spring26);
 
         self::assertEquals(
-            new Meta('Totals in cents, `state` renamed `status`', publishedAt: '2026-04-01', deprecatedAt: '2026-11-01'),
+            new Meta('Totals in cents, `state` renamed `status`', publishedAt: '2026-04-01', deprecatedAt: '2026-11-01', sunsetAt: '2027-05-01'),
             $meta,
         );
     }

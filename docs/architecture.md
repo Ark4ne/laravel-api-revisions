@@ -357,6 +357,9 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   `PathResolver` (built-in resolvers read one value through the `@internal` `RevisionValue::parse()`, `model.md`
   D57). An unknown value throws `UnknownRevisionException` and stops the chain.
 - `Laravel\Http\ResolveRevision` — middleware (400 on unknown value, response headers, `Vary`, Deprecation / Sunset).
+  Since US 8.3 (`model.md` D58): alias `revision`, registered in `boot()`; resolved by the container on each request
+  (the scoped `ResolverChain` and `RevisionScope` injected); it answers the 400 itself from `UnknownRevisionException`
+  (no exception renderer, nothing reported); the days of `#[Meta]` read in `app.timezone`.
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
   producing Laravel rules under the names of the revision.
 - `Laravel\Requests\RevisionedRequest` and `Laravel\Resources\RevisionedResource` — traits **declared for

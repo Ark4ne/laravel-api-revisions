@@ -17,4 +17,19 @@ final class UnknownRevisionExceptionTest extends TestCase
         self::assertSame('2020-01', $exception->value);
         self::assertSame(['genesis', 'atlas'], $exception->accepted);
     }
+
+    public function test_a_long_value_is_bounded_to_64_characters(): void
+    {
+        $exception = UnknownRevisionException::unknown(str_repeat('é', 100), ['atlas']);
+
+        self::assertSame(str_repeat('é', 63) . '…', $exception->value);
+        self::assertSame("Unknown API revision '" . str_repeat('é', 63) . "…', expected one of: atlas.", $exception->getMessage());
+    }
+
+    public function test_a_value_of_64_characters_is_kept_whatever_its_bytes(): void
+    {
+        self::assertSame(str_repeat('a', 64), UnknownRevisionException::unknown(str_repeat('a', 64), [])->value);
+        self::assertSame(str_repeat('é', 40), UnknownRevisionException::unknown(str_repeat('é', 40), [])->value);
+        self::assertSame(str_repeat('a', 63) . '…', UnknownRevisionException::unknown(str_repeat('a', 65), [])->value);
+    }
 }

@@ -116,6 +116,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   revision, or a resolver class whose `null` gives the head). A value naming no revision throws
   `Exceptions\UnknownRevisionException` (the value and the accepted ones). `RevisionsConfig` refuses a resolver or a
   class `default` not implementing `RevisionResolver`; `resolvers` defaults to the header resolver.
+- Middleware `Laravel\Http\ResolveRevision` (alias `revision`): resolves the revision of the request through the
+  `ResolverChain`, makes it the request's current revision, and adds the `response_header`, `Vary` on the revision
+  headers, `Deprecation` (RFC 9745) and `Sunset` (RFC 8594) from the revision's `#[Meta]`; an unknown revision is
+  answered 400 with `{message, revision, accepted}`. `UnknownRevisionException` cuts the value it echoes to 64
+  characters; `HeaderResolver::header()` and `ResolverChain::headers()` name the headers read.
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.

@@ -20,6 +20,14 @@ final readonly class HeaderResolver implements RevisionResolver
         private string $name = 'Api-Revision',
     ) {}
 
+    /**
+     * The name of the header it reads (for `Vary`).
+     */
+    public function header(): string
+    {
+        return $this->name;
+    }
+
     public function resolve(Request $request): ?Revision
     {
         return RevisionValue::parse($this->config->enum, $request->headers->get($this->name));

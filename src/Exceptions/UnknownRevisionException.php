@@ -24,13 +24,18 @@ final class UnknownRevisionException extends RuntimeException implements Revisio
     }
 
     /**
-     * `$value` matches no revision.
+     * `$value` matches no revision; a value longer than 64 characters is cut (a client controls it, it is echoed in
+     * the 400 body).
      *
      * @param string $value the value sent, or the debug type of a value that is not a string (`array`)
      * @param list<string> $accepted the backed values of the revisions, oldest first
      */
     public static function unknown(string $value, array $accepted): self
     {
+        if (mb_strlen($value) > 64) {
+            $value = mb_substr($value, 0, 63) . '…';
+        }
+
         return new self(sprintf("Unknown API revision '%s', expected one of: %s.", $value, implode(', ', $accepted)), $value, $accepted);
     }
 }

@@ -44,4 +44,21 @@ final readonly class ResolverChain
 
         return $this->default->resolve($request) ?? RevisionOrder::latest($this->enum);
     }
+
+    /**
+     * The request headers the chain reads, each once: those of its `HeaderResolver`s, the default included (`Vary`).
+     *
+     * @return list<string>
+     */
+    public function headers(): array
+    {
+        $headers = [];
+        foreach ([...$this->resolvers, $this->default] as $resolver) {
+            if ($resolver instanceof HeaderResolver) {
+                $headers[$resolver->header()] = true;
+            }
+        }
+
+        return array_keys($headers);
+    }
 }

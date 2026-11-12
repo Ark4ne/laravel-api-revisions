@@ -11,6 +11,7 @@ use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Laravel\Console\CacheCommand;
 use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
+use Ark4ne\ApiRevisions\Laravel\Http\ResolveRevision;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
@@ -22,6 +23,7 @@ use Illuminate\Container\Container as ContainerInstance;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -32,8 +34,8 @@ use Illuminate\Support\ServiceProvider;
  * current container), its base the configured fixed default (D31); the `ValueErrorHandler` from `strict_values`, a
  * lenient one reporting each error once per class and field and request; the `ResolverChain` of `resolvers` and
  * `default` (`scoped`: a resolver may read request services); in the console, the commands `revision:cache` /
- * `revision:clear`, run by `optimize` / `optimize:clear`. The middleware, the route macro and the other commands are
- * added by their stories (US 8.3 onwards).
+ * `revision:clear`, run by `optimize` / `optimize:clear`; the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
+ * macro and the other commands are added by their stories (US 8.4 onwards).
  */
 final class RevisionsServiceProvider extends ServiceProvider
 {
@@ -103,6 +105,11 @@ final class RevisionsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $router = $this->app->make(Router::class);
+        // an alias the application already defines under that name wins
+        if (!array_key_exists('revision', $router->getMiddleware())) {
+            $router->aliasMiddleware('revision', ResolveRevision::class);
+        }
         $this->publishes([self::CONFIG => $this->app->configPath('revisions.php')], 'revisions-config');
 
         if ($this->app->runningInConsole()) {

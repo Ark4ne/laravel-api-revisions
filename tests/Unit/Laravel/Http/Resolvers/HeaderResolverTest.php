@@ -40,6 +40,12 @@ final class HeaderResolverTest extends TestCase
         (new HeaderResolver(self::config()))->resolve(Request::create('/orders', server: ['HTTP_API_REVISION' => '2020-01']));
     }
 
+    public function test_it_names_the_header_it_reads(): void
+    {
+        self::assertSame('Api-Revision', (new HeaderResolver(self::config()))->header());
+        self::assertSame('X-Version', (new HeaderResolver(self::config(), 'X-Version'))->header());
+    }
+
     private static function config(): RevisionsConfig
     {
         return RevisionsConfig::fromArray(['enum' => ApiRevision::class]);
