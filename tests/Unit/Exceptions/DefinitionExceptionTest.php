@@ -239,4 +239,12 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::subjectReadAtCompilation('App\\Order', '->title')->getMessage(),
         );
     }
+
+    public function test_a_missing_descriptor_names_the_class_and_the_field(): void
+    {
+        self::assertSame(
+            "The descriptors projected for App\\OrderResource have no field 'total' of its shape.",
+            DefinitionException::missingDescriptor('App\\OrderResource', 'total')->getMessage(),
+        );
+    }
 }

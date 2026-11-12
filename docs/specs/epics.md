@@ -750,6 +750,25 @@ Follow-up (from US 2.4): evaluate `Descriptor::presences()` before the source (a
 the field's own key, D37) and `conditions()` after normalization, all of them required; test
 `test_a_presence_condition_runs_before_the_source`.
 
+**Done** (2026-11-12): `Projection\Projector` (`final readonly`: `Configuration`, `Converters` defaulting to
+`TypeRegistry::converters()`, `SourceReader`; `project($shape, $descriptors, $subject)`: presences (D37), source,
+normalize, `when()` kept on `true` as its PHPDoc says, chain bound to the `down:` of the fresh descriptors, serialized
+by the configured descriptor in force at the revision: spike **F6**, the shape says which), `Projection\SourceReader`
+(`read()`, `has()`, `peek()`; `__get()` / `__isset()` called directly, never `isset()` before a read: spike **F11**),
+`Exceptions\ValueException` (`refused()`, `unconvertible()`: class, field, revision and types, never the value: the
+`ConversionException` is not chained, its message holds the value),
+`DefinitionException::missingDescriptor()`; fixture `MagicSubject` (a strict-mode magic subject). Coverage 99.90 %,
+Infection MSI 100 % on the new classes. Deviations: until US 6.4, every value error throws `ValueException` (the
+strict behaviour; a `ConversionException` of the chain, a missing step included, becomes `unconvertible()`), and a
+non-nullable `null` renders `null`; composites are projected as their normalized container (an object without source
+reads the parent's subject), their children and items by US 6.2; the class in errors is `Shape::$class`, `object` for a
+shape without class. Follow-ups: US 6.4 puts the `ValueErrorHandler` between the projector and `ValueException`;
+US 8.5 decorates the `SourceReader` for Eloquent (it is `final`: an interface then); US 5.4 measures the per-field
+`configured()` / `bind()` and `TypeRegistry::converters()` per `project()`. Review: no value through a chained
+exception, `has()` checks every segment before reading it (no `__get()` in a `whenHas()`), one order of `has()` and
+`read()`, a shape pointing at a `was()` without schema throws `missingDescriptor()` instead of serializing with the
+head.
+
 #### US 6.2 — Nested projection · M · depends US 6.1
 
 - Objects and lists projected recursively with their children's histories and subjects (`model.md` §6.1); `null`
@@ -1173,7 +1192,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 5.2 | Shapes repository | S | 5.1 | M1 | done |
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | todo |
-| US 6.1 | Projector and source reader | M | 5.2 | M2 | todo |
+| US 6.1 | Projector and source reader | M | 5.2 | M2 | done |
 | US 6.2 | Nested projection | M | 6.1 | M2 | todo |
 | US 6.3 | Invariant test | S | 6.2 | M2 | todo |
 | US 6.4 | Value errors | S | 6.1 | M2 | todo |

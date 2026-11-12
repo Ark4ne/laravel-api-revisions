@@ -87,6 +87,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   revision naming its class and kind: `Shape::$class`, `Shape::$kind`); `DefinitionException::notRevisioned()`,
   `undeclaredKind()`, `invalidDeclaration()`. `Descriptor::configured()` configures a descriptor and the schemas of its
   `was()`; composites configure their parts through it.
+- Projection: `Projection\Projector::project(Shape, $descriptors, $subject)` (built with the `Configuration`, the
+  `Converters` and a `Projection\SourceReader`) renders the visible fields of a shape under their name at its
+  revision: presence conditions, source (a renamed field reads its head key), normalization, `when()` (kept on `true`),
+  down chain bound to the fresh descriptors, serialization by the type in force at the revision; `null` skips
+  normalization and conversions. `SourceReader::read()` (keys and dotted paths on arrays, `ArrayAccess`, public
+  properties, `__get()` without `isset()`), `has()`, `peek()` (no side effect). `Exceptions\ValueException`
+  (`refused()`, `unconvertible()`: class, field, revision, never the value);
+  `DefinitionException::missingDescriptor()`.
 - Shapes repository: `Compilation\Shapes` (built with a `Compiler`, the default one by default), `for($class, $kind,
   $revision)` compiling each `(class, declaration kind, revision)` once, `flush()`.
 - Nested resources: `Schema::resource(class-string<Revisioned>, $source)` (`Schema\ResourceSchema`, `class()`;

@@ -257,10 +257,19 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   → `Descriptor::normalize()` → `when()` conditions → `ConversionChain::apply()` (down, with the subject) →
   `Descriptor::serialize()`.
   Each step has one owner; no step is skipped or reordered for a type.
-- `SourceReader` reads keys and dotted paths on arrays, `ArrayAccess` and objects (public property, then `__get()`);
-  a missing key reads `null`; closures are called with `($value, $subject)`, `$value` being the declared key read
-  **without side effect** (`SourceReader::peek()`; the Laravel layer decorates it for Eloquent: attributes present,
-  relations loaded).
+- `Projector` (`final readonly`) is built with the `Configuration` the shapes were compiled with (the descriptor that
+  serializes is `configured()` with it: the head, or the schema of the `was()` in force, `FieldDefinition::$schemaChange`),
+  the `Converters` the unbound chains are bound to (`TypeRegistry::converters()` by default; explicit steps take the
+  `down:` of the fresh descriptors) and a `SourceReader`. Descriptors missing a field of the shape throw
+  `DefinitionException::missingDescriptor()`. A `when()` passes only when it returns `true`.
+- `SourceReader` reads keys and dotted paths on arrays, `ArrayAccess` and objects (public property, then `__get()`
+  called directly, never after an `isset()`: the subject's own errors show, spike F11); a missing key reads `null`;
+  `has()` answers `whenHas()` (a `Presence` without key checks the source path, else the declared key, D37),
+  checking each segment before reading it, in the order of `read()` (array offset, public property, `__isset()`,
+  `ArrayAccess`);
+  closures are called with `($value, $subject)`, `$value` being the declared key read **without side effect**
+  (`SourceReader::peek()`: an array offset or an initialized public property, never a magic getter nor an
+  `ArrayAccess` call; the Laravel layer decorates it for Eloquent: attributes present, relations loaded).
 - **Nesting** changes the subject, never the pipeline: an object with a source projects its children on the source's
   value (without one, on the parent's subject: `Source::parent()`), a list on each item, `ResourceSchema` delegates
   to the `Shape` of the other class at the same revision. For a composite, the children are projected **between**
