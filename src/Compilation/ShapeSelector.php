@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Compilation;
 
+use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Configuration\MissingDefault;
 use Ark4ne\ApiRevisions\Conversion\ConversionChain;
 use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Definition\Direction;
@@ -15,6 +17,7 @@ use Ark4ne\ApiRevisions\Schema\Change;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\ListSchema;
 use Ark4ne\ApiRevisions\Schema\ObjectSchema;
+use Ark4ne\ApiRevisions\Support\Undefined;
 
 /**
  * The one pure function of the model (model.md §4.5): the head descriptors of a class and a revision give the
@@ -38,28 +41,41 @@ final class ShapeSelector
      * @param Direction $direction the direction of the declaration kind (model.md D27): down for a response, up for a
      *                             request; the chains plan that direction only
      * @param Converters|null $converters the registry the chains are planned against; the built-in one by default
+     * @param Configuration|null $configuration its `missingDefault` gives `null` to a `required()->since()` field
+     *                                          without default (model.md D47); the default configuration otherwise
      */
-    public static function at(array $head, Revision $revision, Direction $direction, ?Converters $converters = null): Shape
-    {
-        return self::shape($head, $revision, $direction, $converters ?? Converters::builtIn());
+    public static function at(
+        array $head,
+        Revision $revision,
+        Direction $direction,
+        ?Converters $converters = null,
+        ?Configuration $configuration = null,
+    ): Shape {
+        return self::shape(
+            $head,
+            $revision,
+            $direction,
+            $converters ?? Converters::builtIn(),
+            ($configuration ?? new Configuration())->missingDefault,
+        );
     }
 
     /**
      * @param array<string, Descriptor<mixed>> $head
      */
-    private static function shape(array $head, Revision $revision, Direction $direction, Converters $converters): Shape
+    private static function shape(array $head, Revision $revision, Direction $direction, Converters $converters, MissingDefault $missingDefault): Shape
     {
         $fields = [];
         $added = [];
         foreach ($head as $key => $descriptor) {
             $lifetime = $descriptor->lifetime();
             if ($lifetime->covers($revision)) {
-                $field = self::field($key, $descriptor, $revision, $direction, $converters);
+                $field = self::field($key, $descriptor, $revision, $direction, $converters, $missingDefault);
                 $fields[$key] = $field;
             } elseif ($direction === Direction::Up
                 && $lifetime->since !== null
                 && RevisionOrder::compare($lifetime->since, $revision) > 0) {
-                $added[$key] = self::field($key, $descriptor, $lifetime->since, $direction, $converters);
+                $added[$key] = self::field($key, $descriptor, $lifetime->since, $direction, $converters, $missingDefault);
             }
         }
         $names = array_map(static fn(FieldDefinition $field): string => $field->name, $fields);
@@ -77,8 +93,14 @@ final class ShapeSelector
     /**
      * @param Descriptor<mixed> $head
      */
-    private static function field(string $key, Descriptor $head, Revision $revision, Direction $direction, Converters $converters): FieldDefinition
-    {
+    private static function field(
+        string $key,
+        Descriptor $head,
+        Revision $revision,
+        Direction $direction,
+        Converters $converters,
+        MissingDefault $missingDefault,
+    ): FieldDefinition {
         $versions = [];
         $chain = ConversionChain::empty($direction);
         $steps = [];
@@ -110,9 +132,9 @@ final class ShapeSelector
         $items = null;
         $children = null;
         if ($current instanceof ListSchema) {
-            $items = self::field(self::ITEMS, $current->items(), $revision, $direction, $converters);
+            $items = self::field(self::ITEMS, $current->items(), $revision, $direction, $converters, $missingDefault);
         } elseif ($current instanceof ObjectSchema) {
-            $children = self::shape($current->children(), $revision, $direction, $converters);
+            $children = self::shape($current->children(), $revision, $direction, $converters, $missingDefault);
         }
 
         return new FieldDefinition(
@@ -124,7 +146,7 @@ final class ShapeSelector
             $head->isRequired(),
             $head->isSometimes(),
             $head->isConditional(),
-            $head->default(),
+            self::default($head, $missingDefault),
             $head->lifetime(),
             $schemaChange,
             $versions,
@@ -132,6 +154,25 @@ final class ShapeSelector
             $items,
             $children,
         );
+    }
+
+    /**
+     * The default of its `since()`; for a `required()->since()` field without one, `null` when the configuration says
+     * so (model.md D47), an `Undefined` otherwise.
+     *
+     * @param Descriptor<mixed> $head
+     */
+    private static function default(Descriptor $head, MissingDefault $missingDefault): mixed
+    {
+        $default = $head->default();
+        if (Undefined::is($default)
+            && $missingDefault === MissingDefault::Null
+            && $head->isRequired()
+            && $head->lifetime()->since !== null) {
+            return null;
+        }
+
+        return $default;
     }
 
     /**

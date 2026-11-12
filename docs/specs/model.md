@@ -486,7 +486,8 @@ Schema::string()->required()->since(ApiRevision::Atlas);                 // ✗ 
 ```
 
 `default:` uses a sentinel (`Support\Undefined`) to tell "no default" from "default null". The configuration option
-`missing_default: 'null'` turns the missing default into `null` for whoever accepts it; the default remains `'error'`.
+`missing_default: 'null'` turns the missing default of a `required()` field into `null` (D47); an optional field
+without default stays absent. The default remains `'error'`.
 
 ### 7.4 Store and Update
 
@@ -550,7 +551,7 @@ discovered classes, so a forgotten path is visible.
 | `conversion-missing` | a type pair neither automatic nor provided, in the direction of the declaration kind | all |
 | `conversion-lossy` | **warning**: a lossy-capable automatic conversion without closure (§5) | all |
 | `name-collision` | two fields under the same name in one revision | all |
-| `required-since-without-default` | `required()->since(R)` without `default:` | requests |
+| `required-since-without-default` | `required()->since(R)` without `default:` (not reported under `missing_default: 'null'`, D47) | requests |
 | `schema-override` | **warning**: a `DescribesSchema` keyword overrides a keyword of the field's type (`type`, `format`, `minimum`, `enum`…) with another value (D36) | all |
 | `native-condition` | a Laravel `MissingValue` / `MergeValue` in a declaration | all |
 | `eager-value` | a plain value instead of a descriptor (typed `any`, the same in every revision) | responses |
@@ -676,5 +677,6 @@ returns the declared type.
 | D44 | A float → int conversion (the automatic `FloatToInt`, `Cast::round()` / `floor()` / `ceil()`) of a float outside the int range once truncated or rounded (beyond ±2^63, `INF`, `NaN`) throws `ConversionException::outOfIntRange()`: a value error on the response side, a validation error on the request side, never a float in an `int` field nor a silent clamp (US 4.2) | **Decided** (2026-11-12) |
 | D45 | `Shape` and `FieldDefinition` live in `Compilation`, not in `Definition`: a field carries its conversion chain (`Conversion\ConversionChain`, unbound, so closure-free and serializable), and `Definition` sits left of `Conversion`. `Definition` keeps the type-level model (`TypeDefinition`, `Kind`, `Lifetime`, `Direction`); the tools reading a shape (export, check, lock, Laravel, external packages) all sit right of `Compilation` (US 3.4) | **Decided** (2026-11-12) |
 | D46 | When a `was(schema:)` is in force at `R`, its schema gives what describes the **value** at `R`: the type, `nullable()` and the rules; the head gives what describes the **presence**: `required()`, `sometimes()`, the conditions (`conditional`), the default and the lifetime, as a `was()` can carry no condition (§6.4). A `required()` or `sometimes()` on a `was()` schema is ignored (US 3.4) | **Decided** (2026-11-12) |
+| D47 | `missing_default: 'null'` gives `null` as default to the `required()->since(R)` fields declared without `default:` only (the fields `required-since-without-default` reports, which it then no longer reports); an optional field without default stays without one (absent for older clients). A non-nullable field receives `null` too: opting in accepts that the controller gets `null` from older clients (the nullable-only variant was rejected). Resolved by the `ShapeSelector` from the `Configuration`, recursively in objects and lists (US 3.5) | **Decided** (2026-11-12) |
 
 "Proposed" decisions are applied by default until decided.

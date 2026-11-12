@@ -186,18 +186,21 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
 Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Shapes`), **Memoization**.
 
 - `Compiler::compile(class-string<Revisioned>, Revision): Shape` instantiates the class on a `Probe`, calls its
-  declaring hook, flattens the groups, and calls `ShapeSelector::at($descriptors, $revision, $direction, $converters)`
-  (the direction of the class's declaration kind, the application's converters).
+  declaring hook, flattens the groups, and calls
+  `ShapeSelector::at($descriptors, $revision, $direction, $converters, $configuration)` (the direction of the class's
+  declaration kind, the application's converters, the configuration whose `missingDefault` the selector resolves).
 - `ShapeSelector` is **the** pure function of the model (`specs/model.md` §4.5). Nothing else decides visibility,
   names or conversion plans. Every story touching shapes tests it, and an **invariant test** compares, for every
-  fixture class and every revision, the projected keys with `Shape::names()`. `ShapeSelector::at($head, $revision, $direction, $converters)` plans the direction of the
+  fixture class and every revision, the projected keys with `Shape::names()`.
+  `ShapeSelector::at($head, $revision, $direction, $converters, $configuration)` plans the direction of the
   declaration kind only (`model.md` D27) and returns a `Shape`, public, immutable, closure-free and serializable:
   - `Shape`: `revision`, `direction`, `fields` (visible, by **head key**, head order), `added` (up only: the fields
     added after the revision, each defined at its `since`, where its default is written, D23), `collisions` (a name
     written by two visible fields, recorded, never thrown); `names()`, `field()`.
   - `FieldDefinition`: `headKey`, `revision`, `name` and `type` at the revision (a composite's items and visible
     children resolved there, the children under their name there), `nullable` (from the descriptor in force: the
-    head or a `was()` schema), `required`, `sometimes`, `conditional` (`Descriptor::isConditional()`), `default`,
+    head or a `was()` schema), `required`, `sometimes`, `conditional` (`Descriptor::isConditional()`), `default` (an `Undefined` without one;
+    `null` for a `required()->since()` field without one when `missingDefault` is `Null`, `model.md` D47),
     `lifetime` (from the head, D46), `schemaChange` (the `was()` whose schema is in force, the reference to its fresh
     descriptor: rules, closures), `versions` (a `FieldVersion` — revision, `was` index, name, type — per applicable
     `was()`, newest first: what the upgrader renames from), the unbound `ConversionChain`, `items` (a list: a

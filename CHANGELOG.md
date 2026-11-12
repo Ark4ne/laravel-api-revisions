@@ -80,6 +80,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   sometimes, conditional, default and lifetime at the revision, its `Compilation\FieldVersion` at every applicable
   `was()`, its unbound conversion chain in the direction of the shape, the items of a list, the children of an object as
   a nested `Shape`), every omitted `was()` argument inherited from the next newer shape. Closure-free and serializable.
+- Defaults: `Configuration::$missingDefault` (`Configuration\MissingDefault::Error`, the default, or `Null`); with
+  `Null`, a `required()->since(R)` field declared without `default:` gets `null` as default in the shapes
+  (`ShapeSelector::at(..., configuration:)`), an optional one keeps none.
 - History: `Descriptor::was(Revision, name:, schema:, down:, up:)` (`down:` / `up:` a closure, kept as a
   `ClosureConverter`, or a `Cast`) adds a `Schema\Change` to the field's
   `Schema\History` (its lifetime and its changes, newest first whatever the call order; `Descriptor::history()`);

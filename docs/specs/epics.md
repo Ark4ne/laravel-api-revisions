@@ -511,6 +511,18 @@ Tests: `test_undefined_and_null_defaults_are_distinct`, `test_missing_default_nu
 Note (from US 3.1): `Support\Undefined` (with `is()`) and `Descriptor::default()` already exist; this story adds their
 use in the shapes and `missingDefault`.
 
+**Done** (2026-11-12): `Configuration\MissingDefault` (`Error`, `Null`), `Configuration::$missingDefault` (`Error` by
+default), `ShapeSelector::at(..., ?Configuration $configuration)` resolving `FieldDefinition::$default`: the
+`since()` default, else `null` for a `required()->since()` field when `missingDefault` is `Null`, else an `Undefined`;
+recursively in objects and lists. A field `since(R)` has its default, at its `since`, in the `added` fields of every
+older up shape (US 3.4). Decision taken with the maintainer: **D47** (only `required()` fields receive `null`, nullable or not; an
+optional field stays absent; model.md §7.3 reworded). Coverage 99.88 %, Infection MSI 95 % on `ShapeSelector` and
+`Configuration` (the 3 equivalent mutants of US 3.4; the default resolution fully killed). Deviations: `missingDefault`
+is resolved by the selector, not by `Descriptor::configure()` (composites override it without calling the parent, and
+the default of a shape is the selector's decision); the default stays on every `FieldDefinition` of the field, visible
+or added. Follow-ups: US 5.1 passes the `Configuration`; US 8.1 maps `missing_default` to `MissingDefault`; US 9.2
+`required-since-without-default` reports nothing under `Null`.
+
 ---
 
 ### E4 — Conversions
@@ -1088,7 +1100,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 3.2 | Groups | S | 3.1 | M1 | done |
 | US 3.3 | `was()` | M | 3.1, 4.1 | M1 | done |
 | US 3.4 | `ShapeSelector` | L | 3.2, 3.3, 4.3 | M1 | done |
-| US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | todo |
+| US 3.5 | Defaults and `Undefined` | S | 3.4 | M1 | done |
 | US 4.1 | Converters and directions | M | 2.1 | M1 | done |
 | US 4.2 | Explicit casts and closures | S | 4.1 | M1 | done |
 | US 4.3 | Conversion chains | M | 4.2 | M1 | done |

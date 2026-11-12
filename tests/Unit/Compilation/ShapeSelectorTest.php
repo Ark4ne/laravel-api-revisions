@@ -9,6 +9,8 @@ use Ark4ne\ApiRevisions\Compilation\FieldDefinition;
 use Ark4ne\ApiRevisions\Compilation\FieldVersion;
 use Ark4ne\ApiRevisions\Compilation\Shape;
 use Ark4ne\ApiRevisions\Compilation\ShapeSelector;
+use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Configuration\MissingDefault;
 use Ark4ne\ApiRevisions\Conversion\ConversionStep;
 use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Conversion\StepKind;
@@ -458,6 +460,72 @@ final class ShapeSelectorTest extends TestCase
         self::assertSame([[StepKind::Registered, 0, Kind::String, Kind::Int]], self::steps($code->chain->steps));
 
         self::assertSame(ApiRevision::Spring26, $shape->added['old']->lifetime->until);
+    }
+
+    public function test_undefined_and_null_defaults_are_distinct(): void
+    {
+        $head = [
+            'nickname' => Schema::string()->required()->since(ApiRevision::Atlas, default: null),
+            'surname' => Schema::string()->required()->since(ApiRevision::Atlas),
+        ];
+
+        $added = ShapeSelector::at($head, ApiRevision::Spring26, Direction::Up)->added;
+
+        self::assertNull($added['nickname']->default);
+        self::assertTrue(Undefined::is($added['surname']->default));
+    }
+
+    public function test_a_field_since_a_revision_has_its_default_in_every_older_shape(): void
+    {
+        $head = ['priority' => Schema::int()->since(ApiRevision::Spring26, default: 0)];
+
+        foreach ([ApiRevision::Winter25, ApiRevision::Genesis] as $revision) {
+            $priority = ShapeSelector::at($head, $revision, Direction::Up)->added['priority'];
+
+            self::assertSame(0, $priority->default);
+            self::assertSame(ApiRevision::Spring26, $priority->revision);
+        }
+    }
+
+    public function test_missing_default_null_option_fills_null(): void
+    {
+        $head = [
+            'surname' => Schema::string()->required()->since(ApiRevision::Atlas),
+            'address' => Schema::object(['country' => Schema::string()->required()->since(ApiRevision::Atlas)]),
+            'codes' => Schema::list(Schema::object(['kind' => Schema::string()->required()->since(ApiRevision::Atlas)])),
+        ];
+        $configuration = new Configuration(missingDefault: MissingDefault::Null);
+
+        $shape = ShapeSelector::at($head, ApiRevision::Spring26, Direction::Up, configuration: $configuration);
+
+        self::assertNull($shape->added['surname']->default);
+        self::assertNull($shape->fields['address']->children?->added['country']->default);
+        self::assertNull($shape->fields['codes']->items?->children?->added['kind']->default);
+    }
+
+    public function test_missing_default_null_option_leaves_optional_fields_and_given_defaults(): void
+    {
+        $head = [
+            'nickname' => Schema::string()->since(ApiRevision::Atlas),
+            'priority' => Schema::int()->required()->since(ApiRevision::Atlas, default: 0),
+            'title' => Schema::string()->required(),
+        ];
+        $configuration = new Configuration(missingDefault: MissingDefault::Null);
+
+        $shape = ShapeSelector::at($head, ApiRevision::Spring26, Direction::Up, configuration: $configuration);
+
+        self::assertTrue(Undefined::is($shape->added['nickname']->default));
+        self::assertSame(0, $shape->added['priority']->default);
+        self::assertTrue(Undefined::is($shape->fields['title']->default));
+    }
+
+    public function test_missing_default_error_option_leaves_the_default_undefined(): void
+    {
+        $head = ['surname' => Schema::string()->required()->since(ApiRevision::Atlas)];
+
+        $shape = ShapeSelector::at($head, ApiRevision::Spring26, Direction::Up, configuration: new Configuration());
+
+        self::assertTrue(Undefined::is($shape->added['surname']->default));
     }
 
     public function test_a_field_added_at_the_revision_is_visible_not_added(): void
