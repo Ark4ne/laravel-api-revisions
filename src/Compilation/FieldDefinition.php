@@ -28,8 +28,12 @@ final readonly class FieldDefinition
      * @param int|null $schemaChange the index of the `was()` whose schema is in force at `$revision`, `null` for the head
      * @param list<FieldVersion> $versions its shape at every `was()` from the head down to `$revision`, newest first
      * @param ConversionChain $chain from the head to `$revision` (down), from `$revision` to the head (up)
-     * @param FieldDefinition|null $items the items of a list at `$revision`
-     * @param Shape|null $children the children of an object at `$revision`
+     * @param FieldDefinition|null $items the items of a head list at `$headAt`, whatever schema a `was()` puts in force
+     *                                  (model.md D52; that one is `$type`)
+     * @param Shape|null $children the children of a head object at `$headAt`, whatever schema a `was()` puts in force
+     * @param Revision|null $headAt where the head descriptor is still in force: `$revision`, or the revision after its
+     *                              newest `was(schema:)` at or after `$revision`; its items, children and nested
+     *                              resource are read there, the conversions of the `was()` start from there (D52)
      *
      * @internal built by `ShapeSelector`
      */
@@ -49,7 +53,12 @@ final readonly class FieldDefinition
         public ConversionChain $chain,
         public ?FieldDefinition $items = null,
         public ?Shape $children = null,
-    ) {}
+        ?Revision $headAt = null,
+    ) {
+        $this->headAt = $headAt ?? $revision;
+    }
+
+    public Revision $headAt;
 
     /**
      * Its shape up to the `was()` of `$revision` included, `null` when it has none there (nothing changes on the step

@@ -171,11 +171,12 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * Descriptors given to the projection without the field `$key` of the shape: not those it was compiled from.
+     * Descriptors given to the projection that are not those its shape was compiled from: the field `$key` missing, or
+     * a composite on one side only.
      */
     public static function missingDescriptor(string $class, string $key): self
     {
-        return new self("The descriptors projected for {$class} have no field '{$key}' of its shape.");
+        return new self("The descriptors projected for {$class} do not match the field '{$key}' of its shape.");
     }
 
     /**

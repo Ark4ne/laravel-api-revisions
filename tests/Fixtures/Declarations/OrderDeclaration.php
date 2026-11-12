@@ -25,9 +25,9 @@ final readonly class OrderDeclaration implements Revisioned
         return [DeclarationKind::Response];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
-        return (new self($probe))->toArray();
+        return (new self($subject))->toArray();
     }
 
     /**

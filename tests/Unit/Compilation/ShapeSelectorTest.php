@@ -324,7 +324,7 @@ final class ShapeSelectorTest extends TestCase
         self::assertTrue($codes->chain->isEmpty());
     }
 
-    public function test_the_schema_of_a_was_replaces_the_children(): void
+    public function test_the_schema_of_a_was_replaces_the_type_of_the_children_not_their_shape(): void
     {
         $head = [
             'address' => Schema::object([
@@ -335,8 +335,28 @@ final class ShapeSelectorTest extends TestCase
         $address = ShapeSelector::at($head, ApiRevision::Genesis, Direction::Down)->fields['address'];
 
         self::assertNotNull($address->children);
-        self::assertSame(['line'], $address->children->names());
+        self::assertSame(['street'], $address->children->names());
+        self::assertSame(ApiRevision::Spring26, $address->children->revision);
+        self::assertSame(ApiRevision::Spring26, $address->headAt);
         self::assertSame(['line'], array_keys($address->type->children));
+        self::assertSame(ApiRevision::Genesis, ShapeSelector::at($head, ApiRevision::Genesis, Direction::Down)->fields['address']->revision);
+        self::assertNull(ShapeSelector::at(['total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::list(Schema::int()))], ApiRevision::Genesis, Direction::Down)->fields['total']->items);
+    }
+
+    public function test_the_head_children_are_read_after_the_newest_schema_of_a_was(): void
+    {
+        $head = [
+            'address' => Schema::object([
+                'street' => Schema::string()->was(ApiRevision::Winter25, name: 'line1'),
+            ])
+                ->was(ApiRevision::Spring26, schema: Schema::object(['line' => Schema::string()]), down: static fn(array $a): array => $a)
+                ->was(ApiRevision::Genesis, schema: Schema::string(), down: static fn(): string => ''),
+        ];
+
+        $address = ShapeSelector::at($head, ApiRevision::Genesis, Direction::Down)->fields['address'];
+
+        self::assertSame(ApiRevision::Atlas, $address->headAt);
+        self::assertSame(['street'], $address->children?->names());
     }
 
     public function test_a_step_crosses_the_types_of_both_shapes_at_their_revisions(): void

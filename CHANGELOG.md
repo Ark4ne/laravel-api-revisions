@@ -81,7 +81,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `was()`, its unbound conversion chain in the direction of the shape, the items of a list, the children of an object as
   a nested `Shape`), every omitted `was()` argument inherited from the next newer shape. Closure-free and serializable.
 - Compilation: `Schema\Revisioned` (static `declarationKinds()` and the `@internal` bridge
-  `describeRevisioned(DeclarationKind, $probe)`), `Schema\DeclarationKind` (`Response`, `RequestBody`,
+  `describeRevisioned(DeclarationKind, $subject)`: the probe at compilation, the value of a nested resource at
+  projection, model.md D50), `Schema\DeclarationKind` (`Response`, `RequestBody`,
   `RequestQuery`; `direction()`), `Compilation\Probe` (throws `DefinitionException::subjectReadAtCompilation()` on any
   access), `Compilation\Compiler::compile($class, $kind, $revision)` (configured descriptors, the shape of the
   revision naming its class and kind: `Shape::$class`, `Shape::$kind`); `DefinitionException::notRevisioned()`,
@@ -95,6 +96,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   properties, `__get()` without `isset()`), `has()`, `peek()` (no side effect). `Exceptions\ValueException`
   (`refused()`, `unconvertible()`: class, field, revision, never the value);
   `DefinitionException::missingDescriptor()`.
+- Nested projection: objects project their head children on their value (or the parent's subject), lists each item
+  (an item whose condition fails is dropped, model.md D51), a `Schema::resource()` the shape of its class at the
+  same revision with its descriptors built on the value (`Projector` takes an optional `Shapes`); the composite's
+  `when()` / `down:` receive the projected children. `FieldDefinition::$children` / `$items` are those of the head
+  composite at `FieldDefinition::$headAt`, the revision after its newest `was(schema:)` (model.md D52).
 - Shapes repository: `Compilation\Shapes` (built with a `Compiler`, the default one by default), `for($class, $kind,
   $revision)` compiling each `(class, declaration kind, revision)` once, `flush()`.
 - Nested resources: `Schema::resource(class-string<Revisioned>, $source)` (`Schema\ResourceSchema`, `class()`;

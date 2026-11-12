@@ -146,8 +146,9 @@ types).
 - `DescribesSchema` (implemented by a rule object) and `Revisioned` (implemented by a declaring class) are the two
   contracts of this layer an application implements. `Revisioned` is static and per `DeclarationKind` (`Response`,
   `RequestBody`, `RequestQuery`; `direction()`: down for a response, up for a request): `declarationKinds()` and the
-  `@internal` bridge `describeRevisioned($kind, $probe)`, in which the class builds itself on the probe (`mixed`: the
-  `Probe` lives in `Compilation`); the Laravel traits implement it (`model.md` D48). `Descriptor::toType()` merges the keywords of every declared
+  `@internal` bridge `describeRevisioned($kind, $subject)`, in which the class builds itself on its subject: the probe
+  at compilation (`mixed`: the `Probe` lives in `Compilation`), the value of a nested resource at projection; called by
+  the compiler and the projector only; the Laravel traits implement it (`model.md` D48, D50). `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
   and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
 - `Descriptor::inGroup()` is a public `@internal` entry point: it sets the lifetime and default a group resolved
@@ -230,7 +231,9 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
     descriptor: rules, closures), `versions` (a `FieldVersion` — revision, `was` index, name, type — per applicable
     `was()`, newest first: what the upgrader renames from), the unbound `ConversionChain`, `items` (a list: a
     `FieldDefinition` under the key `*`) and `children` (an object: a nested `Shape`, with its own `added` and
-    `collisions`).
+    `collisions`): those of the **head** composite at `headAt` (the revision, or the one after its newest
+    `was(schema:)`), whatever schema a `was()` puts in force (that one is the `type`, for rules and export; `model.md`
+    D52). Rules and export read the `type`, never `children` / `items`.
   - Each `was()` at or after the revision applies, newest first, as a delta from the next newer shape. A chain step
     crosses the type of the newer shape at `X->next()` and of the older one at `X`; a composite's own chain only
     covers its own `was()`, and a `was()` without `schema:` converts only through an explicit converter: its children
@@ -271,10 +274,15 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   (`SourceReader::peek()`: an array offset or an initialized public property, never a magic getter nor an
   `ArrayAccess` call; the Laravel layer decorates it for Eloquent: attributes present, relations loaded).
 - **Nesting** changes the subject, never the pipeline: an object with a source projects its children on the source's
-  value (without one, on the parent's subject: `Source::parent()`), a list on each item, `ResourceSchema` delegates
-  to the `Shape` of the other class at the same revision. For a composite, the children are projected **between**
-  its `normalize()` (which only checks the container) and its own `when()` / down conversions, which therefore
-  receive the projected children; its `serialize()` receives them serialized (`model.md` D34).
+  value (without one, on the parent's subject: `Source::parent()`), a list on each item (an item without source is
+  the element itself; an item whose condition fails is dropped, `model.md` D51), `ResourceSchema` delegates to the
+  `Shape` of the other class at the same revision (`Shapes::for($class, Response, $field->headAt)`, a `Shapes` given to
+  the projector or one compiling with its configuration) and to its descriptors built on the value
+  (`describeRevisioned()`, D50). For a composite, the head's children are projected **between** its `normalize()`
+  (which only checks the container) and its own `when()` / down conversions, which therefore receive the projected,
+  serialized children; its `serialize()` receives them too (`model.md` D34, D52). An item is told by a flag, never by
+  its `*` key: a closure source gets the element as `$value`. Descriptors that do not match the shape (a composite on
+  one side only) throw `missingDescriptor()`.
 - **Value errors** go to a `ValueErrorHandler` (**Strategy**): `StrictValues` throws `ValueException`;
   `LenientValues` casts and hands the error to a reporter. Chosen from `Configuration::strictValues`.
 - A field whose condition fails is omitted. No `MissingValue` in the core.

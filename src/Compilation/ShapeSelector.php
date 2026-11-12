@@ -106,7 +106,12 @@ final class ShapeSelector
         $chain = ConversionChain::empty($direction);
         $steps = [];
         $newer = $head;
+        $headAt = null;
         foreach (self::walk($key, $head, $revision) as [$change, $index, $name, $descriptor]) {
+            if ($change->schema !== null) {
+                // the head is in force up to the revision after its newest `was(schema:)` (model.md D52)
+                $headAt ??= self::next($change->revision);
+            }
             $type = self::typeOf($descriptor, $change->revision);
             $versions[] = new FieldVersion($change->revision, $index, $name, $type);
             $steps[] = [self::typeOf($newer, self::next($change->revision)), $type, $index, $change];
@@ -132,10 +137,13 @@ final class ShapeSelector
         [$name, $current, $schemaChange] = self::inForce($key, $head, $revision);
         $items = null;
         $children = null;
-        if ($current instanceof ListSchema) {
-            $items = self::field(self::ITEMS, $current->items(), $revision, $direction, $converters, $missingDefault);
-        } elseif ($current instanceof ObjectSchema) {
-            $children = self::shape($current->children(), $revision, $direction, $converters, $missingDefault);
+        // the items and children of the head where it is still in force (model.md D52): what the projection reads and
+        // the conversions of a `was(schema:)` start from; the schema in force at `$revision` is the type (rules, export)
+        $headAt ??= $revision;
+        if ($head instanceof ListSchema) {
+            $items = self::field(self::ITEMS, $head->items(), $headAt, $direction, $converters, $missingDefault);
+        } elseif ($head instanceof ObjectSchema) {
+            $children = self::shape($head->children(), $headAt, $direction, $converters, $missingDefault);
         }
 
         return new FieldDefinition(
@@ -154,6 +162,7 @@ final class ShapeSelector
             $chain,
             $items,
             $children,
+            $headAt,
         );
     }
 

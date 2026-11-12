@@ -18,7 +18,7 @@ final class MisnestedDeclaration implements Revisioned
         return [DeclarationKind::RequestBody];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
         return [
             'title' => Schema::string(),

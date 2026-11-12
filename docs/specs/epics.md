@@ -781,6 +781,26 @@ Tests: `test_a_child_renamed_in_an_object_is_projected_under_its_old_name`,
 `test_an_object_without_source_reads_its_children_on_the_parent_subject`,
 `test_a_list_of_objects_is_projected_item_by_item`, `test_a_nested_resource_is_projected_at_the_same_revision`.
 
+**Done** (2026-11-12): `Projector` projects composites recursively between `normalize()` and `when()` (D34): an
+object its head children on its value (or the parent's subject), a list each element (an item, told by a flag, is the
+element: its closure source gets it as `$value`), a `ResourceSchema` the `Shapes::for($class, Response,
+$field->headAt)` of its class with descriptors from `describeRevisioned(Response, $value)`; `Projector` takes an
+optional `Shapes` (one compiling with its configuration and converters by default); descriptors with a composite on
+one side only throw `missingDescriptor()`. `ShapeSelector` gives the head's children and items at
+`FieldDefinition::$headAt`. Decisions taken with the maintainer: **D50** (the bridge builds the class on its subject:
+probe or nested value, amends D48), **D51** (a failing item is dropped, the list re-indexed), **D52** (the head
+children are read where the head is in force, after its newest `was(schema:)`; changes the US 3.4 test, renamed
+`test_the_schema_of_a_was_replaces_the_type_of_the_children_not_their_shape`). Fixtures `BoundDeclaration` (a closure
+reading `$this->resource`), `CountingDeclaration` also declaring a response; the bridge parameter of every fixture is
+`$subject`. Coverage 99.90 %, Infection MSI 98 % on `Projector` (one equivalent mutant: the `(array)` cast of a
+normalized list; the older equivalent ones of `ShapeSelector` remain). Review: D52 first read the head children at `R`, so a child changing between
+`R` and the `was()` gave keys the type did not have and up conversions a value they never had: corrected with the
+maintainer to `headAt`; D50 tested on an instance closure; an item's closure source gets the element; `*` no longer a
+sentinel; a scalar descriptor on a composite shape refused. Follow-ups: US 6.4 handles value errors in nested fields
+with the class of the nested resource; US 7.3 upgrades the head children from `headAt` after the up conversion of a
+`was(schema:)` (D52); US 8.5 implements the bridge on the resource's subject; rules and export (US 8.6, US 10.1) read
+`type`, never `children`.
+
 #### US 6.3 — Invariant test · S · depends US 6.2
 
 - For every fixture class and every revision: projected keys (recursively) = `Shape` names. Extended by US 10.1
@@ -1193,7 +1213,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | todo |
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | done |
-| US 6.2 | Nested projection | M | 6.1 | M2 | todo |
+| US 6.2 | Nested projection | M | 6.1 | M2 | done |
 | US 6.3 | Invariant test | S | 6.2 | M2 | todo |
 | US 6.4 | Value errors | S | 6.1 | M2 | todo |
 | US 7.1 | Upgrader | M | 5.2 | M2 | todo |

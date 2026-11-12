@@ -20,7 +20,7 @@ final class ThrowingDeclaration implements Revisioned
         return [DeclarationKind::Response];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
         $ran = static fn(): never => throw new LogicException('Ran at compilation.');
 

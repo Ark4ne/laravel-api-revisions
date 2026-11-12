@@ -18,10 +18,10 @@ final class EagerDeclaration implements Revisioned
         return [DeclarationKind::Response];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
         // @phpstan-ignore property.nonObject (the mistake this fixture stands for)
-        $title = $probe->title;
+        $title = $subject->title;
 
         return ['title' => Schema::string(static fn(): mixed => $title)];
     }

@@ -18,7 +18,7 @@ final class InvalidDeclaration implements Revisioned
         return [DeclarationKind::Response, DeclarationKind::RequestBody];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
         // @phpstan-ignore return.type (the mistake this fixture stands for)
         return $kind === DeclarationKind::Response ? ['title' => 'Draft'] : [Schema::string()];

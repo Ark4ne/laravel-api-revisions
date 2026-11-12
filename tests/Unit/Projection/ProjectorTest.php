@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Unit\Projection;
 
+use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Compilation\ShapeSelector;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Conversion\Converters;
@@ -20,6 +21,9 @@ use DateTimeImmutable;
 use LogicException;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Customer;
+use Test\Fixtures\Declarations\BoundDeclaration;
+use Test\Fixtures\Declarations\CountingDeclaration;
+use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\TestCase;
@@ -275,6 +279,178 @@ final class ProjectorTest extends TestCase
         self::assertSame(['meta' => ['ref' => 'A1']], self::project($head, ApiRevision::Atlas, ['ref' => 'A1']));
     }
 
+    public function test_a_child_renamed_in_an_object_is_projected_under_its_old_name(): void
+    {
+        $head = [
+            'address' => Schema::object([
+                'street' => Schema::string(),
+                'zip' => Schema::string('postcode')->was(ApiRevision::Winter25, name: 'postal_code'),
+            ], 'shippingAddress'),
+        ];
+        $subject = ['shippingAddress' => ['street' => 'Main street', 'postcode' => '75001']];
+
+        self::assertSame(['address' => ['street' => 'Main street', 'postal_code' => '75001']], self::project($head, ApiRevision::Genesis, $subject));
+        self::assertSame(['address' => ['street' => 'Main street', 'zip' => '75001']], self::project($head, ApiRevision::Atlas, $subject));
+    }
+
+    public function test_an_object_with_a_source_reads_its_children_on_the_source_value(): void
+    {
+        $head = ['address' => Schema::object(['street' => Schema::string()], 'shippingAddress')];
+
+        self::assertSame(
+            ['address' => ['street' => 'Main street']],
+            self::project($head, ApiRevision::Atlas, ['street' => 'Other', 'shippingAddress' => new ArrayObject(['street' => 'Main street'])]),
+        );
+    }
+
+    public function test_an_object_without_source_reads_its_children_on_the_parent_subject(): void
+    {
+        $head = ['meta' => Schema::object(['ref' => Schema::string(), 'title' => Schema::string()->whenHas()])];
+
+        self::assertSame(['meta' => ['ref' => 'A1']], self::project($head, ApiRevision::Atlas, ['ref' => 'A1']));
+    }
+
+    public function test_a_null_object_stays_null_and_an_empty_one_is_a_json_object(): void
+    {
+        $head = ['address' => Schema::object(['street' => Schema::string()->whenHas()], 'shippingAddress')->nullable()];
+
+        self::assertSame(['address' => null], self::project($head, ApiRevision::Atlas, ['shippingAddress' => null]));
+        self::assertSame('{"address":{}}', json_encode(self::project($head, ApiRevision::Atlas, ['shippingAddress' => []])));
+    }
+
+    public function test_a_list_of_objects_is_projected_item_by_item(): void
+    {
+        $head = [
+            'lines' => Schema::list(Schema::object([
+                'sku' => Schema::string(),
+                'quantity' => Schema::int()->was(ApiRevision::Winter25, name: 'qty', schema: Schema::string()),
+            ])),
+        ];
+        $subject = ['lines' => [['sku' => 'A1', 'quantity' => '2'], new ArrayObject(['sku' => 'B2', 'quantity' => 3])]];
+
+        self::assertSame(['lines' => [['sku' => 'A1', 'qty' => '2'], ['sku' => 'B2', 'qty' => '3']]], self::project($head, ApiRevision::Genesis, $subject));
+        self::assertSame(['lines' => [['sku' => 'A1', 'quantity' => 2], ['sku' => 'B2', 'quantity' => 3]]], self::project($head, ApiRevision::Atlas, $subject));
+    }
+
+    public function test_the_items_of_a_list_follow_their_own_history(): void
+    {
+        $head = ['tags' => Schema::list(Schema::int()->was(ApiRevision::Winter25, schema: Schema::string()), 'tagIds')];
+
+        self::assertSame(['tags' => ['1', '2']], self::project($head, ApiRevision::Genesis, ['tagIds' => (static fn() => yield from [1, 2])()]));
+        self::assertSame(['tags' => [1, 2]], self::project($head, ApiRevision::Atlas, ['tagIds' => ['a' => 1, 'b' => 2]]));
+    }
+
+    public function test_an_item_whose_condition_fails_is_dropped_from_the_list(): void
+    {
+        $head = [
+            'tags' => Schema::list(Schema::string()->when(static fn(string $tag): bool => $tag !== '')),
+            'names' => Schema::list(Schema::string('name')->whenHas('name')),
+            'codes' => Schema::list(Schema::string()->whenHas()),
+            'firsts' => Schema::list(Schema::rule([])->whenHas()->whenHas('first')),
+        ];
+        $subject = [
+            'tags' => ['a', '', 'b'], 'names' => [['name' => 'Ada'], [], ['name' => 'Grace']], 'codes' => ['x', 'y'],
+            'firsts' => [['first' => 'Ada'], ['last' => 'Hopper']],
+        ];
+
+        self::assertSame(
+            ['tags' => ['a', 'b'], 'names' => ['Ada', 'Grace'], 'codes' => ['x', 'y'], 'firsts' => [['first' => 'Ada']]],
+            self::project($head, ApiRevision::Atlas, $subject),
+        );
+    }
+
+    public function test_a_composite_condition_and_conversion_receive_its_projected_children(): void
+    {
+        $received = [];
+        $head = [
+            'address' => Schema::object(['street' => Schema::string('road')])
+                ->when(static function (mixed $children) use (&$received): bool {
+                    $received[] = $children;
+
+                    return true;
+                })
+                ->was(ApiRevision::Winter25, schema: Schema::string(), down: static function (array $children) use (&$received): string {
+                    $received[] = $children;
+
+                    return count($children) . ' line';
+                }),
+        ];
+
+        self::assertSame(['address' => '1 line'], self::project($head, ApiRevision::Genesis, ['road' => 'Main street']));
+        self::assertSame([['street' => 'Main street'], ['street' => 'Main street']], $received);
+    }
+
+    public function test_a_nested_resource_is_projected_at_the_same_revision(): void
+    {
+        $head = ['customer' => Schema::resource(CustomerDeclaration::class, 'buyer')];
+        $subject = ['buyer' => ['name' => 'Ada Lovelace', 'orders' => []]];
+
+        self::assertSame(['customer' => ['full_name' => 'Ada Lovelace']], self::project($head, ApiRevision::Winter25, $subject));
+        self::assertSame(['customer' => ['name' => 'Ada Lovelace', 'orders' => []]], self::project($head, ApiRevision::Spring26, $subject));
+    }
+
+    public function test_a_resource_cycle_is_projected_as_deep_as_the_data(): void
+    {
+        $order = [
+            'title' => 'Book', 'status' => OrderStatus::Paid, 'total' => 1250, 'placed_at' => null, 'delivery' => null,
+            'customer' => null, 'tags' => ['gift'], 'notes' => null,
+        ];
+        $head = ['customer' => Schema::resource(CustomerDeclaration::class)];
+
+        self::assertSame(['customer' => ['name' => 'Ada', 'orders' => [[
+            'title' => 'Book', 'status' => 'paid', 'total' => 1250, 'placed_at' => null, 'delivery' => ['day' => null],
+            'customer' => null, 'tags' => ['gift'], 'notes' => null,
+        ]]]], self::project($head, ApiRevision::Atlas, ['customer' => ['name' => 'Ada', 'orders' => [$order]]]));
+    }
+
+    public function test_a_nested_resource_is_built_on_its_own_subject(): void
+    {
+        $head = ['owner' => Schema::resource(BoundDeclaration::class, static fn(): array => ['label' => 'ada'])];
+
+        self::assertSame(['owner' => ['label' => 'ADA']], self::project($head, ApiRevision::Atlas, []));
+    }
+
+    public function test_a_closure_source_of_an_item_receives_the_element(): void
+    {
+        $received = [];
+        $head = [
+            'names' => Schema::list(Schema::string(static function (mixed $value, mixed $subject) use (&$received): string {
+                $received[] = [$value, $subject];
+
+                return 'x';
+            })),
+        ];
+
+        self::assertSame(['names' => ['x']], self::project($head, ApiRevision::Atlas, ['names' => [['first' => 'Ada']]]));
+        self::assertSame([[['first' => 'Ada'], ['first' => 'Ada']]], $received);
+    }
+
+    public function test_the_conversion_of_a_composite_starts_from_the_head_shape_after_its_was(): void
+    {
+        $received = [];
+        $head = [
+            'address' => Schema::object([
+                'line1' => Schema::string('street')->was(ApiRevision::Genesis, name: 'line'),
+            ])->was(ApiRevision::Winter25, schema: Schema::object(['first_line' => Schema::string()]), down: static function (array $children) use (&$received): array {
+                $received[] = $children;
+
+                return ['first_line' => $children['line1'] ?? null];
+            }),
+        ];
+
+        self::assertSame(['address' => ['first_line' => 'Main street']], self::project($head, ApiRevision::Genesis, ['street' => 'Main street']));
+        self::assertSame([['line1' => 'Main street']], $received);
+    }
+
+    public function test_a_scalar_descriptor_on_a_composite_shape_is_refused(): void
+    {
+        $shape = self::shape(['address' => Schema::object([])], ApiRevision::Atlas);
+
+        $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'address'));
+
+        (new Projector())->project($shape, ['address' => Schema::string()], ['address' => 'x']);
+    }
+
     public function test_descriptors_without_the_was_schema_of_the_shape_are_refused(): void
     {
         $shape = self::shape(['total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string())], ApiRevision::Genesis);
@@ -282,6 +458,38 @@ final class ProjectorTest extends TestCase
         $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'total'));
 
         (new Projector())->project($shape, ['total' => Schema::int()->was(ApiRevision::Winter25, name: 'amount')], ['total' => 1250]);
+    }
+
+    public function test_a_composite_descriptor_on_a_scalar_shape_is_refused(): void
+    {
+        $shape = self::shape(['address' => Schema::string(), 'tags' => Schema::string()], ApiRevision::Atlas);
+
+        $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'address'));
+
+        (new Projector())->project($shape, ['address' => Schema::object([]), 'tags' => Schema::list(Schema::string())], ['address' => []]);
+    }
+
+    public function test_a_list_descriptor_on_a_scalar_shape_is_refused(): void
+    {
+        $shape = self::shape(['tags' => Schema::string()], ApiRevision::Atlas);
+
+        $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'tags'));
+
+        (new Projector())->project($shape, ['tags' => Schema::list(Schema::string())], ['tags' => []]);
+    }
+
+    public function test_nested_resources_take_their_shapes_from_the_repository_given(): void
+    {
+        CountingDeclaration::$described = 0;
+        CountingDeclaration::$fail = false;
+        $shapes = new Shapes();
+        $shapes->for(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas);
+        $head = ['item' => Schema::resource(CountingDeclaration::class)];
+
+        $projected = (new Projector(shapes: $shapes))->project(self::shape($head, ApiRevision::Atlas), $head, ['item' => ['title' => 'Book']]);
+
+        self::assertSame(['item' => ['title' => 'Book']], $projected);
+        self::assertSame(2, CountingDeclaration::$described);
     }
 
     public function test_descriptors_missing_a_field_of_the_shape_are_refused(): void

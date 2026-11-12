@@ -21,7 +21,7 @@ final class StoreOrderDeclaration implements Revisioned
         return [DeclarationKind::RequestBody, DeclarationKind::RequestQuery];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
         return match ($kind) {
             DeclarationKind::RequestQuery => [

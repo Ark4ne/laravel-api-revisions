@@ -21,10 +21,10 @@ final class CountingDeclaration implements Revisioned
 
     public static function declarationKinds(): array
     {
-        return [DeclarationKind::RequestBody, DeclarationKind::RequestQuery];
+        return [DeclarationKind::RequestBody, DeclarationKind::RequestQuery, DeclarationKind::Response];
     }
 
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array
     {
         ++self::$described;
         if (self::$fail) {

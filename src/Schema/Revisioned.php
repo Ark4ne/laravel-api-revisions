@@ -19,16 +19,16 @@ interface Revisioned
     public static function declarationKinds(): array;
 
     /**
-     * The head descriptors of the declaration `$kind`, by key (groups spread), the class built on `$probe`: a subject
-     * that throws on any access, so a declaration reading its subject eagerly fails at compilation. Called by the
-     * compiler only.
+     * The head descriptors of the declaration `$kind`, by key (groups spread), the class built on `$subject` (model.md
+     * D50): the compiler gives a `Compilation\Probe`, a subject that throws on any access, so a declaration reading its
+     * subject eagerly fails at compilation; the projector gives the value of a nested resource (`Schema::resource()`),
+     * so the closures of the declaration reach it. Called by the compiler and the projector only.
      *
-     * @param mixed $probe the `Compilation\Probe` standing for the subject (`mixed`: `Schema` sits left of
-     *                     `Compilation`)
+     * @param mixed $subject the probe at compilation, the subject of the nested resource at projection
      *
      * @return array<string, Descriptor<mixed>>
      *
      * @internal
      */
-    public static function describeRevisioned(DeclarationKind $kind, mixed $probe): array;
+    public static function describeRevisioned(DeclarationKind $kind, mixed $subject): array;
 }
