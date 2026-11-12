@@ -993,12 +993,33 @@ Goal: a Laravel application resolves the revision of each request, renders resou
 Tests: `test_an_enum_not_implementing_revision_is_refused`, `test_the_scope_is_reset_between_two_requests`,
 `test_outside_a_request_current_is_the_configured_fixed_default`.
 
+**Done** (2026-11-12): `config/revisions.php` (documented key by key, `config` in the PHPStan paths), validated by
+`Laravel\RevisionsConfig::fromArray()` into the core `Configuration` (`MissingDefault` mapped, formats non-empty, the
+enum a backed enum implementing `Revision`, `default` resolved to a revision or kept as a class) with
+`Exceptions\ConfigurationException`; `RevisionsServiceProvider` merges and publishes the file and binds `RevisionsConfig`,
+`Configuration`, `Shapes` (singletons), `RevisionScope` and `ValueErrorHandler` (`scoped`), and sets the scope provider
+to the container. Follow-ups of earlier stories done here: `Shapes` one instance built from the configuration (US 5.2),
+`LenientValues` reporting once per class and field (US 6.4), `missing_default` mapped (US 3.5). Deviations:
+`strict_values` defaults to `null` (follows `app.debug`) instead of `env('APP_DEBUG')`, which Larastan refuses outside
+an application's config (model.md §8 updated); the resolvers are kept as an array, checked by US 8.2 (their classes and
+interface do not exist yet), so `resolvers` defaults to `[]` until then; `Shapes` is not flushed with Octane: it
+depends on the code only, and custom types are registered at boot, before any compilation; the config is read on first
+use, so an application without `enum` boots, and under Octane a singleton first built during a request lives in that
+request's sandbox: an Octane application adds `RevisionsConfig` and `Shapes` to `octane.warm` (documented, README in
+US 11.1). Review: the scope provider read the application of the boot, so under Octane the sandbox's scope was never
+seen (fixed: it reads `Container::getInstance()` at each call and is set in `register()`;
+`test_the_scope_is_the_one_of_the_current_container_as_under_octane`); `response_header` must be an HTTP token; the
+keywords `latest` / `oldest` win over a case backed by them. Follow-up: the resolver checks moved to US 8.2 (bullet
+and test added). Infection 100 % on the new classes.
+
 #### US 8.2 — Resolvers · M · depends US 8.1
 
 - `RevisionResolver` contract; `HeaderResolver`, `QueryResolver`, `PathResolver`; chain built from the configuration,
   first non-null wins; `default`: `latest`, `oldest`, a backed value, or a resolver class.
+- Follow-up of US 8.1: `RevisionsConfig` checks that every class of `resolvers` and a class `default` exist and
+  implement `RevisionResolver` (`ConfigurationException`); the default `resolvers` becomes the header resolver.
 
-Tests: `test_the_first_resolver_returning_a_revision_wins`, `test_the_default_applies_when_no_resolver_answers`,
+Tests: `test_a_resolver_not_implementing_the_contract_is_refused`, `test_the_first_resolver_returning_a_revision_wins`, `test_the_default_applies_when_no_resolver_answers`,
 `test_a_custom_resolver_pins_the_revision_of_an_account`.
 
 #### US 8.3 — `ResolveRevision` middleware · M · depends US 8.2
@@ -1341,7 +1362,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 7.1 | Upgrader | M | 5.2 | M2 | done |
 | US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | done |
 | US 7.3 | Nested upgrade | M | 7.1 | M2 | done |
-| US 8.1 | Service provider and configuration | S | 1.3 | M2 | todo |
+| US 8.1 | Service provider and configuration | S | 1.3 | M2 | done |
 | US 8.2 | Resolvers | M | 8.1 | M2 | todo |
 | US 8.3 | `ResolveRevision` middleware | M | 8.2 | M2 | todo |
 | US 8.4 | Path mode | M | 8.3 | M2 | todo |

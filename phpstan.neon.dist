@@ -19,6 +19,7 @@ parameters:
         - src
         - tests
         - bin
+        - config
     tmpDir: build/phpstan
 
     # Facades, global helpers and the container belong to src/Laravel/ (docs/architecture.md §2).

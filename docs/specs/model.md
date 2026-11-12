@@ -509,7 +509,7 @@ return [
     'default' => 'latest',            // latest | oldest | a backed value | a RevisionResolver class
     'response_header' => 'Api-Revision',
     'missing_default' => 'error',     // error | null (§7.3)
-    'strict_values' => env('APP_DEBUG', false), // value errors throw (true) or are cast and reported (false) (§6.3)
+    'strict_values' => null,          // value errors throw (true) or are cast and reported (false); null: app.debug (§6.3)
     'date_format' => 'Y-m-d',         // Schema::date() without format() (D29)
     'date_time_format' => 'Y-m-d\TH:i:sP', // Schema::dateTime() without format(), RFC 3339 (D29)
     'discovery' => [

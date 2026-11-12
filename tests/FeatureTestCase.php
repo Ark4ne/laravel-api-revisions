@@ -20,7 +20,7 @@ abstract class FeatureTestCase extends BaseTestCase
 {
     /**
      * Like the Unit tests: no memoized value and no revision scope provider survive a test (the provider of an
-     * application captures its container).
+     * application reads the current container, which Testbench replaces).
      */
     protected function tearDown(): void
     {

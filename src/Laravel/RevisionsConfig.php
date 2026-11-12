@@ -1,0 +1,181 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ark4ne\ApiRevisions\Laravel;
+
+use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Configuration\MissingDefault;
+use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
+use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
+
+/**
+ * `config/revisions.php` validated (model.md §8): the revision enum, the options of the Laravel layer and the core
+ * `Configuration` built from it. Immutable.
+ */
+final readonly class RevisionsConfig
+{
+    /**
+     * @param class-string<Revision> $enum
+     * @param array<array-key, mixed> $resolvers checked by the resolvers (US 8.2)
+     * @param Revision|string $default a fixed revision (`latest`, `oldest` and backed values resolved), or a resolver class
+     * @param non-empty-string $responseHeader
+     * @param list<string> $discoveryPaths
+     * @param list<string> $discoveryClasses
+     * @param non-empty-string $cachePath
+     * @param non-empty-string $lockPath
+     */
+    private function __construct(
+        public string $enum,
+        public array $resolvers,
+        public Revision|string $default,
+        public string $responseHeader,
+        public Configuration $configuration,
+        public array $discoveryPaths,
+        public array $discoveryClasses,
+        public string $cachePath,
+        public string $lockPath,
+    ) {}
+
+    /**
+     * The configuration, every key checked: a missing key takes the default of `config/revisions.php` (relative paths,
+     * no discovery path), but `enum`; a wrong one throws `ConfigurationException`.
+     *
+     * @param array<array-key, mixed> $config the `revisions` configuration
+     * @param bool $debug `app.debug`: the value errors are strict when `strict_values` is `null`
+     */
+    public static function fromArray(array $config, bool $debug = false): self
+    {
+        $enum = self::enum($config['enum'] ?? null);
+        $strict = $config['strict_values'] ?? null;
+        if ($strict !== null && !is_bool($strict)) {
+            throw ConfigurationException::invalidValue('strict_values', 'a bool or null', get_debug_type($strict));
+        }
+        $missing = $config['missing_default'] ?? 'error';
+        $missingDefault = is_string($missing) ? MissingDefault::tryFrom($missing) : null;
+        if ($missingDefault === null) {
+            throw ConfigurationException::invalidValue('missing_default', "'error' or 'null'", get_debug_type($missing));
+        }
+        $resolvers = $config['resolvers'] ?? [];
+        if (!is_array($resolvers)) {
+            throw ConfigurationException::invalidValue('resolvers', 'an array', get_debug_type($resolvers));
+        }
+        $discovery = $config['discovery'] ?? [];
+        if (!is_array($discovery)) {
+            throw ConfigurationException::invalidValue('discovery', 'an array', get_debug_type($discovery));
+        }
+
+        return new self(
+            $enum,
+            $resolvers,
+            self::default($enum, $config['default'] ?? 'latest'),
+            self::header(self::string($config, 'response_header', 'Api-Revision')),
+            new Configuration(
+                self::string($config, 'date_format', 'Y-m-d'),
+                self::string($config, 'date_time_format', 'Y-m-d\TH:i:sP'),
+                $missingDefault,
+                $strict ?? $debug,
+            ),
+            self::strings($discovery, 'paths'),
+            self::strings($discovery, 'classes'),
+            self::string($config, 'cache_path', 'bootstrap/cache/revisions.php'),
+            self::string($config, 'lock_path', 'revisions.lock'),
+        );
+    }
+
+    /**
+     * The revision outside a request: the default when it is a fixed revision, `null` (the head) for a resolver
+     * class (model.md D31).
+     */
+    public function fixedDefault(): ?Revision
+    {
+        return $this->default instanceof Revision ? $this->default : null;
+    }
+
+    /**
+     * @return class-string<Revision>
+     */
+    private static function enum(mixed $enum): string
+    {
+        if (!is_string($enum) || !enum_exists($enum) || !is_subclass_of($enum, Revision::class)) {
+            throw ConfigurationException::notARevisionEnum(is_string($enum) ? $enum : get_debug_type($enum));
+        }
+
+        return $enum;
+    }
+
+    /**
+     * `latest`, `oldest` or a backed value as its revision (the keywords first: a case backed by `'latest'` is reached
+     * by the keyword); any other existing class as it is (a resolver, US 8.2).
+     *
+     * @param class-string<Revision> $enum
+     */
+    private static function default(string $enum, mixed $default): Revision|string
+    {
+        if ($default === 'latest') {
+            return RevisionOrder::latest($enum);
+        }
+        if ($default === 'oldest') {
+            return RevisionOrder::oldest($enum);
+        }
+        if (is_int($default) || is_string($default)) {
+            foreach ($enum::cases() as $case) {
+                if ((string) $case->value === (string) $default) {
+                    return $case;
+                }
+            }
+            if (is_string($default) && class_exists($default)) {
+                return $default;
+            }
+        }
+
+        throw ConfigurationException::invalidValue('default', "'latest', 'oldest', a backed value of {$enum} or a resolver class", get_debug_type($default));
+    }
+
+    /**
+     * @param array<array-key, mixed> $config
+     * @param non-empty-string $default
+     *
+     * @return non-empty-string
+     */
+    private static function string(array $config, string $key, string $default): string
+    {
+        $value = array_key_exists($key, $config) ? $config[$key] : $default;
+        if (!is_string($value) || $value === '') {
+            throw ConfigurationException::invalidValue($key, 'a non-empty string', get_debug_type($value));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param non-empty-string $name
+     *
+     * @return non-empty-string
+     */
+    private static function header(string $name): string
+    {
+        if (preg_match("/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/D", $name) !== 1) {
+            throw ConfigurationException::invalidValue('response_header', 'a header name (an HTTP token)', 'string');
+        }
+
+        return $name;
+    }
+
+    /**
+     * @param array<array-key, mixed> $discovery
+     *
+     * @return list<string>
+     */
+    private static function strings(array $discovery, string $key): array
+    {
+        $values = $discovery[$key] ?? [];
+        if (!is_array($values) || !array_is_list($values) || array_filter($values, is_string(...)) !== $values) {
+            throw ConfigurationException::invalidValue("discovery.{$key}", 'a list of strings', get_debug_type($values));
+        }
+
+        /** @var list<string> */
+        return $values;
+    }
+}

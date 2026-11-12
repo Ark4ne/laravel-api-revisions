@@ -336,7 +336,16 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
 ## 10. Laravel bridge
 
 - `Laravel\RevisionsServiceProvider`: configuration, `RevisionScope` provider, `scoped` binding, commands, route
-  macro, resolvers, middleware alias.
+  macro, resolvers, middleware alias. Since US 8.1: `config/revisions.php` merged and publishable (tag
+  `revisions-config`); `Laravel\RevisionsConfig::fromArray($config, $debug)` (`final readonly`) validates every key
+  lazily, on first use (`ConfigurationException`), and builds the core `Configuration` (`strict_values: null` follows
+  `app.debug`); singletons `RevisionsConfig`, `Configuration` and `Shapes` (compiled with it: shapes depend on the code
+  only, so they survive Octane requests); `scoped` bindings `RevisionScope` (base: the configured fixed default, D31)
+  and `ValueErrorHandler` (`StrictValues`, or `LenientValues` reporting to the `ExceptionHandler` once per class and
+  field and request); `register()` points `RevisionScope::provider()` at the container of each call
+  (`Container::getInstance()`: Octane runs each request in a clone of the application). Under Octane, add
+  `RevisionsConfig::class` and `Shapes::class` to `octane.warm`: built lazily, a singleton first made during a request
+  would live in that request's sandbox only.
 - `Laravel\Http\Resolvers\*` — **Chain of Responsibility** of `RevisionResolver`s built from the configuration.
 - `Laravel\Http\ResolveRevision` — middleware (400 on unknown value, response headers, `Vary`, Deprecation / Sunset).
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
@@ -385,6 +394,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 
 `Exceptions\RevisionsException` (marker interface) ← `DefinitionException` (`LogicException`: programming errors in
 declarations), `ConversionException`, `ValueException` (a subject value the type refuses, strict mode),
+`ConfigurationException` (`InvalidArgumentException`: an invalid `config/revisions.php`),
 `UnknownRevisionException` (unknown client value), `LockException`. Named
 constructors only (`DefinitionException::mixedRevisions()`); messages name the class, the field and the revision.
 
