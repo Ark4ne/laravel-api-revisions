@@ -188,6 +188,21 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A name a request declares both in its body and in its query parameters at one revision: Laravel validates them
+     * merged, the body hiding the query (model.md D63).
+     */
+    public static function declaredTwice(string $class, string $name, BackedEnum $revision): self
+    {
+        return new self(sprintf(
+            "%s declares '%s' both in its body and in its query parameters at %s::%s: Laravel validates them merged.",
+            $class,
+            $name,
+            $revision::class,
+            $revision->name,
+        ));
+    }
+
+    /**
      * Validation rules asked of a response shape: only a request shape (up) is validated (model.md §7.1).
      */
     public static function rulesOfAResponse(string $class): self

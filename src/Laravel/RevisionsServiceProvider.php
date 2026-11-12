@@ -23,6 +23,7 @@ use Ark4ne\ApiRevisions\Projection\StrictValues;
 use Ark4ne\ApiRevisions\Projection\ValueErrorHandler;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
+use Ark4ne\ApiRevisions\Upgrade\Upgrader;
 use Closure;
 use Illuminate\Container\Container as ContainerInstance;
 use Illuminate\Contracts\Config\Repository;
@@ -39,8 +40,8 @@ use Illuminate\Support\ServiceProvider;
  * current container), its base the configured fixed default (D31); the `ValueErrorHandler` from `strict_values`, a
  * lenient one reporting each error once per class and field and request; the `ResolverChain` of `resolvers` and
  * `default` (`scoped`: a resolver may read request services); the `Projector` of `RevisionedResource` (`scoped`, with
- * the `EloquentSourceReader`, the `Shapes` and the `ValueErrorHandler`); the `RuleCompiler` of the request shapes
- * (one per application); in the console, the commands `revision:cache` /
+ * the `EloquentSourceReader`, the `Shapes` and the `ValueErrorHandler`); the `RuleCompiler` and the `Upgrader` of the
+ * request shapes (one per application, `RevisionedRequest`); in the console, the commands `revision:cache` /
  * `revision:clear`, run by `optimize` / `optimize:clear`; the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
  * macro and the other commands are added by their stories (US 8.4 onwards).
  */
@@ -93,6 +94,7 @@ final class RevisionsServiceProvider extends ServiceProvider
             });
         });
         $this->app->singleton(RuleCompiler::class, static fn(Container $app): RuleCompiler => new RuleCompiler($app->make(Shapes::class)));
+        $this->app->singleton(Upgrader::class, static fn(Container $app): Upgrader => new Upgrader($app->make(Configuration::class), shapes: $app->make(Shapes::class)));
         $this->app->scoped(Projector::class, static fn(Container $app): Projector => new Projector(
             $app->make(Configuration::class),
             reader: new EloquentSourceReader(),

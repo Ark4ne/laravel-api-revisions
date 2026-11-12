@@ -13,7 +13,9 @@ use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Conversion\ExplicitConverter;
 use Ark4ne\ApiRevisions\Definition\Direction;
+use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Exceptions\InvalidInputException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
@@ -55,8 +57,9 @@ final readonly class Upgrader
     private Shapes $shapes;
 
     /**
-     * The input of `$from->revision` in the shape of the head. A value its type at `X` refuses throws a
-     * `ValueException`, a failed conversion its `ConversionException`.
+     * The input of `$from->revision` in the shape of the head. A value its type at `X` refuses, or a conversion
+     * rejects, throws an `InvalidInputException` on the client's key (model.md D63); a conversion missing its
+     * `ConversionException`.
      *
      * @param Shape $from a request shape (direction up)
      * @param array<string, Descriptor<mixed>> $descriptors the head descriptors of the instance, by head key
@@ -70,7 +73,7 @@ final readonly class Upgrader
         if ($from->direction !== Direction::Up) {
             throw DefinitionException::notAnUpShape($class);
         }
-        $run = new UpgradeRun($this->converters ?? TypeRegistry::converters(), $from->kind ?? DeclarationKind::RequestBody);
+        $run = new UpgradeRun($this->converters ?? TypeRegistry::converters(), $from->kind ?? DeclarationKind::RequestBody, $from->revision);
         /** @var array<array-key, mixed> $touched the head keys whose value was converted or defaulted: `true`, or the marks of its children or items */
         $touched = [];
         $revision = $from->revision;
@@ -105,6 +108,7 @@ final readonly class Upgrader
         array &$touched,
         string $class,
         UpgradeRun $run,
+        ?string $prefix = '',
     ): array {
         // the fields visible at the revision of the shape, and those added later, each compiled at its `since`
         $fields = $shape->fields + $shape->added;
@@ -128,7 +132,7 @@ final readonly class Upgrader
             if (!$field->lifetime->covers($revision) || !$field->lifetime->covers($next) || !array_key_exists($old, $snapshot)) {
                 continue;
             }
-            [$value, $mark] = $this->value($field, $descriptors[$key], $snapshot[$old], $snapshot, $revision, $next, $touched[$key] ?? null, $class, $run);
+            [$value, $mark] = $this->value($field, $descriptors[$key], $snapshot[$old], $snapshot, $revision, $next, $touched[$key] ?? null, $class, $run, $prefix === null || !$field->lifetime->covers($run->client) ? null : $prefix . $field->nameAt($run->client));
             if ($mark === null) {
                 unset($touched[$key]);
             } else {
@@ -179,6 +183,9 @@ final readonly class Upgrader
      * @param Descriptor<mixed> $descriptor the head descriptor
      * @param array<array-key, mixed> $snapshot the snapshot of the level
      * @param mixed $mark what was converted in it before this step: `true`, the marks of its children or items, or `null`
+     * @param string|null $path the client's key of the value: its names at the client's revision, dotted; `null` for a
+     *                          value the client never sent (a default, a field added later): its rejection is a
+     *                          declaration error (model.md D63)
      *
      * @return array{mixed, mixed} the value, and its mark
      */
@@ -192,6 +199,7 @@ final readonly class Upgrader
         mixed $mark,
         string $class,
         UpgradeRun $run,
+        ?string $path,
     ): array {
         if ($value === null) {
             return [null, $mark];
@@ -199,7 +207,7 @@ final readonly class Upgrader
         $version = $field->versionAt($revision);
         if ($version !== null && $field->chain->stepOf($version->change) !== null) {
             // a composite converted is serialized whole: its children may be typed (model.md D55)
-            return [$this->convert($field, $version, $descriptor, $value, $snapshot, $run->converters, $class), true];
+            return [$this->convert($field, $version, $descriptor, $value, $snapshot, $run->converters, $class, $path), true];
         }
         if (!is_array($value) || RevisionOrder::compare($field->headAt, $revision) > 0) {
             // before `headAt`, the value is in the shape of a `was()` schema: its own conversion takes it to the head's
@@ -214,12 +222,12 @@ final readonly class Upgrader
         }
         $marks = is_array($mark) ? $mark : [];
         if ($field->children !== null && $descriptor instanceof ObjectSchema) {
-            $value = $this->level($field->children, $descriptor->children(), $value, $revision, $next, null, $marks, $class, $run);
+            $value = $this->level($field->children, $descriptor->children(), $value, $revision, $next, null, $marks, $class, $run, $path === null ? null : "{$path}.");
         } elseif ($field->items !== null && $descriptor instanceof ListSchema) {
             // a list is marked whole: the hook may filter or reindex its items
             $converted = false;
             foreach ($value as $index => $element) {
-                [$value[$index], $itemMark] = $this->value($field->items, $descriptor->items(), $element, $snapshot, $revision, $next, null, $class, $run);
+                [$value[$index], $itemMark] = $this->value($field->items, $descriptor->items(), $element, $snapshot, $revision, $next, null, $class, $run, $path === null ? null : "{$path}.{$index}");
                 $converted = $converted || $itemMark !== null;
             }
 
@@ -236,6 +244,7 @@ final readonly class Upgrader
                 $marks,
                 $resource,
                 $run,
+                $path === null ? null : "{$path}.",
             );
         }
 
@@ -248,7 +257,9 @@ final readonly class Upgrader
 
     /**
      * The value normalized to the type in force at the revision of `$version`, then through the step crossing its
-     * `was()`, which receives the snapshot of the step (model.md §7.1, D26).
+     * `was()`, which receives the snapshot of the step (model.md §7.1, D26). A value the type refuses, or the step
+     * rejects, throws an `InvalidInputException` on `$path` (model.md D63); a step without converter, or a value the
+     * client never sent (`$path` null), its own exception.
      *
      * @param Descriptor<mixed> $descriptor the head descriptor
      * @param array<array-key, mixed> $snapshot
@@ -261,6 +272,7 @@ final readonly class Upgrader
         array $snapshot,
         Converters $converters,
         string $class,
+        ?string $path,
     ): mixed {
         $changes = $descriptor->history()->changes;
         $current = $version->schemaChange === null
@@ -268,12 +280,20 @@ final readonly class Upgrader
             : ($changes[$version->schemaChange]->schema ?? throw DefinitionException::missingDescriptor($class, $field->headKey));
         $normalized = $current->normalize($value);
         if ($normalized instanceof InvalidValue) {
-            throw ValueException::refused($class, $field->headKey, $version->revision, $normalized->expected->value, get_debug_type($normalized->value));
+            $refused = ValueException::refused($class, $field->headKey, $version->revision, $normalized->expected->value, get_debug_type($normalized->value));
+
+            throw $path === null ? $refused : InvalidInputException::at($path, $refused);
         }
         $explicit = array_map(static fn(Change $change): ?ExplicitConverter => $change->up, $changes);
         $step = $field->chain->bind($converters, $explicit)->stepOf($version->change);
-
-        return $step === null ? $normalized : $step->apply($normalized, $snapshot);
+        if ($step === null) {
+            return $normalized;
+        }
+        try {
+            return $step->apply($normalized, $snapshot);
+        } catch (ConversionException $error) {
+            throw $error->declarationError || $path === null ? $error : InvalidInputException::at($path, $error);
+        }
     }
 
     /**

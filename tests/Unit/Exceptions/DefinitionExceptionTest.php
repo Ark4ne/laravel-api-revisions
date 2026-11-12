@@ -257,6 +257,14 @@ final class DefinitionExceptionTest extends TestCase
         );
     }
 
+    public function test_declared_twice_names_the_class_the_name_and_the_revision(): void
+    {
+        self::assertSame(
+            sprintf("App\\StoreOrderRequest declares 'status' both in its body and in its query parameters at %s::Winter25: Laravel validates them merged.", ApiRevision::class),
+            DefinitionException::declaredTwice('App\\StoreOrderRequest', 'status', ApiRevision::Winter25)->getMessage(),
+        );
+    }
+
     public function test_unknown_kind_names_the_key(): void
     {
         self::assertSame("Unknown kind 'text': a rule mapper is keyed by a Kind value.", DefinitionException::unknownKind('text')->getMessage());

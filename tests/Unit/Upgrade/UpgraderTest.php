@@ -11,6 +11,7 @@ use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Exceptions\InvalidInputException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\Revision;
@@ -25,6 +26,7 @@ use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\ContactDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
+use Test\Fixtures\Declarations\LineDeclaration;
 use Test\Fixtures\Declarations\OrderInputDeclaration;
 use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
@@ -557,22 +559,94 @@ final class UpgraderTest extends TestCase
         self::assertSame(['title' => 'Book', 'extra' => 1], $this->upgrade(['title' => Schema::string()], ApiRevision::Genesis, ['title' => 'Book', 'extra' => 1]));
     }
 
-    public function test_a_value_its_type_refuses_at_a_step_throws(): void
+    public function test_a_value_its_type_refuses_at_a_step_is_an_invalid_input_on_its_key(): void
     {
-        $head = ['count' => Schema::int()->was(ApiRevision::Winter25, up: static fn(int $count): int => $count)];
+        $head = ['count' => Schema::int()->was(ApiRevision::Winter25, up: static fn(int $count): int => $count)->was(ApiRevision::Genesis, name: 'number')];
 
-        $this->expectExceptionObject(ValueException::refused('object', 'count', ApiRevision::Winter25, 'int', 'string'));
+        $rejection = $this->rejection($head, ApiRevision::Genesis, ['number' => 'many']);
 
-        $this->upgrade($head, ApiRevision::Genesis, ['count' => 'many']);
+        self::assertSame('number', $rejection->key);
+        self::assertNull($rejection->reason);
+        self::assertEquals(ValueException::refused('object', 'count', ApiRevision::Winter25, 'int', 'string'), $rejection->getPrevious());
     }
 
-    public function test_a_step_without_converter_throws(): void
+    public function test_a_step_without_converter_throws_its_conversion_exception(): void
     {
         $head = ['total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::list(Schema::int()))];
 
-        $this->expectException(ConversionException::class);
+        $this->expectExceptionObject(ConversionException::missing('list>int:up'));
 
         $this->upgrade($head, ApiRevision::Genesis, ['total' => [1]]);
+    }
+
+    public function test_a_failed_conversion_is_an_invalid_input_under_the_name_the_client_sent(): void
+    {
+        // renamed at the first step, converted at the second one
+        $head = ['status' => Schema::enum(OrderStatus::class)->was(ApiRevision::Winter25, schema: Schema::string())->was(ApiRevision::Genesis, name: 'code')];
+
+        $rejection = $this->rejection($head, ApiRevision::Genesis, ['code' => 'lost']);
+
+        self::assertSame('code', $rejection->key);
+        self::assertNull($rejection->reason);
+        self::assertEquals(ConversionException::invalidEnumValue(OrderStatus::class, 'lost'), $rejection->getPrevious());
+    }
+
+    public function test_an_input_an_up_closure_rejects_is_an_invalid_input_with_its_reason(): void
+    {
+        $head = ['total' => Schema::int()->was(ApiRevision::Spring26, schema: Schema::string(), up: static fn(): int => throw ConversionException::invalid('Not an amount.'))];
+
+        $rejection = $this->rejection($head, ApiRevision::Winter25, ['total' => 'ten']);
+
+        self::assertSame('total', $rejection->key);
+        self::assertSame('Not an amount.', $rejection->reason);
+    }
+
+    public function test_a_default_a_later_conversion_rejects_is_a_declaration_error(): void
+    {
+        $head = ['status' => Schema::enum(OrderStatus::class)->was(ApiRevision::Winter25, schema: Schema::string())->since(ApiRevision::Winter25, default: 'lost')];
+
+        $this->expectExceptionObject(ConversionException::invalidEnumValue(OrderStatus::class, 'lost'));
+
+        $this->upgrade($head, ApiRevision::Genesis, []);
+    }
+
+    public function test_a_child_of_a_composite_added_later_is_never_the_client_s(): void
+    {
+        $head = ['meta' => Schema::object([
+            'code' => Schema::int()->was(ApiRevision::Spring26, schema: Schema::string(), up: static fn(): int => throw ConversionException::invalid('No.')),
+        ])->since(ApiRevision::Winter25, default: ['code' => 'x'])];
+
+        $this->expectExceptionObject(ConversionException::invalid('No.'));
+
+        $this->upgrade($head, ApiRevision::Genesis, []);
+    }
+
+    public function test_the_key_of_a_rejected_child_is_its_path_of_client_names(): void
+    {
+        $head = ['address' => Schema::object([
+            'zip' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string(), name: 'postcode', up: static fn(): int => throw ConversionException::invalid('Not a zip.')),
+        ])->was(ApiRevision::Genesis, name: 'location')];
+
+        self::assertSame('location.postcode', $this->rejection($head, ApiRevision::Genesis, ['location' => ['postcode' => 'abc']])->key);
+    }
+
+    public function test_the_key_of_a_rejected_item_is_its_index(): void
+    {
+        $head = ['lines' => Schema::list(
+            Schema::int()->was(ApiRevision::Genesis, schema: Schema::string(), up: static fn(string $line): int => ctype_digit($line) ? (int) $line : throw ConversionException::invalid('Not a line.')),
+        )->was(ApiRevision::Genesis, name: 'rows')];
+
+        self::assertSame('rows.1', $this->rejection($head, ApiRevision::Genesis, ['rows' => ['1', 'a']])->key);
+    }
+
+    public function test_the_key_of_a_rejected_value_of_a_nested_resource_is_its_path_of_client_names(): void
+    {
+        $head = ['line' => Schema::resource(LineDeclaration::class)->was(ApiRevision::Winter25, name: 'item')];
+
+        $rejection = $this->rejection($head, ApiRevision::Genesis, ['item' => ['count' => 'x']]);
+
+        self::assertSame('item.count', $rejection->key);
+        self::assertSame('Not a quantity.', $rejection->reason);
     }
 
     public function test_descriptors_missing_a_field_of_the_shape_throw(): void
@@ -636,6 +710,23 @@ final class UpgraderTest extends TestCase
             $input,
             new OrderInputDeclaration(),
         );
+    }
+
+    /**
+     * The `InvalidInputException` the upgrade of `$input` throws.
+     *
+     * @param array<string, Descriptor<mixed>> $head
+     * @param array<string, mixed> $input
+     */
+    private function rejection(array $head, Revision $revision, array $input): InvalidInputException
+    {
+        try {
+            $this->upgrade($head, $revision, $input);
+        } catch (InvalidInputException $rejection) {
+            return $rejection;
+        }
+
+        self::fail('The upgrade rejected nothing.');
     }
 
     /**

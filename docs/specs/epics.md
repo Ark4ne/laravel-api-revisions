@@ -1178,8 +1178,8 @@ it, as in JSON Schema).
 
 #### US 8.7 — `RevisionedRequest` · L · depends US 7.3, US 8.6
 
-- Trait for `FormRequest`: `body()`, `query()`; `rules()` = rules of `Shape(current())`; after validation, the
-  upgrader; `validated()` / `safe()` return the head input; the `upgrade()` hook of the request is the
+- Trait for `FormRequest`: `body()`, `queryParameters()` (D63); `rules()` = rules of `Shape(current())`; after
+  validation, the upgrader; `validated()` / `safe()` return the head input; the `upgrade()` hook of the request is the
   `UpgradesInput`; a `ConversionException` becomes a validation error on the client's key.
 - Decide Q18 first (§6): how a user `up:` closure rejects an input (a public `ConversionException` constructor or an
   exception contract caught by the layer).
@@ -1187,6 +1187,26 @@ it, as in JSON Schema).
 Tests (Feature): `test_a_genesis_client_is_validated_with_its_own_names`,
 `test_the_controller_receives_the_head_input`, `test_an_invalid_enum_value_is_a_validation_error_on_the_old_key`,
 `test_query_parameters_are_validated_and_upgraded`.
+
+**Done** (2026-11-12, D63, Q18 closed). `Laravel\Requests\RevisionedRequest` (trait: `body()`, `queryParameters()`,
+`protected upgrade()`, `rules()`, `validated()`, `safe()`, the upgrade as the last validator `after` hook, once per
+validator), `Laravel\Requests\RequestHook` (`@internal` adapter to `UpgradesInput`), `Exceptions\InvalidInputException`
+(`at($key, $cause)`, `key`, `reason`), `ConversionException::invalid()` with `$reason` / `$declarationError`,
+`DefinitionException::declaredTwice()`, `UpgradeRun::$client`; the `Upgrader` threads the client's key (names at the
+client's revision, `a.b`, `a.0`, nested resources) and wraps rejections; the `Upgrader` is a singleton of the provider.
+Fixtures `tests/Fixtures/Requests/{StoreOrder,ListOrders,Conflicting,HeadConflict}Request`,
+`Declarations/LineDeclaration`. Tests beyond the story's: the input kept as sent, a head client, an `up:` closure's
+message, the `in` message with the request's attribute names on a renamed key, collisions at the revision and at the
+head, the application's `after` hooks first, `validated()` running the validation, one hook per validator, a validator
+given replacing the head, a failed validation skipping the upgrade; in `UpgraderTest` the client keys and a default
+or a composite added later rejected as a declaration error. Coverage 99.6 %, Infection covered MSI 93 % on the new code
+(equivalent: the `protected` visibilities of the trait). Deviations: `query()` is `queryParameters()` (`Request::query()`
+exists, decided with the maintainer); the upgrader throws `InvalidInputException` instead of the raw `ValueException` /
+`ConversionException` (D54 amended); the story's enum test is satisfied by the `Enum` rule of D62 before the upgrade
+(the converter path is tested on `qty`). Review: a value the client never sent is not its error (declaration error),
+head-key collisions, a stale head after `setValidator()`, the `failed()` difference documented. Follow-ups: US 9.2 adds
+a check code for a body / query name collision at any revision (`request-name-collision`: today thrown only at request
+time); README (US 11.1): read the head from `validated()` / `safe()`, never `input()`.
 
 #### US 8.8 — Outside HTTP · S · depends US 8.1
 
@@ -1397,7 +1417,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | --- | --- | --- | --- |
 | Q1 | Lock granularity: one file per revision, or per class and revision (smaller diffs)? | US 9.4 | **Decided** (2026-11-11): one file per revision (D11) |
 | Q2 | Is a revision "published" (lockable) by `publishedAt` in `#[Meta]` rather than "all but the head"? | US 9.4 | **Decided** (2026-11-11): `#[Meta]` is informative only and optional; `revision:lock` locks every revision but the head (D21) |
-| Q3 | `query()` arrays (`filter[status]`, `sort=-total`): do renames apply inside values (`sort`) or only keys? | US 8.7 | **Decided** (2026-11-11): renames apply to **keys** only; a change of the values is a revision of its own, declared with `was()` (D22) |
+| Q3 | Query parameter arrays (`filter[status]`, `sort=-total`): do renames apply inside values (`sort`) or only keys? | US 8.7 | **Decided** (2026-11-11): renames apply to **keys** only; a change of the values is a revision of its own, declared with `was()` (D22) |
 | Q4 | Automatic conversions per direction (F2): propose — `string → int/float` automatic **up only** (rule `integer` for int, `numeric` for float), explicit down; `int → bool` never automatic; non-scalars never converted | US 4.1 | **Decided** (2026-11-11): all scalar pairs automatic both ways, `conversion-lossy` warning (D25) |
 | Q5 | Upgrade values (F3, F9): propose — after validation the input of `R` is **normalized** to the types of the shape of `R` (enum cases, ints, dates), `up:` closures and converters receive normalized values, `$subject` is the snapshot of the step in the shape of `X`; `validated()` returns the head **PHP values** (enum cases, not strings) | US 7.1 | **Decided** (2026-11-11): option B — normalize before each up conversion, `validated()` raw (D26) |
 | Q6 | Defaults of fields added later (F5): propose — a default is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | US 3.4, 7.1 | **Decided** (2026-11-11): as proposed (D23) |
@@ -1412,7 +1432,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q15 | `whenHas()` without key checks "the field's own key". Proposed for US 6.1: the source path when the source is a key or dotted path, the head declared key otherwise (closure source, `Source::parent()`); never the name at an older revision. Confirm | US 2.4 | **Decided** (2026-11-11): D37 |
 | Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | **Decided** (2026-11-11): `bound-repeated` is a warning (D38); the check catches declaration errors and reports them under their code (D39) |
 | Q17 | A `was()` newer than the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | **Decided** (2026-11-11): D43 |
-| Q18 | Exceptions thrown by a user `up:` closure (US 4.2). Today only a `ConversionException` (raised by the library's converters) becomes a validation error on the client's key (US 8.7); any other exception from a closure bubbles up as a 500. Leaning towards letting a closure reject an input for its revision, either with a public `ConversionException::invalid($message)` or with an exception **contract** (an interface the Laravel layer catches) that an application exception may implement: compare both when US 8.7 starts | US 4.2 | Open (deferred to US 8.7) |
+| Q18 | Exceptions thrown by a user `up:` closure (US 4.2). Today only a `ConversionException` (raised by the library's converters) becomes a validation error on the client's key (US 8.7); any other exception from a closure bubbles up as a 500. Leaning towards letting a closure reject an input for its revision, either with a public `ConversionException::invalid($message)` or with an exception **contract** (an interface the Laravel layer catches) that an application exception may implement: compare both when US 8.7 starts | US 4.2 | **Decided** (2026-11-12): `ConversionException::invalid($message)`; the upgrader wraps a rejected value in `InvalidInputException`, a validation error on the client's key; `missing()` and any other exception stay 500 (D63) |
 | Q19 | `Vary` of custom resolvers (US 8.3). The middleware varies on the headers of the `HeaderResolver`s only; a custom resolver reading another header (an account pinned by `Authorization`, a tenant header) leaves its `Vary` to the application (a request with `Authorization` is not stored by a shared cache unless allowed, RFC 9111 §3.5). Proposed: an optional contract (`VariesOn::headers(): list<string>`) a resolver implements and the chain collects | US 8.3 | **Decided** (2026-11-12): as proposed (D59) |
 
 ---
@@ -1481,7 +1501,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.4 | Path mode | M | 8.3 | M2 | done |
 | US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | done |
 | US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | done |
-| US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | todo |
+| US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | done |
 | US 8.8 | Outside HTTP | S | 8.1 | M2 | todo |
 | US 9.1 | Diagnostics and checker | S | 5.2 | M3 | todo |
 | US 9.2 | Check rules | M | 9.1 | M3 | todo |

@@ -15,7 +15,7 @@ computes a shape.
 
 ```
                    ┌────────── once per (class, kind, revision), memoized / cached ──────────┐
-Declaring class ─► │ Probe ─► toArray() / body() / query() ─► descriptors (head + history)   │
+Declaring class ─► │ Probe ─► toArray() / body() / queryParameters() ─► descriptors          │
                    │                                  └─► ShapeSelector::at(R) ─► Shape(R)   │ ─► Shape (public)     
                    └──────────────────────────────────────────────────────────────────────────┘
                                                                     │
@@ -60,7 +60,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
-| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture |
+| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`) and the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
@@ -338,8 +338,11 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   head keys (a list whole) and serialized at the end by their head descriptor; a composite converted or defaulted is
   serialized deep, child by child, never by its own `serialize()`. A composite or resource on one side only
   (descriptor vs shape) throws `missingDescriptor()`.
-- Conversions and defaults apply to **present** keys only; a default never replaces an explicit `null`. A failed
-  conversion throws its `ConversionException` (the Laravel layer turns it into a validation error, US 8.7, Q18).
+- Conversions and defaults apply to **present** keys only; a default never replaces an explicit `null`. A value the
+  type in force refuses, or a conversion rejects (`ConversionException` but `missing()`, a declaration error), throws
+  `InvalidInputException::at($key, $cause)`, `$key` the client's key: the names at the client's revision
+  (`UpgradeRun::$client`, `FieldDefinition::nameAt()`), dotted through children, item indexes and nested resources
+  (`model.md` D63; an index a hook reorders is no longer the client's).
 - The upgrader is pure: it does not validate and never mutates its input. The Laravel layer validates at `R` first,
   then upgrades.
 
@@ -393,6 +396,15 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   projector and the upgrader do.
 - `Laravel\Requests\RevisionedRequest` and `Laravel\Resources\RevisionedResource` — traits **declared for
   applications**, used by no class of the package.
+  Since US 8.7 (`model.md` D63): `RevisionedRequest` declares `[RequestBody, RequestQuery]`; `describeRevisioned()`
+  builds `new static()` (no input needed) and returns `body()` or `queryParameters()` (`query()` is Laravel's).
+  `rules()` compiles both shapes of `current()` with the container's `RuleCompiler`, refusing a name both declare
+  (`DefinitionException::declaredTwice()`). `getValidatorInstance()` registers the upgrade as the **last** `after`
+  hook of each validator (the application's hooks first; skipped when errors exist): the validated input is split by
+  the names of the query shape, each part upgraded by the container's `Upgrader` (singleton), the body with the hook
+  (`Requests\RequestHook`, `@internal`, adapts the `protected upgrade()` to `UpgradesInput`); an
+  `InvalidInputException` becomes an error on its key (`addFailure($key, 'in')`, or its `reason` as the message).
+  `validated()` / `safe()` read the stored head (running the validation first when it has not run).
 - `Laravel\Console\*` — `revision:check`, `revision:lock`, `revision:cache`, `revision:clear`, `revision:export`,
   `revision:changelog`, `revision:prune`.
   Since US 5.3: `revision:cache` (`CacheCommand`: discovered classes × `declarationKinds()` × `order()`, compiled
@@ -443,7 +455,8 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 declarations), `ConversionException`, `ValueException` (a subject value the type refuses, strict mode),
 `ConfigurationException` (`InvalidArgumentException`: an invalid `config/revisions.php`), `CacheException`
 (`RuntimeException`: the compiled shapes file unwritable or invalid),
-`UnknownRevisionException` (`RuntimeException`: unknown client value), `LockException`. Named
+`UnknownRevisionException` (`RuntimeException`: unknown client value), `InvalidInputException` (`RuntimeException`:
+an input value the upgrade rejects, chaining its `ConversionException` or `ValueException`, D63), `LockException`. Named
 constructors only (`DefinitionException::mixedRevisions()`); messages name the class, the field and the revision.
 
 `Exceptions` depends only on `Support` (phpat, PHPDoc included): an exception takes `\BackedEnum`, `\UnitEnum` or

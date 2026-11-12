@@ -149,6 +149,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (`numeric`, `integer`, the values of an enum), then the descriptor's `rules()` as given. A required child of a parent
   the client may leave out gets `required_unless:<parent>,null`. `DefinitionException::rulesOfAResponse()`,
   `unknownKind()` (a mapper keyed by no kind).
+- `Laravel\Requests\RevisionedRequest`, the trait of a revisioned `FormRequest`: the head body in `body()`, the head
+  query parameters in `queryParameters()`, the `protected upgrade()` hook on the body; `rules()` validates the input
+  in the client's revision under its names, then the input is upgraded to the head, which `validated()` / `safe()`
+  return (`input()` / `all()` keep the input as sent). A name declared in both the body and the query at a revision
+  throws `DefinitionException::declaredTwice()`. The `Upgrader` is bound in the container (singleton).
+- A value the upgrade rejects is a validation error on the client's key: the upgrader throws
+  `Exceptions\InvalidInputException` (`key`, `reason`) for a `ConversionException` or a `ValueException` (instead of
+  the exception itself); an `up:` closure rejects an input with `ConversionException::invalid($message)`, its message
+  being the error; any other rejection gets Laravel's `validation.in` message. `ConversionException::missing()` stays
+  a declaration error (`ConversionException::$declarationError`), as do the other exceptions of a closure (model.md
+  D63).
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.

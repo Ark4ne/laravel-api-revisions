@@ -36,6 +36,31 @@ final class ConversionExceptionTest extends TestCase
         self::assertSame('INF is outside the int range.', ConversionException::outOfIntRange(INF)->getMessage());
     }
 
+    public function test_invalid_gives_its_message_as_the_reason_for_the_client(): void
+    {
+        $exception = ConversionException::invalid('The total must be an amount.');
+
+        self::assertSame('The total must be an amount.', $exception->getMessage());
+        self::assertSame('The total must be an amount.', $exception->reason);
+        self::assertFalse($exception->declarationError);
+    }
+
+    public function test_a_value_rejected_by_a_converter_has_no_reason_and_is_no_declaration_error(): void
+    {
+        foreach ([ConversionException::invalidEnumValue(OrderStatus::class, 'lost'), ConversionException::outOfIntRange(INF)] as $exception) {
+            self::assertNull($exception->reason);
+            self::assertFalse($exception->declarationError);
+        }
+    }
+
+    public function test_a_missing_conversion_is_a_declaration_error(): void
+    {
+        $exception = ConversionException::missing('object>string:down');
+
+        self::assertTrue($exception->declarationError);
+        self::assertNull($exception->reason);
+    }
+
     public function test_missing_names_the_step(): void
     {
         self::assertSame(
