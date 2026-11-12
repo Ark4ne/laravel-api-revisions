@@ -109,6 +109,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `Configuration`, one `Shapes`, the `RevisionScope` of each request (`scoped`, its base the configured fixed default
   outside a request) and the `ValueErrorHandler` (`strict_values`, `null` following `app.debug`; lenient errors
   reported once per class and field and request).
+- Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
+  class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
+  writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.
+  `Compilation\CompiledShapes` reads and writes the file (`load()`, `write()`, `get()`; one serialized shape per
+  `class@kind@revision`, unserialized on first use), `Shapes` takes it as its second argument and reads it before
+  compiling; `Laravel\Discovery\PathClassFinder` finds the classes; `Exceptions\CacheException`. Changing the date
+  formats, a declaration or a custom type requires `revision:cache` again, as for `route:cache`.
 - Benchmark gate: `composer benchmark` (`bin/benchmark.php`, reference `bin/benchmark/reference.json`, `--update`)
   compares the projection at the head and at the oldest revision with a plain `JsonResource` (time and memory ratios,
   10 % tolerance); run in CI. A projection costs about ×19 the time of the plain resource: `TypeRegistry::converters()`

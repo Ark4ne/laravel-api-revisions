@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Laravel;
 
+use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
+use Ark4ne\ApiRevisions\Laravel\Console\CacheCommand;
+use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
 use Ark4ne\ApiRevisions\Projection\StrictValues;
 use Ark4ne\ApiRevisions\Projection\ValueErrorHandler;
@@ -21,11 +24,12 @@ use Illuminate\Support\ServiceProvider;
 /**
  * Registers the library in a Laravel application (auto-discovered, model.md §8, §10): `config/revisions.php` merged and
  * publishable (`revisions-config`), read lazily as a `RevisionsConfig`; the core `Configuration` and the `Shapes`
- * compiled with it, one per application; the `RevisionScope` of the running context as a `scoped` binding (reset on
+ * compiled with it, one per application, reading the compiled file of `revision:cache` first; the `RevisionScope` of the running context as a `scoped` binding (reset on
  * every request, Octane included; the scope provider reads the current container), its base the configured fixed
  * default (D31); the `ValueErrorHandler` from
- * `strict_values`, a lenient one reporting each error once per class and field and request. The middleware, the route
- * macro and the commands are added by their stories (US 8.2 onwards).
+ * `strict_values`, a lenient one reporting each error once per class and field and request; in the console, the commands
+ * `revision:cache` / `revision:clear`, run by `optimize` / `optimize:clear`. The middleware, the route macro and the
+ * other commands are added by their stories (US 8.2 onwards).
  */
 final class RevisionsServiceProvider extends ServiceProvider
 {
@@ -42,7 +46,10 @@ final class RevisionsServiceProvider extends ServiceProvider
             return RevisionsConfig::fromArray(is_array($revisions) ? $revisions : [], $config->get('app.debug') === true);
         });
         $this->app->singleton(Configuration::class, static fn(Container $app): Configuration => $app->make(RevisionsConfig::class)->configuration);
-        $this->app->singleton(Shapes::class, static fn(Container $app): Shapes => new Shapes(new Compiler($app->make(Configuration::class))));
+        $this->app->singleton(Shapes::class, static fn(Container $app): Shapes => new Shapes(
+            new Compiler($app->make(Configuration::class)),
+            CompiledShapes::load($app->make(RevisionsConfig::class)->cachePath),
+        ));
         $this->app->scoped(RevisionScope::class, static function (Container $app): RevisionScope {
             $scope = new RevisionScope();
             $scope->setBase($app->make(RevisionsConfig::class)->fixedDefault());
@@ -70,5 +77,10 @@ final class RevisionsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([self::CONFIG => $this->app->configPath('revisions.php')], 'revisions-config');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([CacheCommand::class, ClearCommand::class]);
+            $this->optimizes(optimize: 'revision:cache', clear: 'revision:clear', key: 'revisions');
+        }
     }
 }

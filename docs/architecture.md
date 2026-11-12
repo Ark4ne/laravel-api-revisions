@@ -245,9 +245,14 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
   configurations never share a shape; the Laravel layer binds one instance (US 8.1), `flush()` forgets the shapes
   (tests, Octane). A compilation that throws stores nothing. Custom types are registered at boot, before
   any `for()`; a type registered later needs a `flush()`. `CompiledShapes` reads/writes the file of `revision:cache`
-  (`bootstrap/cache/revisions.php`, `var_export`, OPcache friendly). The Laravel layer registers `revision:cache` /
-  `revision:clear` with `ServiceProvider::optimizes()`, so `artisan optimize` / `optimize:clear` handle it. A stale
-  file is the application's responsibility, as for `route:cache`.
+  (`bootstrap/cache/revisions.php`, `model.md` D56): a `var_export` of **serialized** shapes by `class@kind@revision`,
+  an array of strings OPcache keeps in shared memory, each shape unserialized on its first `for()`, stamped with
+  `CompiledShapes::FORMAT` (bump it whenever `Shape` or a class it holds changes: a file of another format is
+  refused, never unserialized into a stale shape); written to a
+  temporary file then renamed (a reader never sees half a file). `Shapes` reads it before compiling; `flush()` keeps
+  it. The Laravel layer registers `revision:cache` / `revision:clear` with `ServiceProvider::optimizes()`, so
+  `artisan optimize` / `optimize:clear` handle it. A stale file is the application's responsibility, as for
+  `route:cache`.
 - Declaration errors that are programming errors (mixed enums, `since` newer than `until` on one descriptor) throw
   `DefinitionException` at declaration time; everything else becomes a diagnostic.
 
@@ -354,6 +359,12 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   applications**, used by no class of the package.
 - `Laravel\Console\*` — `revision:check`, `revision:lock`, `revision:cache`, `revision:clear`, `revision:export`,
   `revision:changelog`, `revision:prune`.
+  Since US 5.3: `revision:cache` (`CacheCommand`: discovered classes × `declarationKinds()` × `order()`, compiled
+  with a fresh `Compiler`, never the cached file; a failure leaves the previous file) and `revision:clear`
+  (`ClearCommand`), registered in the console only.
+- `Laravel\Discovery\PathClassFinder` — the concrete `Revisioned` classes declared in the PHP files under
+  `discovery.paths` (read from their tokens, then autoloaded), plus `discovery.classes` (an entry that is not a
+  concrete `Revisioned` class throws `ConfigurationException`); used by `revision:cache`; US 9.1 makes it implement the `ClassFinder` contract.
 - `Laravel\Queue\CapturesRevision` — job middleware / dispatch hook capturing the revision at dispatch.
 
 ## 11. Export
@@ -394,7 +405,8 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 
 `Exceptions\RevisionsException` (marker interface) ← `DefinitionException` (`LogicException`: programming errors in
 declarations), `ConversionException`, `ValueException` (a subject value the type refuses, strict mode),
-`ConfigurationException` (`InvalidArgumentException`: an invalid `config/revisions.php`),
+`ConfigurationException` (`InvalidArgumentException`: an invalid `config/revisions.php`), `CacheException`
+(`RuntimeException`: the compiled shapes file unwritable or invalid),
 `UnknownRevisionException` (unknown client value), `LockException`. Named
 constructors only (`DefinitionException::mixedRevisions()`); messages name the class, the field and the revision.
 

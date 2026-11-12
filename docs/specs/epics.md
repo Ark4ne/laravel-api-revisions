@@ -707,13 +707,35 @@ first; US 6.2 resolves a nested resource as `for($type->resource, $kind, $field-
 
 #### US 5.3 — Compiled file and `revision:cache` · M · depends US 5.2, US 8.1
 
-- `CompiledShapes` writes / reads a PHP file (`var_export` of the shapes, keyed `class@kind@revision`); `Shapes` reads it
+- `CompiledShapes` writes / reads a PHP file (`var_export` of the serialized shapes, keyed `class@kind@revision`, D56); `Shapes` reads it
   first. Commands `revision:cache` and `revision:clear` (Laravel layer), registered with
   `ServiceProvider::optimizes()`; file `bootstrap/cache/revisions.php` (`cache_path`).
 - The compiled shapes depend on the configured date formats (D29): changing them requires `revision:cache` again.
 
 Tests: `test_a_cached_shape_equals_the_compiled_one`, `test_projection_from_the_cache_runs_the_closures_of_the_instance`,
 `test_artisan_optimize_builds_the_revisions_cache`, `test_optimize_clear_removes_the_revisions_cache`.
+
+**Done** (2026-11-12): `Compilation\CompiledShapes` (`final readonly`; `load($path)`, `write($path, $shapes)`,
+`get($class, $kind, $revision)`, `count()`, `key()` shared with `Shapes`; the file returns
+`class@kind@revision → serialize(Shape)` plus a `@format` stamp, written to a temporary file then renamed),
+`Shapes::__construct(Compiler, ?CompiledShapes)` reading the file before compiling (`flush()` keeps it),
+`Exceptions\CacheException` (`unwritable()`, `invalidFile()`, `uncompiledShape()`),
+`Laravel\Discovery\PathClassFinder`, `Laravel\Console\CacheCommand` (`revision:cache`: discovered classes ×
+`declarationKinds()` × `order()`, compiled with a fresh `Compiler`; a failure keeps the previous file) and
+`ClearCommand` (`revision:clear`), registered in the console with `optimizes()`; the `Shapes` singleton loads
+`cache_path`. Decision **D56**. Fixtures `tests/Fixtures/Discovery/*`, `GlobalDeclaration`. Coverage 99.6 %,
+Infection MSI 85 % on the new classes (escaped: the temporary file name, `opcache_invalidate()`, the dedup values,
+the token loop running `nextName()` on every token, all equivalent). Review: format stamp (a file of another release
+is refused, not unserialized into a stale shape), a corrupted entry throws `invalidFile()` (no warning), the
+`Revisioned` check of explicit classes moved into the finder (`ConfigurationException`; abstract classes and
+interfaces refused too), a global `namespace { }` gives no leading backslash. Deviations: the file holds
+**serialized** shapes, not a `var_export` of objects (the definition classes have private constructors and no
+`__set_state()`; an array of strings stays in OPcache shared memory and only the shapes asked for are unserialized);
+`PathClassFinder` is pulled forward from US 9.3 (the cache needs the discovery; the `ClassFinder` contract stays in
+US 9.1); an explicit class that is not a concrete `Revisioned` class is a `ConfigurationException`; no compiled-file
+scenario in the benchmark (US 5.4 follow-up dropped): the benchmark measures warm projections, where the shapes are
+already memoized, so the file only changes the first `for()` of each shape per process. Follow-ups: US 9.1 makes
+`PathClassFinder` implement `ClassFinder`; US 9.3 adds `--list`; US 11.1 documents `optimize` and the stale file.
 
 #### US 5.4 — Benchmark gate · M · depends US 6.1
 
@@ -732,7 +754,7 @@ is allowed in `bin/benchmark/*` (the US 0.2 follow-up is moot). First reference 
 costs about ×32 the time of the plain resource at the head, ×30 at `Genesis`, and ×1.15 / ×1.04 its memory. Deviations:
 no compiled-file variant, no `RevisionedResource`; no unit test for the script (tooling, like
 `bin/coverage-check.php`), checked by hand: within 1 % over three runs, red on a lowered reference and on a reference
-scenario not measured. Follow-ups: US 5.3 adds the compiled-file scenarios, US 8.5 replaces the bridge call by
+scenario not measured. Follow-ups: US 5.3 adds the compiled-file scenarios (dropped by US 5.3: see its Done note), US 8.5 replaces the bridge call by
 `RevisionedResource`; the US 6.1 follow-up (per-field `configured()` / `bind()`, `TypeRegistry::converters()` per
 `project()`) moves to US 5.5 (appended below), with the ×32; refresh the reference from CI (PHP 8.4) if its ratios
 differ.
@@ -1110,8 +1132,8 @@ from `Descriptor::repeatedBounds()` (US 3.1). Declaration errors are caught per 
 
 #### US 9.3 — `revision:check` and the PHPUnit assertion · S · depends US 9.2, US 8.1
 
-- `Laravel\Discovery\PathClassFinder` (`Revisioned` classes under `discovery.paths`, plus `discovery.classes`);
-  command `revision:check` (exit code ≠ 0 on error, table output, `--format=json`, `--list` prints the discovered
+- `Laravel\Discovery\PathClassFinder` (`Revisioned` classes under `discovery.paths`, plus `discovery.classes`):
+  shipped by US 5.3, left here: make it implement the `ClassFinder` contract (US 9.1); command `revision:check` (exit code ≠ 0 on error, table output, `--format=json`, `--list` prints the discovered
   classes); trait `Testing\InteractsWithRevisions` (D28) with `assertRevisionsAreConsistent()`.
 
 Tests: `test_the_check_command_fails_on_an_error`, `test_the_assertion_fails_with_the_diagnostics`,
@@ -1352,7 +1374,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | done |
 | US 5.1 | Probe and compiler | M | 3.4 | M1 | done |
 | US 5.2 | Shapes repository | S | 5.1 | M1 | done |
-| US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
+| US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | done |
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | done |
 | US 5.5 | Projection cost | M | 5.4 | M3 | done |
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | done |

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Unit\Compilation;
 
+use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
@@ -114,5 +115,28 @@ final class ShapesTest extends TestCase
                 }
             }
         }
+    }
+
+    public function test_a_compiled_shape_is_read_before_compiling(): void
+    {
+        $compiled = (new Compiler())->compile(CountingDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+        $path = sys_get_temp_dir() . '/api-revisions-' . bin2hex(random_bytes(6)) . '.php';
+        CompiledShapes::write($path, [$compiled]);
+        CountingDeclaration::$described = 0;
+
+        try {
+            $shapes = new Shapes(compiled: CompiledShapes::load($path));
+            $shape = $shapes->for(CountingDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+            $shapes->flush();
+            $again = $shapes->for(CountingDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+            $other = $shapes->for(CountingDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Atlas);
+        } finally {
+            unlink($path);
+        }
+
+        self::assertEquals($compiled, $shape);
+        self::assertEquals($compiled, $again);
+        self::assertSame(['title'], $other->names());
+        self::assertSame(1, CountingDeclaration::$described);
     }
 }
