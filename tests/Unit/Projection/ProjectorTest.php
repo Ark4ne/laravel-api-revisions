@@ -11,6 +11,7 @@ use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
+use Ark4ne\ApiRevisions\Projection\LenientValues;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
@@ -392,14 +393,15 @@ final class ProjectorTest extends TestCase
     public function test_a_resource_cycle_is_projected_as_deep_as_the_data(): void
     {
         $order = [
-            'title' => 'Book', 'status' => OrderStatus::Paid, 'total' => 1250, 'placed_at' => null, 'delivery' => null,
-            'customer' => null, 'tags' => ['gift'], 'notes' => null,
+            'title' => 'Book', 'status' => OrderStatus::Paid, 'total' => 1250, 'placed_at' => new DateTimeImmutable('2026-03-01T10:30:00+00:00'),
+            'day' => new DateTimeImmutable('2026-03-04'), 'customer' => ['name' => 'Ada', 'orders' => []], 'tags' => ['gift'], 'notes' => null,
         ];
         $head = ['customer' => Schema::resource(CustomerDeclaration::class)];
 
         self::assertSame(['customer' => ['name' => 'Ada', 'orders' => [[
-            'title' => 'Book', 'status' => 'paid', 'total' => 1250, 'placed_at' => null, 'delivery' => ['day' => null],
-            'customer' => null, 'tags' => ['gift'], 'notes' => null,
+            'title' => 'Book', 'status' => 'paid', 'total' => 1250, 'placed_at' => '2026-03-01T10:30:00+00:00',
+            'delivery' => ['day' => '2026-03-04'], 'customer' => ['name' => 'Ada', 'orders' => []], 'tags' => ['gift'],
+            'notes' => null,
         ]]]], self::project($head, ApiRevision::Atlas, ['customer' => ['name' => 'Ada', 'orders' => [$order]]]));
     }
 
@@ -451,6 +453,112 @@ final class ProjectorTest extends TestCase
         (new Projector())->project($shape, ['address' => Schema::string()], ['address' => 'x']);
     }
 
+    public function test_strict_values_throw_on_a_refused_value(): void
+    {
+        $head = ['total' => Schema::int()];
+
+        $this->expectExceptionObject(ValueException::refused('object', 'total', ApiRevision::Atlas, 'int', 'string'));
+
+        (new Projector(new Configuration(strictValues: true)))->project(self::shape($head, ApiRevision::Atlas), $head, ['total' => 'abc']);
+    }
+
+    public function test_lenient_values_cast_and_report(): void
+    {
+        $reported = [];
+        $head = [
+            'total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string()),
+            'lines' => Schema::list(Schema::string()),
+            'title' => Schema::string(),
+        ];
+        $projector = self::lenient($reported);
+
+        $projected = $projector->project(self::shape($head, ApiRevision::Genesis), $head, ['total' => '12.5', 'lines' => 'a,b', 'title' => 'Book']);
+
+        self::assertSame(['total' => 12, 'lines' => null, 'title' => 'Book'], $projected);
+        self::assertSame(['total', 'lines'], array_map(static fn(ValueException $error): string => $error->field, $reported));
+    }
+
+    public function test_a_refused_value_never_reaches_a_closure_when_lenient(): void
+    {
+        $reported = [];
+        $head = [
+            'status' => Schema::enum(OrderStatus::class)
+                ->when(static fn(OrderStatus $status): bool => $status !== OrderStatus::Pending)
+                ->was(ApiRevision::Winter25, schema: Schema::string(), down: static fn(OrderStatus $status): string => strtoupper($status->value)),
+        ];
+
+        $projected = self::lenient($reported)->project(self::shape($head, ApiRevision::Genesis), $head, ['status' => 'bogus']);
+
+        self::assertSame(['status' => 'bogus'], $projected);
+        self::assertCount(1, $reported);
+    }
+
+    public function test_a_null_given_by_a_conversion_on_a_non_nullable_field_is_a_value_error(): void
+    {
+        $head = ['total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string(), down: static fn(): ?string => null)];
+
+        $this->expectExceptionObject(ValueException::nullNotAllowed('object', 'total', ApiRevision::Genesis));
+
+        self::project($head, ApiRevision::Genesis, ['total' => 1250]);
+    }
+
+    public function test_a_failed_conversion_renders_null_and_is_reported_when_lenient(): void
+    {
+        $reported = [];
+        $head = ['total' => Schema::float()->was(ApiRevision::Winter25, schema: Schema::int())];
+
+        $projected = self::lenient($reported)->project(self::shape($head, ApiRevision::Genesis), $head, ['total' => 1.0e30]);
+
+        self::assertSame(['total' => null], $projected);
+        self::assertCount(1, $reported);
+        self::assertStringEndsWith('float cannot be converted to int.', $reported[0]->getMessage());
+    }
+
+    public function test_null_on_a_non_nullable_field_is_a_value_error(): void
+    {
+        $reported = [];
+        $head = [
+            'title' => Schema::string(),
+            'notes' => Schema::string()->nullable(),
+            'tags' => Schema::list(Schema::string()),
+            'skipped' => Schema::string()->when(static fn(): bool => false),
+        ];
+        $subject = ['title' => null, 'notes' => null, 'tags' => ['a', null], 'skipped' => null];
+
+        $projected = self::lenient($reported)->project(self::shape($head, ApiRevision::Atlas), $head, $subject);
+
+        self::assertSame(['title' => null, 'notes' => null, 'tags' => ['a', null]], $projected);
+        self::assertSame(['title', '*'], array_map(static fn(ValueException $error): string => $error->field, $reported));
+
+        $this->expectExceptionObject(ValueException::nullNotAllowed('object', 'title', ApiRevision::Atlas));
+
+        (new Projector())->project(self::shape($head, ApiRevision::Atlas), $head, $subject);
+    }
+
+    public function test_the_exception_does_not_contain_the_value(): void
+    {
+        $head = ['total' => Schema::int(), 'status' => Schema::enum(OrderStatus::class)->was(ApiRevision::Winter25, schema: Schema::int())];
+        $reported = [];
+
+        self::lenient($reported)->project(self::shape($head, ApiRevision::Genesis), $head, ['total' => 'secret-1234', 'status' => 'paid']);
+
+        self::assertCount(2, $reported);
+        foreach ($reported as $error) {
+            self::assertStringNotContainsString('secret', $error->getMessage());
+            self::assertStringNotContainsString('paid', $error->getMessage());
+            self::assertNull($error->getPrevious());
+        }
+    }
+
+    public function test_the_value_errors_follow_the_configuration_by_default(): void
+    {
+        $head = ['total' => Schema::int()];
+
+        $projected = (new Projector(new Configuration(strictValues: false)))->project(self::shape($head, ApiRevision::Atlas), $head, ['total' => 'abc']);
+
+        self::assertSame(['total' => 0], $projected);
+    }
+
     public function test_descriptors_without_the_was_schema_of_the_shape_are_refused(): void
     {
         $shape = self::shape(['total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string())], ApiRevision::Genesis);
@@ -499,6 +607,16 @@ final class ProjectorTest extends TestCase
         $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'total'));
 
         (new Projector())->project($shape, ['title' => Schema::string()], ['title' => 'Book']);
+    }
+
+    /**
+     * @param list<ValueException> $reported
+     */
+    private static function lenient(array &$reported): Projector
+    {
+        return new Projector(values: new LenientValues(static function (ValueException $error) use (&$reported): void {
+            $reported[] = $error;
+        }));
     }
 
     /**

@@ -838,6 +838,21 @@ production, so that type drift is caught without outages.*
 Tests: `test_strict_values_throw_on_a_refused_value`, `test_lenient_values_cast_and_report`,
 `test_null_on_a_non_nullable_field_is_a_value_error`, `test_the_exception_does_not_contain_the_value`.
 
+**Done** (2026-11-12): `Projection\ValueErrorHandler` (`handle($error, $fallback)`), `StrictValues`, `LenientValues`
+(optional reporter `Closure(ValueException): void`), `Configuration::$strictValues` (`true` in the core),
+`ValueException::nullNotAllowed()` and its `class` / `field` / `revision`; the `Projector` takes a handler or builds
+it from the configuration. Spike **F11**: errors carry class, field and revision; a non-nullable `null` is reported
+(also a `null` given by a `down:`; once: not after a failed conversion already reported). Decisions taken with the
+maintainer: **D53** (lenient: the cast of a refused value rendered as it is, without `when()`, chain nor serializer,
+so a typed closure never sees an unknown enum value; a failed conversion and a non-nullable `null` render `null`; the
+core is strict by default; D19 annotated). Coverage 99.90 %, Infection MSI 99 % on the projection (the known equivalent `(array)` cast).
+Deviations: the reporter is called on every error; "once per class and field" is the Laravel reporter's job (US 8.1),
+which reads `ValueException::$class` / `$field`; a `null` on a field whose `when()` omits it is never reported (a
+refused value is, before `when()`); the stack trace of a `ValueException` holds call arguments unless
+`zend.exception_ignore_args` is on (documented). Review: refused values no longer reach closures (D53 refined with the
+maintainer), `null` from a `down:` detected, PHPDoc, F11 row and D19 updated. Follow-ups: US 8.1 builds
+`LenientValues` with `report()` deduplicated and passes `app.debug`.
+
 ---
 
 ### E7 — Upgrade (request)
@@ -1120,7 +1135,7 @@ Findings carried into the stories (the stories cite them):
 | F8 | Plans hold both directions: responses never declare `up:`, requests never `down:`, so shapes are full of `missing`. Plan only the direction of the declaration kind | 4.3, 9.2 (Q8) |
 | F9 | What an `up:` closure receives as `$subject` is order-dependent: define it as a snapshot of the input at the start of the step, in the shape of `X` | 7.1 (Q5) |
 | F10 | Model gaps: `until(X)` fields dropped after the hook of step `X → next` (not written in §7.1); a group `until()` widens a member's earlier `until()` silently; a `was()` newer than the field's `until` is not a rule; a `was(schema:)` carrying its own history or default is not refused | 3.2 (Q7), 3.3, 7.1, 9.2 |
-| F11 | Value errors: `normalize()` must report through the `ValueErrorHandler` with class, field, revision; a non-nullable `null` is not reported; `$subject->{$key} ?? null` calls `__isset()` and hides Eloquent strict-mode errors §6.2 wants visible | 6.1, 6.4 |
+| F11 | Value errors: `normalize()` must report through the `ValueErrorHandler` with class, field, revision; a non-nullable `null` is not reported; `$subject->{$key} ?? null` calls `__isset()` and hides Eloquent strict-mode errors §6.2 wants visible | 6.1, 6.4 (addressed: US 6.1 reads without `isset()`, US 6.4 reports a non-nullable `null` with class, field, revision) |
 | F12 | Tests to add: round trip (down then up gives the head value back: 1250 → 12.5 → 1250), upgrades from every revision, an `until` field the hook does not consume, `mixedRevisions` / `invalidOrder` | 1.1, 7.1 (6.3: deferred to 7.1) |
 | F13 | Author trap: a `down:` closure receives the PHP value of the newer shape (`OrderStatus $s`, not `string`). Show it in the examples and the skill | 11.2 |
 
@@ -1229,7 +1244,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | done |
 | US 6.2 | Nested projection | M | 6.1 | M2 | done |
 | US 6.3 | Invariant test | S | 6.2 | M2 | done |
-| US 6.4 | Value errors | S | 6.1 | M2 | todo |
+| US 6.4 | Value errors | S | 6.1 | M2 | done |
 | US 7.1 | Upgrader | M | 5.2 | M2 | todo |
 | US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | todo |
 | US 7.3 | Nested upgrade | M | 7.1 | M2 | todo |

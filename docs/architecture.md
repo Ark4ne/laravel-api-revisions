@@ -283,8 +283,14 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   serialized children; its `serialize()` receives them too (`model.md` D34, D52). An item is told by a flag, never by
   its `*` key: a closure source gets the element as `$value`. Descriptors that do not match the shape (a composite on
   one side only) throw `missingDescriptor()`.
-- **Value errors** go to a `ValueErrorHandler` (**Strategy**): `StrictValues` throws `ValueException`;
-  `LenientValues` casts and hands the error to a reporter. Chosen from `Configuration::strictValues`.
+- **Value errors** go to a `ValueErrorHandler` (**Strategy**, `handle(ValueException $error, mixed $fallback): mixed`):
+  `StrictValues` throws the `ValueException`; `LenientValues` hands it to its reporter (`Closure(ValueException): void`,
+  optional) and returns the fallback: the cast of a refused value (rendered as it is: no `when()`, chain nor
+  serializer), `null` for a failed conversion or a non-nullable `null`, resolved or given by a `down:` (`model.md`
+  D53). The projector takes a handler, or builds one from
+  `Configuration::$strictValues` (`true` in the core). A `ValueException` exposes `class`, `field`, `revision` (the
+  Laravel reporter reports once per class and field) and never holds the value in its message; its stack trace holds
+  call arguments (the subject of an item) unless `zend.exception_ignore_args` is on, as in production `php.ini`.
 - A field whose condition fails is omitted. No `MissingValue` in the core.
 - The projector never mutates the subject; projecting twice gives the same result.
 

@@ -36,25 +36,32 @@ final readonly class Projector
 {
     private Shapes $shapes;
 
+    private ValueErrorHandler $values;
+
     /**
      * @param Configuration $configuration the one the shapes were compiled with: it configures the descriptor that
      *                                     serializes (a date format, model.md D29)
      * @param Converters|null $converters the registry the chains are bound to; `TypeRegistry::converters()` by default
      * @param Shapes|null $shapes the shapes of the nested resources (model.md D49); one compiling with `$configuration`
      *                            and `$converters` by default
+     * @param ValueErrorHandler|null $values what a value error does; from `$configuration->strictValues` by default
+     *                                       (`StrictValues`, or `LenientValues` without reporter)
      */
     public function __construct(
         private Configuration $configuration = new Configuration(),
         private ?Converters $converters = null,
         private SourceReader $reader = new SourceReader(),
         ?Shapes $shapes = null,
+        ?ValueErrorHandler $values = null,
     ) {
+        $this->values = $values ?? ($configuration->strictValues ? new StrictValues() : new LenientValues());
         $this->shapes = $shapes ?? new Shapes(new Compiler($configuration, $converters));
     }
 
     /**
      * The fields of `$shape` read on `$subject`, `name at the revision → serialized value`, in the head order. A field
-     * whose condition fails is omitted. A refused value or a failed conversion throws `ValueException`.
+     * whose condition fails is omitted. A refused value, a failed conversion and a non-nullable `null` go to the
+     * `ValueErrorHandler` (model.md D53).
      *
      * @param array<string, Descriptor<mixed>> $descriptors the head descriptors of the instance, by head key
      *
@@ -102,7 +109,11 @@ final readonly class Projector
         if ($value !== null) {
             $value = $descriptor->normalize($value);
             if ($value instanceof InvalidValue) {
-                throw ValueException::refused($class, $field->headKey, $field->revision, $value->expected->value, get_debug_type($value->value));
+                // lenient: its PHP cast rendered as it is, no closure ever sees a value outside its type (model.md D53)
+                return [true, $this->values->handle(
+                    ValueException::refused($class, $field->headKey, $field->revision, $value->expected->value, get_debug_type($value->value)),
+                    $value->cast,
+                )];
             }
             $value = $this->nested($field, $descriptor, $value, $class, $converters);
         }
@@ -111,8 +122,13 @@ final readonly class Projector
                 return [false, null];
             }
         }
+        [$rendered, $reported] = $value === null ? [null, false] : $this->render($field, $descriptor, $value, $subject, $converters, $class);
+        // a `null` resolved, or given by a `down:`, on a field that is not nullable at the revision
+        if ($rendered === null && !$field->nullable && !$reported) {
+            $this->values->handle(ValueException::nullNotAllowed($class, $field->headKey, $field->revision), null);
+        }
 
-        return [true, $value === null ? null : $this->render($field, $descriptor, $value, $subject, $converters, $class)];
+        return [true, $rendered];
     }
 
     /**
@@ -204,8 +220,10 @@ final readonly class Projector
      * head or the schema of a `was()`), configured.
      *
      * @param Descriptor<mixed> $descriptor
+     *
+     * @return array{mixed, bool} the serialized value, and whether a value error was handled
      */
-    private function render(FieldDefinition $field, Descriptor $descriptor, mixed $value, mixed $subject, Converters $converters, string $class): mixed
+    private function render(FieldDefinition $field, Descriptor $descriptor, mixed $value, mixed $subject, Converters $converters, string $class): array
     {
         $changes = $descriptor->history()->changes;
         if (!$field->chain->isEmpty()) {
@@ -213,13 +231,17 @@ final readonly class Projector
             try {
                 $value = $field->chain->bind($converters, $explicit)->apply($value, $subject);
             } catch (ConversionException) {
-                throw ValueException::unconvertible($class, $field->headKey, $field->revision, get_debug_type($value), $field->type->kind->value);
+                // lenient: no sensible cast between two types, `null` (model.md D53)
+                return [$this->values->handle(
+                    ValueException::unconvertible($class, $field->headKey, $field->revision, get_debug_type($value), $field->type->kind->value),
+                    null,
+                ), true];
             }
         }
         $serializer = $field->schemaChange === null
             ? $descriptor
             : ($changes[$field->schemaChange]->schema ?? throw DefinitionException::missingDescriptor($class, $field->headKey));
 
-        return $serializer->configured($this->configuration)->serialize($value);
+        return [$serializer->configured($this->configuration)->serialize($value), false];
     }
 }

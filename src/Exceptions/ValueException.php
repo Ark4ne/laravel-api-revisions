@@ -8,14 +8,23 @@ use BackedEnum;
 use RuntimeException;
 
 /**
- * A value of the subject the projection cannot render (model.md §6.3): refused by its type, or failing a conversion.
- * Names the class, the field and the revision, and the value's type, never the value itself. Named constructors only.
+ * A value of the subject the projection cannot render (model.md §6.3): refused by its type, `null` on a non-nullable
+ * field, or failing a conversion. Names the class, the field and the revision, and the value's type, never the value
+ * itself. Named constructors only.
  */
 final class ValueException extends RuntimeException implements RevisionsException
 {
-    private function __construct(string $message)
-    {
-        parent::__construct($message);
+    /**
+     * @param string $class the class declaring the field (`object` for a shape without class)
+     * @param string $field its head key (`*` for an item)
+     */
+    private function __construct(
+        public readonly string $class,
+        public readonly string $field,
+        public readonly BackedEnum $revision,
+        string $reason,
+    ) {
+        parent::__construct(sprintf('%s field %s at %s::%s: %s', $class, $field, $revision::class, $revision->name, $reason));
     }
 
     /**
@@ -23,7 +32,15 @@ final class ValueException extends RuntimeException implements RevisionsExceptio
      */
     public static function refused(string $class, string $field, BackedEnum $revision, string $expected, string $type): self
     {
-        return new self(sprintf('%s: %s expected, %s given.', self::at($class, $field, $revision), $expected, $type));
+        return new self($class, $field, $revision, "{$expected} expected, {$type} given.");
+    }
+
+    /**
+     * `null` on a field (or item) that is not nullable at the revision.
+     */
+    public static function nullNotAllowed(string $class, string $field, BackedEnum $revision): self
+    {
+        return new self($class, $field, $revision, 'null on a non-nullable field.');
     }
 
     /**
@@ -31,11 +48,6 @@ final class ValueException extends RuntimeException implements RevisionsExceptio
      */
     public static function unconvertible(string $class, string $field, BackedEnum $revision, string $type, string $expected): self
     {
-        return new self(sprintf('%s: %s cannot be converted to %s.', self::at($class, $field, $revision), $type, $expected));
-    }
-
-    private static function at(string $class, string $field, BackedEnum $revision): string
-    {
-        return sprintf('%s field %s at %s::%s', $class, $field, $revision::class, $revision->name);
+        return new self($class, $field, $revision, "{$type} cannot be converted to {$expected}.");
     }
 }

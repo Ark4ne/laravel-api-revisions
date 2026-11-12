@@ -23,4 +23,10 @@ final class ConfigurationTest extends TestCase
         self::assertSame(MissingDefault::Error, (new Configuration())->missingDefault);
         self::assertSame(MissingDefault::Null, (new Configuration(missingDefault: MissingDefault::Null))->missingDefault);
     }
+
+    public function test_value_errors_are_strict_by_default(): void
+    {
+        self::assertTrue((new Configuration())->strictValues);
+        self::assertFalse((new Configuration(strictValues: false))->strictValues);
+    }
 }

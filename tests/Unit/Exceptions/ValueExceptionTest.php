@@ -27,4 +27,14 @@ final class ValueExceptionTest extends TestCase
         self::assertNull($exception->getPrevious());
         self::assertSame('App\\OrderResource field total at Test\\Fixtures\\ApiRevision::Genesis: float cannot be converted to int.', $exception->getMessage());
     }
+
+    public function test_a_null_on_a_non_nullable_field_names_the_class_the_field_and_the_revision(): void
+    {
+        $exception = ValueException::nullNotAllowed('App\\OrderResource', 'total', ApiRevision::Atlas);
+
+        self::assertSame('App\\OrderResource field total at Test\\Fixtures\\ApiRevision::Atlas: null on a non-nullable field.', $exception->getMessage());
+        self::assertSame('App\\OrderResource', $exception->class);
+        self::assertSame('total', $exception->field);
+        self::assertSame(ApiRevision::Atlas, $exception->revision);
+    }
 }

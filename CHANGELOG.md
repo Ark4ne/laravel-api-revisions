@@ -94,8 +94,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   down chain bound to the fresh descriptors, serialization by the type in force at the revision; `null` skips
   normalization and conversions. `SourceReader::read()` (keys and dotted paths on arrays, `ArrayAccess`, public
   properties, `__get()` without `isset()`), `has()`, `peek()` (no side effect). `Exceptions\ValueException`
-  (`refused()`, `unconvertible()`: class, field, revision, never the value);
+  (`refused()`, `nullNotAllowed()`, `unconvertible()`; `class`, `field`, `revision`; never the value);
   `DefinitionException::missingDescriptor()`.
+- Value errors: `Projection\ValueErrorHandler` with `StrictValues` (throws) and `LenientValues` (an optional reporter;
+  renders the cast of a refused value as it is, `null` for a failed conversion or a non-nullable `null`, model.md D53), given to
+  the `Projector` or chosen from `Configuration::$strictValues` (`true` by default); a non-nullable field or item
+  resolving `null` is a value error.
 - Nested projection: objects project their head children on their value (or the parent's subject), lists each item
   (an item whose condition fails is dropped, model.md D51), a `Schema::resource()` the shape of its class at the
   same revision with its descriptors built on the value (`Projector` takes an optional `Shapes`); the composite's
