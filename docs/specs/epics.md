@@ -940,6 +940,15 @@ lists stay as values (US 7.3, with the head children from `headAt`).
 
 Tests: `test_the_hook_is_called_once_per_step_with_its_target`, `test_the_hook_sees_the_names_of_its_step`.
 
+**Done** (2026-11-12): the hook contract `Upgrade\UpgradesInput` and its call shipped with US 7.1 (its order in a step
+is tested there: `test_the_hook_runs_after_the_renames_and_before_the_defaults_of_its_step`,
+`test_a_field_retired_is_dropped_after_the_hook_of_its_last_step`); this story adds the two tests it lists in
+`UpgraderTest`, and `test_the_hook_sees_the_values_converted_by_its_step` (the hook runs after the conversions of the
+step too, review). Deviations: the tests were green when written, the behaviour having been implemented with its first
+tests in US 7.1; `test_the_hook_sees_the_names_of_its_step` is the US 7.1 test
+`test_each_step_renames_to_the_names_of_its_newer_revision`, renamed.
+No code change; a request's `protected upgrade()` reaches the interface through the trait (US 8.7).
+
 #### US 7.3 — Nested upgrade · M · depends US 7.1
 
 - Objects and lists upgraded recursively; renames and conversions of children.
@@ -1310,7 +1319,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 6.3 | Invariant test | S | 6.2 | M2 | done |
 | US 6.4 | Value errors | S | 6.1 | M2 | done |
 | US 7.1 | Upgrader | M | 5.2 | M2 | done |
-| US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | todo |
+| US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | done |
 | US 7.3 | Nested upgrade | M | 7.1 | M2 | todo |
 | US 8.1 | Service provider and configuration | S | 1.3 | M2 | todo |
 | US 8.2 | Resolvers | M | 8.1 | M2 | todo |

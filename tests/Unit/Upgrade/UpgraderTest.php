@@ -228,7 +228,50 @@ final class UpgraderTest extends TestCase
         self::assertSame(['status' => 'paid', 'seen' => ['status'], 'priority' => 0], $this->upgrade($head, ApiRevision::Genesis, ['state' => 'paid'], $hook));
     }
 
-    public function test_each_step_renames_to_the_names_of_its_newer_revision(): void
+    public function test_the_hook_is_called_once_per_step_with_its_target(): void
+    {
+        $hook = new class implements UpgradesInput {
+            /**
+             * @var list<Revision>
+             */
+            public array $targets = [];
+
+            public function upgrade(Revision $to, array $input): array
+            {
+                $this->targets[] = $to;
+
+                return $input;
+            }
+        };
+        $head = ['title' => Schema::string()];
+
+        $this->upgrade($head, ApiRevision::Genesis, ['title' => 'Book'], $hook);
+        $this->upgrade($head, ApiRevision::Atlas, ['title' => 'Book'], $hook);
+
+        self::assertSame([ApiRevision::Winter25, ApiRevision::Spring26, ApiRevision::Atlas], $hook->targets);
+    }
+
+    public function test_the_hook_sees_the_values_converted_by_its_step(): void
+    {
+        $hook = new class implements UpgradesInput {
+            public mixed $total = null;
+
+            public function upgrade(Revision $to, array $input): array
+            {
+                if ($to === ApiRevision::Winter25) {
+                    $this->total = $input['total'];
+                }
+
+                return $input;
+            }
+        };
+        $head = ['total' => Schema::float()->was(ApiRevision::Genesis, schema: Schema::int(), up: static fn(int $cents): float => $cents / 100)];
+
+        self::assertSame(['total' => 12.5], $this->upgrade($head, ApiRevision::Genesis, ['total' => 1250], $hook));
+        self::assertSame(12.5, $hook->total);
+    }
+
+    public function test_the_hook_sees_the_names_of_its_step(): void
     {
         $hook = new class implements UpgradesInput {
             /**
