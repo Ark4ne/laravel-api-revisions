@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Schema;
 
+use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use ReflectionClass;
 
@@ -57,6 +58,22 @@ final class TypeRegistry
         $class = self::$types[$name] ?? throw DefinitionException::unknownType($name);
 
         return new $class(...$arguments);
+    }
+
+    /**
+     * `$converters` (the built-in ones by default) with the conversions of every registered type implementing
+     * `DeclaresConversions`, in registration order.
+     */
+    public static function converters(?Converters $converters = null): Converters
+    {
+        $converters ??= Converters::builtIn();
+        foreach (self::$types as $class) {
+            if (is_subclass_of($class, DeclaresConversions::class)) {
+                $converters = $class::conversions($converters);
+            }
+        }
+
+        return $converters;
     }
 
     /**

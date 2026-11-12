@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Unit\Schema;
 
+use Ark4ne\ApiRevisions\Compilation\ShapeSelector;
+use Ark4ne\ApiRevisions\Conversion\StepKind;
+use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Definition\Kind;
+use Ark4ne\ApiRevisions\Schema\Schema;
 use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Money;
@@ -55,5 +59,32 @@ final class CustomTypeTest extends TestCase
         self::assertEquals(new Money(1250, 'EUR'), $money);
         self::assertSame(['amount' => 1250, 'currency' => 'EUR'], $schema->serialize($money));
         self::assertRefused($schema->normalize(['amount' => '12.50']), ['amount' => '12.50'], Kind::Custom, null);
+    }
+
+    public function test_a_custom_type_converts_to_a_float_with_its_own_converter(): void
+    {
+        TypeRegistry::register('money', MoneySchema::class);
+        $head = ['total' => (new MoneySchema())->was(ApiRevision::Winter25, schema: Schema::float())];
+
+        $converters = TypeRegistry::converters();
+
+        $down = ShapeSelector::at($head, ApiRevision::Winter25, Direction::Down, $converters)->fields['total']->chain;
+        $up = ShapeSelector::at($head, ApiRevision::Winter25, Direction::Up, $converters)->fields['total']->chain;
+
+        self::assertSame(StepKind::Registered, $down->steps[0]->kind);
+        self::assertSame('custom(money)>float:down', $down->steps[0]->key);
+        self::assertSame(StepKind::Registered, $up->steps[0]->kind);
+        self::assertSame('float>custom(money):up', $up->steps[0]->key);
+        self::assertSame(12.5, $down->bind(TypeRegistry::converters(), [])->apply(new Money(1250, 'EUR')));
+        self::assertEquals(new Money(1250, 'EUR'), $up->bind(TypeRegistry::converters(), [])->apply(12.5));
+    }
+
+    public function test_a_custom_type_without_registration_has_no_conversion(): void
+    {
+        $head = ['total' => (new MoneySchema())->was(ApiRevision::Winter25, schema: Schema::float())];
+
+        $down = ShapeSelector::at($head, ApiRevision::Winter25, Direction::Down, TypeRegistry::converters())->fields['total']->chain;
+
+        self::assertSame(StepKind::Missing, $down->steps[0]->kind);
     }
 }

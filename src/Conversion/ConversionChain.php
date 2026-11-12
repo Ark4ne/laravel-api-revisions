@@ -44,7 +44,7 @@ final readonly class ConversionChain
      */
     public function withStep(TypeDefinition $from, TypeDefinition $to, int $change, bool $explicit, Converters $converters): self
     {
-        $key = Converters::key($from->kind, $to->kind, $this->direction);
+        $key = Converters::keyOf($from, $to, $this->direction);
         if ($explicit) {
             $step = new ConversionStep(StepKind::Explicit, $key, $from, $to, $change);
         } elseif (self::holdSameValues($from, $to)) {

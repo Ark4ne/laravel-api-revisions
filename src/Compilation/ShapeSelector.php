@@ -40,7 +40,8 @@ final class ShapeSelector
      * @param array<string, Descriptor<mixed>> $head the head descriptors, by key, groups already spread
      * @param Direction $direction the direction of the declaration kind (model.md D27): down for a response, up for a
      *                             request; the chains plan that direction only
-     * @param Converters|null $converters the registry the chains are planned against; the built-in one by default
+     * @param Converters|null $converters the registry the chains are planned against (`TypeRegistry::converters()` for
+     *                                    the custom types); the built-in one by default
      * @param Configuration|null $configuration its `missingDefault` gives `null` to a `required()->since()` field
      *                                          without default (model.md D47); the default configuration otherwise
      */

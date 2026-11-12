@@ -155,6 +155,15 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A conversion registered for a side no type can have: an empty custom type name, or `Kind::Custom` without a name
+     * (`$side` is the side as keyed: `''` or `'custom'`).
+     */
+    public static function invalidConversionSide(string $side): self
+    {
+        return new self("Invalid conversion side '{$side}': register a kind, or a custom type by the name its TypeDefinition::custom() declares.");
+    }
+
+    /**
      * A custom type registered under a name `Schema` cannot serve: not a method name, or one of its own factories.
      */
     public static function invalidTypeName(string $name): self

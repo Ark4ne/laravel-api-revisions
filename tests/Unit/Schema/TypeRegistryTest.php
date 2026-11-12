@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace Test\Unit\Schema;
 
+use Ark4ne\ApiRevisions\Conversion\Converters;
+use Ark4ne\ApiRevisions\Definition\Direction;
+use Ark4ne\ApiRevisions\Definition\Kind;
+use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
+use Ark4ne\ApiRevisions\Schema\IntSchema;
 use Ark4ne\ApiRevisions\Schema\StringSchema;
 use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
+use Test\Fixtures\FloatToMoney;
 use Test\Fixtures\MoneySchema;
+use Test\Fixtures\MoneyToFloat;
 use Test\TestCase;
 
 final class TypeRegistryTest extends TestCase
@@ -109,5 +116,32 @@ final class TypeRegistryTest extends TestCase
         $this->expectExceptionMessage("The custom type 'money' must extend Ark4ne\\ApiRevisions\\Schema\\Descriptor, got App\\Missing.");
 
         TypeRegistry::register('money', 'App\Missing'); // @phpstan-ignore argument.type
+    }
+
+    public function test_the_converters_add_the_conversions_of_the_registered_types_to_the_built_in_ones(): void
+    {
+        $money = TypeDefinition::custom('money');
+        $float = TypeDefinition::of(Kind::Float);
+        $int = TypeDefinition::of(Kind::Int);
+
+        self::assertNull(TypeRegistry::converters()->find($money, $float, Direction::Down));
+
+        TypeRegistry::register('amount', IntSchema::class);
+        TypeRegistry::register('money', MoneySchema::class);
+        $converters = TypeRegistry::converters();
+
+        self::assertInstanceOf(MoneyToFloat::class, $converters->find($money, $float, Direction::Down));
+        self::assertInstanceOf(FloatToMoney::class, $converters->find($float, $money, Direction::Up));
+        self::assertNotNull($converters->find($int, $float, Direction::Down));
+    }
+
+    public function test_the_converters_extend_the_given_registry(): void
+    {
+        TypeRegistry::register('money', MoneySchema::class);
+
+        $converters = TypeRegistry::converters(new Converters());
+
+        self::assertNotNull($converters->find(TypeDefinition::custom('money'), TypeDefinition::of(Kind::Float), Direction::Down));
+        self::assertNull($converters->find(TypeDefinition::of(Kind::Int), TypeDefinition::of(Kind::Float), Direction::Down));
     }
 }

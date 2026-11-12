@@ -19,10 +19,12 @@ use Ark4ne\ApiRevisions\Conversion\BuiltIn\StringToBool;
 use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Closure;
 
 /**
- * The registry of automatic conversions, keyed by `(from Kind, to Kind, Direction)` (model.md §5). A factory builds
+ * The registry of automatic conversions, keyed by `(from, to, Direction)` (model.md §5), a side being a `Kind` or, for a
+ * custom type, its name (every custom type is `Kind::Custom`). A factory builds
  * the converter for the two types (an enum target needs its class), or returns `null` when the pair does not convert
  * automatically for those types. Immutable: `register()` returns a new registry.
  */
@@ -66,10 +68,19 @@ final class Converters
     }
 
     /**
+     * Registers (or replaces) the factory of a pair in one direction. A side is a `Kind`, or the name of a custom type
+     * (`'money'`, the name its `TypeDefinition::custom()` declares). `Kind::Custom` or an empty name throws
+     * `DefinitionException::invalidConversionSide()`: no type has them.
+     *
      * @param Closure(TypeDefinition $from, TypeDefinition $to): ?Converter $factory
      */
-    public function register(Kind $from, Kind $to, Direction $direction, Closure $factory): self
+    public function register(Kind|string $from, Kind|string $to, Direction $direction, Closure $factory): self
     {
+        foreach ([$from, $to] as $side) {
+            if ($side === Kind::Custom || $side === '') {
+                throw DefinitionException::invalidConversionSide($side === '' ? '' : $side->value);
+            }
+        }
         $clone = clone $this;
         $clone->factories[self::key($from, $to, $direction)] = $factory;
 
@@ -81,17 +92,35 @@ final class Converters
      */
     public function find(TypeDefinition $from, TypeDefinition $to, Direction $direction): ?Converter
     {
-        $factory = $this->factories[self::key($from->kind, $to->kind, $direction)] ?? null;
+        $factory = $this->factories[self::keyOf($from, $to, $direction)] ?? null;
 
         return $factory === null ? null : $factory($from, $to);
     }
 
     /**
-     * The serializable key of a pair: `int>float:down`.
+     * The serializable key of a pair: `int>float:down`; a custom type by its name, `custom(money)>float:down`.
      */
-    public static function key(Kind $from, Kind $to, Direction $direction): string
+    public static function key(Kind|string $from, Kind|string $to, Direction $direction): string
     {
-        return "{$from->value}>{$to->value}:{$direction->value}";
+        return self::side($from) . '>' . self::side($to) . ':' . $direction->value;
+    }
+
+    private static function side(Kind|string $side): string
+    {
+        return $side instanceof Kind ? $side->value : "custom({$side})";
+    }
+
+    /**
+     * The key of the pair of two types: a custom type (`Kind::Custom`) is keyed by its name.
+     */
+    public static function keyOf(TypeDefinition $from, TypeDefinition $to, Direction $direction): string
+    {
+        return self::key(self::sideOf($from), self::sideOf($to), $direction);
+    }
+
+    private static function sideOf(TypeDefinition $type): Kind|string
+    {
+        return $type->name ?? $type->kind;
     }
 
     private static function toEnum(TypeDefinition $from, TypeDefinition $to): ?Converter

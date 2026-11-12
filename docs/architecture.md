@@ -53,7 +53,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `Presence`, `Groups` (`@internal`), `Revisioned` |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `Groups` (`@internal`), `Revisioned` |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradeStep`, `Input` (present / absent / null), `UpgradesInput` hook contract |
@@ -146,15 +146,20 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
 
 ## 6. Conversions
 
-Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(from Kind, to Kind, Direction)`),
+Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(from, to, Direction)`, a side being a `Kind` or a custom type's name),
 **Pipeline** (`ConversionChain`).
 
 - `Converter::convert(mixed $value, mixed $subject = null): mixed`, `lossless(): bool`, `extraRules(): list<mixed>` (e.g. `numeric`). A
   converter receives a normalized value of its source type; any other value passes through unchanged.
-- `Converters` is an immutable instance (no static state): `register(Kind $from, Kind $to, Direction, $factory)`
+- `Converters` is an immutable instance (no static state): `register(Kind|string $from, Kind|string $to, Direction, $factory)`
   stores a factory `(TypeDefinition $from, TypeDefinition $to): ?Converter`, so a converter is built for the two
   types (`BackedToEnum` needs the enum class) or declined for them (`enum → int` of a string-backed enum, D41);
-  `find(TypeDefinition, TypeDefinition, Direction)` resolves it; `key()` (`int>float:down`) is what a chain stores.
+  `find(TypeDefinition, TypeDefinition, Direction)` resolves it; `keyOf()` (`int>float:down`, a custom type by its name:
+  `custom(money)>float:down`) is what a chain stores. A custom type converts through the static
+  `Schema\DeclaresConversions::conversions(Converters): Converters` of its class; `TypeRegistry::converters()` folds
+  those of every registered type onto the built-in registry (no static `Converters`: it is rebuilt from the static
+  `TypeRegistry`); the compiler passes it to `ShapeSelector::at()`, which stays pure (built-in registry by default).
+  `Kind::Custom` and an empty name are refused as sides (`DefinitionException::invalidConversionSide()`).
 - Built-ins are one class each under `Conversion\BuiltIn\` (`IntToFloat`, `NumericStringToFloat`, `EnumToBacked`,
   `BackedToEnum`…), registered in `Converters::builtIn()` for both directions (D25: the same cast serves both).
   `BackedToEnum` is the one converter that validates instead of passing a foreign value through: it throws

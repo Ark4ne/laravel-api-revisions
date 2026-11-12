@@ -613,6 +613,22 @@ Tests: `test_a_custom_type_converts_to_a_float_with_its_own_converter`.
 Note (from US 4.1): `Converters` keys factories by `(Kind, Kind, Direction)`; every custom type is `Kind::Custom`,
 so the key (and `find()`) must include the custom type's name, or two custom types overwrite each other.
 
+**Done** (2026-11-12): `Schema\DeclaresConversions` (static `conversions(Converters): Converters`, implemented by the
+class of a custom type), `TypeRegistry::converters(?Converters)` (the built-in registry, or the given one, with the
+conversions of every registered type, in registration order), given to `ShapeSelector::at()` (whose default stays
+the built-in registry: the selector reads no global state).
+`Converters::register()` takes `Kind|string` sides (a string is a custom type's name, the one its
+`TypeDefinition::custom()` declares, not the factory name); `Converters::key()` keys it `custom(money)`;
+`Converters::keyOf(TypeDefinition, TypeDefinition, Direction)` is what `find()` and `ConversionChain::withStep()` use.
+Fixtures: `MoneySchema` converts to and from a float (`MoneyToFloat`, `FloatToMoney`). Coverage 99.88 %, Infection
+MSI 98 % (the equivalent mutant of `toEnum()` from US 4.1). Review: the selector keeps the built-in registry as
+default (no global state read), impossible sides are refused, the up key is tested. Deviations: "registers its converters when registered in
+the `TypeRegistry`" is a hook read by `TypeRegistry::converters()`, not a registration into a global registry
+(`Converters` stays an immutable instance, no new static state); `Kind::Custom` registered without a name matches no
+custom type: it throws `DefinitionException::invalidConversionSide()`, as an empty name does. Follow-ups: US 5.1 passes `TypeRegistry::converters()` (or the application's) to the selector, and the
+projector / upgrader bind with the same registry; US 9.2 reads `lossless()` of custom converters for
+`conversion-lossy`.
+
 ---
 
 ### E5 — Compilation and cache
@@ -1104,7 +1120,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 4.1 | Converters and directions | M | 2.1 | M1 | done |
 | US 4.2 | Explicit casts and closures | S | 4.1 | M1 | done |
 | US 4.3 | Conversion chains | M | 4.2 | M1 | done |
-| US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | todo |
+| US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | done |
 | US 5.1 | Probe and compiler | M | 3.4 | M1 | todo |
 | US 5.2 | Shapes repository | S | 5.1 | M1 | todo |
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |

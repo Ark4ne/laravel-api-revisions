@@ -217,4 +217,12 @@ final class DefinitionExceptionTest extends TestCase
             DefinitionException::emptyChange(ApiRevision::Genesis)->getMessage(),
         );
     }
+
+    public function test_invalid_conversion_side_names_the_side(): void
+    {
+        self::assertSame(
+            "Invalid conversion side 'custom': register a kind, or a custom type by the name its TypeDefinition::custom() declares.",
+            DefinitionException::invalidConversionSide('custom')->getMessage(),
+        );
+    }
 }

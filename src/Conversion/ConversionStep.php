@@ -15,7 +15,8 @@ use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 final readonly class ConversionStep
 {
     /**
-     * @param string $key `Converters::key()` of the pair and direction (`int>string:down`), whatever the kind
+     * @param string $key `Converters::keyOf()` of the pair and direction (`int>string:down`; a custom type by its name,
+     *                    `custom(money)>float:down`)
      * @param int $change the index in the field's history (newest first) of the `was()` this step crosses: its
      *                    revision is the older shape of the step
      * @param Converter|null $converter once bound; never for a missing step

@@ -80,6 +80,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   sometimes, conditional, default and lifetime at the revision, its `Compilation\FieldVersion` at every applicable
   `was()`, its unbound conversion chain in the direction of the shape, the items of a list, the children of an object as
   a nested `Shape`), every omitted `was()` argument inherited from the next newer shape. Closure-free and serializable.
+- Conversions of custom types: a custom type implementing `Schema\DeclaresConversions` registers its conversions
+  (`conversions(Converters): Converters`); `TypeRegistry::converters()` gives the built-in registry with those of every
+  registered type, to give to `ShapeSelector::at()`. `Converters::register()` takes a custom type's name as a
+  side (`Kind::Custom` and an empty name throw `DefinitionException::invalidConversionSide()`); `Converters::keyOf()` keys a custom type by its name (`custom(money)>float:down`), so two custom types never
+  overwrite each other.
 - Defaults: `Configuration::$missingDefault` (`Configuration\MissingDefault::Error`, the default, or `Null`); with
   `Null`, a `required()->since(R)` field declared without `default:` gets `null` as default in the shapes
   (`ShapeSelector::at(..., configuration:)`), an optional one keeps none.

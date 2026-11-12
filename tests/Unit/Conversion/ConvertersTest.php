@@ -21,6 +21,7 @@ use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\ConversionException;
+use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Test\Fixtures\Enums\OrderStatus;
@@ -223,5 +224,44 @@ final class ConvertersTest extends TestCase
         $value = new stdClass();
 
         self::assertSame($value, $converter->convert($value));
+    }
+
+    public function test_a_custom_type_is_keyed_by_its_name(): void
+    {
+        self::assertSame('custom(money)>float:down', Converters::key('money', Kind::Float, Direction::Down));
+        self::assertSame('float>custom(money):up', Converters::key(Kind::Float, 'money', Direction::Up));
+        self::assertSame(
+            'custom(money)>custom(percent):up',
+            Converters::keyOf(TypeDefinition::custom('money'), TypeDefinition::custom('percent'), Direction::Up),
+        );
+        self::assertSame('int>float:down', Converters::keyOf(TypeDefinition::of(Kind::Int), TypeDefinition::of(Kind::Float), Direction::Down));
+    }
+
+    public function test_two_custom_types_do_not_overwrite_each_other(): void
+    {
+        $toMoney = new IntToFloat();
+        $toPercent = new IntToFloat();
+        $registry = (new Converters())
+            ->register('money', Kind::Float, Direction::Down, static fn(): Converter => $toMoney)
+            ->register('percent', Kind::Float, Direction::Down, static fn(): Converter => $toPercent);
+        $float = TypeDefinition::of(Kind::Float);
+
+        self::assertSame($toMoney, $registry->find(TypeDefinition::custom('money'), $float, Direction::Down));
+        self::assertSame($toPercent, $registry->find(TypeDefinition::custom('percent'), $float, Direction::Down));
+        self::assertNull($registry->find(TypeDefinition::custom('euro'), $float, Direction::Down));
+    }
+
+    public function test_the_custom_kind_without_name_is_refused(): void
+    {
+        $this->expectExceptionObject(DefinitionException::invalidConversionSide('custom'));
+
+        (new Converters())->register(Kind::Float, Kind::Custom, Direction::Down, static fn(): Converter => new IntToFloat());
+    }
+
+    public function test_an_empty_custom_type_name_is_refused(): void
+    {
+        $this->expectExceptionObject(DefinitionException::invalidConversionSide(''));
+
+        (new Converters())->register('', Kind::Float, Direction::Down, static fn(): Converter => new IntToFloat());
     }
 }

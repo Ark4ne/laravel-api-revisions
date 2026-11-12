@@ -4,19 +4,35 @@ declare(strict_types=1);
 
 namespace Test\Fixtures;
 
+use Ark4ne\ApiRevisions\Conversion\Converter;
+use Ark4ne\ApiRevisions\Conversion\Converters;
+use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Schema\DeclaresConversions;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\InvalidValue;
 
 /**
  * A custom type (model.md §3): an amount in cents and a currency, `{"amount": 1250, "currency": "EUR"}`. Accepts a
- * `Money` or an array with an int `amount` and a 3-letter `currency`.
+ * `Money` or an array with an int `amount` and a 3-letter `currency`. Converts to and from a float in both directions
+ * (`MoneyToFloat`, `FloatToMoney` in euros).
  *
  * @extends Descriptor<Money>
  */
-final class MoneySchema extends Descriptor
+final class MoneySchema extends Descriptor implements DeclaresConversions
 {
+    public static function conversions(Converters $converters): Converters
+    {
+        foreach (Direction::cases() as $direction) {
+            $converters = $converters
+                ->register('money', Kind::Float, $direction, static fn(): Converter => new MoneyToFloat())
+                ->register(Kind::Float, 'money', $direction, static fn(): Converter => new FloatToMoney('EUR'));
+        }
+
+        return $converters;
+    }
+
     /**
      * @param non-empty-string|null $currency the currency assumed when the value has none
      */
