@@ -438,4 +438,4 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
 | Coverage ≥ 90 % (`bin/coverage-check.php`) | Tested lines |
 | Infection (MSI ≥ 80 %) | Test quality; a change generating no mutant is not measured (`ignoreMsiWithNoMutations`) |
-| Benchmark gate | Projection time and memory at the head and the oldest revision |
+| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of 1 000 orders at the head and the oldest revision (core `Projector`, descriptors built per order, shapes compiled once) as **ratios** to a plain `JsonResource`: scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |

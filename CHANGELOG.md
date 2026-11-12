@@ -96,6 +96,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   properties, `__get()` without `isset()`), `has()`, `peek()` (no side effect). `Exceptions\ValueException`
   (`refused()`, `nullNotAllowed()`, `unconvertible()`; `class`, `field`, `revision`; never the value);
   `DefinitionException::missingDescriptor()`.
+- Benchmark gate: `composer benchmark` (`bin/benchmark.php`, reference `bin/benchmark/reference.json`, `--update`)
+  compares the projection at the head and at the oldest revision with a plain `JsonResource` (time and memory ratios,
+  10 % tolerance); run in CI.
 - Value errors: `Projection\ValueErrorHandler` with `StrictValues` (throws) and `LenientValues` (an optional reporter;
   renders the cast of a refused value as it is, `null` for a failed conversion or a non-nullable `null`, model.md D53), given to
   the `Projector` or chosen from `Configuration::$strictValues` (`true` by default); a non-nullable field or item

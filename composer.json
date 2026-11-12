@@ -73,6 +73,7 @@
         ],
         "benchmark": [
             "Composer\\Config::disableProcessTimeout",
+            "@putenv XDEBUG_MODE=off",
             "@php bin/benchmark.php"
         ],
         "ci": [

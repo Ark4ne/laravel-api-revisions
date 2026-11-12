@@ -1,0 +1,13 @@
+{
+    "tolerance": 0.1,
+    "ratios": {
+        "head": {
+            "time": 31.798,
+            "memory": 1.147
+        },
+        "oldest": {
+            "time": 29.79,
+            "memory": 1.041
+        }
+    }
+}

@@ -721,6 +721,34 @@ Tests: `test_a_cached_shape_equals_the_compiled_one`, `test_projection_from_the_
 - `bin/benchmark.php`: project 1 000 orders at the head and at `Genesis`, with and without the compiled file; compare
   with a plain `JsonResource`; reference in `bin/benchmark/reference.json`; fail beyond the tolerance (10 %).
 
+**Done** (2026-11-12), reduced scope decided with the maintainer (the compiled file is US 5.3, `RevisionedResource`
+US 8.5): `bin/benchmark.php` projects 1 000 `Order`s at `Atlas` and at `Genesis` through the core `Projector`
+(descriptors built per order through the bridge, shapes from one `Shapes`), and resolves a plain `JsonResource` with
+the same fields as baseline; it gates **ratios** to the baseline (scenarios interleaved in each of 9 runs, median of
+the per-run time ratios; peak memory with the 1 000 outputs held), so it holds on any machine; it refuses to run under
+Xdebug (`composer benchmark` sets `XDEBUG_MODE=off`), which skews the ratios; `--update` rewrites
+`bin/benchmark/reference.json` and keeps its tolerance; CI job `benchmark`. No Laravel boot is needed, so no facade
+is allowed in `bin/benchmark/*` (the US 0.2 follow-up is moot). First reference (PHP 8.5, no Xdebug): the projection
+costs about ×32 the time of the plain resource at the head, ×30 at `Genesis`, and ×1.15 / ×1.04 its memory. Deviations:
+no compiled-file variant, no `RevisionedResource`; no unit test for the script (tooling, like
+`bin/coverage-check.php`), checked by hand: within 1 % over three runs, red on a lowered reference and on a reference
+scenario not measured. Follow-ups: US 5.3 adds the compiled-file scenarios, US 8.5 replaces the bridge call by
+`RevisionedResource`; the US 6.1 follow-up (per-field `configured()` / `bind()`, `TypeRegistry::converters()` per
+`project()`) moves to US 5.5 (appended below), with the ×32; refresh the reference from CI (PHP 8.4) if its ratios
+differ.
+
+#### US 5.5 — Projection cost · M · depends US 5.4
+
+*As an application developer, I want a revisioned resource to cost close to a plain one, so that adopting the library
+does not slow my API.*
+
+- The first benchmark puts the projection at about ×32 the time of a plain `JsonResource`. Measure, then remove the per-render
+  work that depends only on the shape: `Descriptor::configured()` of the serializer per field, `ConversionChain::bind()`
+  per field, `TypeRegistry::converters()` per `project()`, the shape lookups of nested resources (US 6.1 follow-up).
+- Lower `bin/benchmark/reference.json` with the gain.
+
+Tests: none new (the projection tests stay green); the benchmark gate measures the gain.
+
 ---
 
 ### E6 — Projection (response)
@@ -1087,7 +1115,7 @@ E1 ────────────── 1.1 ─┬─ 1.2
 E2 ────────────── 2.1 ─ 2.2 ─ 2.3 ─ 2.4 ─ 2.5                    │
 E4 ────────────── 4.1 ─ 4.2 ─ 4.3 ─ 4.4                           ├─ 8.5 (after 6.2)
 E3 ──────────────────── 3.1 ─ 3.2 ─ 3.3 ─ 3.4 ─ 3.5               ├─ 8.6 ─ 8.7 (after 7.3)
-E5 ─────────────────────────────────────── 5.1 ─ 5.2 ─ 5.3 ─ 5.4  └─ 8.8
+E5 ─────────────────────────────────────── 5.1 ─ 5.2 ─ 5.3 ─ 5.4 ─ 5.5  └─ 8.8
 E6 ───────────────────────────────────────────── 6.1 ─ 6.2 ─ 6.3
 E7 ───────────────────────────────────────────── 7.1 ─ 7.2 ─ 7.3
 E9 ───────────────────────────────────────────── 9.1 ─ 9.2 ─ 9.3 ─ 9.4 (after 10.1)
@@ -1100,11 +1128,11 @@ E11 ── last
 | **M0 — Spike** (throwaway branch `spike/core`, 2 days) | minimal `RevisionOrder`, scalar descriptors, `since` / `until` / `was`, `ShapeSelector`, `Projector`, `Upgrader` on the reference scenario | the 4 rows of `model.md` §4.2 rendered and the `Genesis` input upgraded to the head; chained inheritance confirmed; a shape serialized then re-bound to fresh closures; deleting `Genesis` makes PHPStan report every `was(Genesis)` |
 | **M1 — Core** | E0, E1, E2, E3, E4, US 5.1–5.2 | `Shapes::for()` correct for every fixture at every revision |
 | **M2 — Runtime** | E6, E7, E8 | Feature scenario green at every revision, both directions |
-| **M3 — Safety** | E9, US 10.1, US 5.3, US 5.4 | every diagnostic code covered; lock in CI; benchmark gate |
+| **M3 — Safety** | E9, US 10.1, US 5.3, US 5.4, US 5.5 | every diagnostic code covered; lock in CI; benchmark gate |
 | **M4 — Release** | US 10.2–10.5, E11 | 1.0.0 ready to tag; X1 and X2 unblocked |
 
 Estimate (S = 1 d, M = 2.5 d, L = 4.5 d): E0 4 · E1 4.5 · E2 9.5 · E3 10 · E4 7 · E5 8.5 · E6 6 · E7 6 · E8 21 ·
-E9 7 · E10 11 · E11 4.5, plus US 2.6 and 6.4 (2) → about **102 days** of nominal work.
+E9 7 · E10 11 · E11 4.5, plus US 2.6, 6.4 and 5.5 (4.5) → about **104.5 days** of nominal work.
 
 
 ### 3.1 Spike M0 — results
@@ -1240,7 +1268,8 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 5.1 | Probe and compiler | M | 3.4 | M1 | done |
 | US 5.2 | Shapes repository | S | 5.1 | M1 | done |
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
-| US 5.4 | Benchmark gate | M | 6.1 | M3 | todo |
+| US 5.4 | Benchmark gate | M | 6.1 | M3 | done |
+| US 5.5 | Projection cost | M | 5.4 | M3 | todo |
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | done |
 | US 6.2 | Nested projection | M | 6.1 | M2 | done |
 | US 6.3 | Invariant test | S | 6.2 | M2 | done |
