@@ -164,10 +164,20 @@ final class ShapeSelectorTest extends TestCase
         $field = ShapeSelector::at(self::order(), ApiRevision::Genesis, Direction::Down)->fields['total'];
 
         self::assertEquals([
-            new FieldVersion(ApiRevision::Winter25, 0, 'total', Schema::string()->toType()),
-            new FieldVersion(ApiRevision::Genesis, 1, 'total', Schema::float()->toType()),
+            new FieldVersion(ApiRevision::Winter25, 0, 'total', Schema::string()->toType(), 0),
+            new FieldVersion(ApiRevision::Genesis, 1, 'total', Schema::float()->toType(), 1),
         ], $field->versions);
         self::assertSame(1, $field->schemaChange);
+    }
+
+    public function test_a_version_without_schema_keeps_the_schema_in_force_from_a_newer_was(): void
+    {
+        $head = ['total' => Schema::int()->was(ApiRevision::Spring26, schema: Schema::string())->was(ApiRevision::Winter25, name: 'amount')];
+
+        $versions = ShapeSelector::at($head, ApiRevision::Genesis, Direction::Up)->fields['total']->versions;
+
+        self::assertSame([0, 0], array_map(static fn(FieldVersion $version): ?int => $version->schemaChange, $versions));
+        self::assertNull(ShapeSelector::at(['a' => Schema::int()->was(ApiRevision::Winter25, name: 'b')], ApiRevision::Genesis, Direction::Up)->fields['a']->versions[0]->schemaChange);
     }
 
     public function test_versions_stop_at_the_revision(): void

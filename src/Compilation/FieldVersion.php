@@ -15,6 +15,8 @@ final readonly class FieldVersion
 {
     /**
      * @param int $change the index of the `was()` in the field's history, newest first
+     * @param int|null $schemaChange the index of the `was()` whose schema is in force at `$revision` (this one or a
+     *                               newer one), `null` for the head descriptor
      *
      * @internal built by `ShapeSelector`
      */
@@ -23,5 +25,6 @@ final readonly class FieldVersion
         public int $change,
         public string $name,
         public TypeDefinition $type,
+        public ?int $schemaChange = null,
     ) {}
 }

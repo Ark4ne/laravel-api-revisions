@@ -107,13 +107,15 @@ final class ShapeSelector
         $steps = [];
         $newer = $head;
         $headAt = null;
+        $schemaChange = null;
         foreach (self::walk($key, $head, $revision) as [$change, $index, $name, $descriptor]) {
             if ($change->schema !== null) {
                 // the head is in force up to the revision after its newest `was(schema:)` (model.md D52)
                 $headAt ??= self::next($change->revision);
+                $schemaChange = $index;
             }
             $type = self::typeOf($descriptor, $change->revision);
-            $versions[] = new FieldVersion($change->revision, $index, $name, $type);
+            $versions[] = new FieldVersion($change->revision, $index, $name, $type, $schemaChange);
             $steps[] = [self::typeOf($newer, self::next($change->revision)), $type, $index, $change];
             $newer = $descriptor;
         }

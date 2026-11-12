@@ -180,6 +180,14 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A response shape (down) given to the upgrader, which upgrades request shapes (up) only (model.md D27).
+     */
+    public static function notAnUpShape(string $class): self
+    {
+        return new self("The shape of {$class} is a response shape (down): only a request shape (up) can be upgraded.");
+    }
+
+    /**
      * An entry of a declaration that is not a descriptor under a string key.
      */
     public static function invalidDeclaration(string $class, int|string $key, string $type): self

@@ -57,7 +57,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned` |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
-| Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradeStep`, `Input` (present / absent / null), `UpgradesInput` hook contract |
+| Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits, commands, queue capture |
@@ -298,14 +298,31 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
 
 ## 9. Upgrade (request, up)
 
-Patterns: **Pipeline** (one `UpgradeStep` per revision transition), **Template Method** hook (`upgrade()`),
-**Special Case** (`Input` tells absent from `null`).
+Patterns: **Pipeline** (one step per revision transition, read from the `Shape`), **Template Method** hook
+(`upgrade()`). Absent and `null` are told apart by `array_key_exists()` on the input array, never by `isset()`.
 
-- `Upgrader::upgrade(Shape $from, array $input, UpgradesInput $hook): array` runs, for each step `X → X->next()`:
-  renames + `up` conversions of the `was(X)`, then `$hook->upgrade(X->next(), $input)`, then the defaults of the fields
-  `since(X->next())`.
-- Conversions and defaults apply to **present** keys only; a default never replaces an explicit `null`.
-- The upgrader is pure: it does not validate. The Laravel layer validates at `R` first, then upgrades.
+- `Upgrader` (`final readonly`, built like the `Projector` with the `Configuration` and optional `Converters`):
+  `upgrade(Shape $from, array $descriptors, array $input, ?UpgradesInput $hook = null): array`. Like the projector it
+  takes the fresh head descriptors: they give the `up:` closures and the descriptor that normalizes and serializes.
+  The steps are read from the up `Shape` of `R`, never recomputed: its visible fields and `added` fields (each compiled
+  at its `since`), `FieldDefinition::$versions` (`FieldVersion`: the name, `was()` index and schema in force at each
+  revision, `$schemaChange`), `FieldDefinition::nameAt()` and `ConversionChain::stepOf()` (the step crossing a
+  `was()`). A down shape throws `DefinitionException::notAnUpShape()`. For each step `X → X->next()`:
+  1. the values of the fields `until(X)` are set aside; every field existing at both revisions with a `was(X)`: its
+     value read from a **snapshot** of the step under its name at `X`; when not `null` and the chain has a step there,
+     normalized by the descriptor in force at `X` (`ValueException::refused()` on a refusal) and converted, the step
+     receiving `($value, $snapshot)`; all old names removed, then the new ones written (spike F1); the retired values
+     put back under the names no newer field took;
+  2. `$hook->upgrade(X->next(), $input)`;
+  3. the defaults of the `added` fields `since(X->next())`, under their name there, unless the key is present (even
+     `null`) with a value that is not a retired one;
+  4. the retired values still present are dropped (after the hook, which may consume them).
+  Then the values converted or defaulted are serialized by their head descriptor (`configure()`d); the others stay as
+  sent. The result is in the head order, keys the shape does not know last (`model.md` D54).
+- Conversions and defaults apply to **present** keys only; a default never replaces an explicit `null`. A failed
+  conversion throws its `ConversionException` (the Laravel layer turns it into a validation error, US 8.7, Q18).
+- The upgrader is pure: it does not validate and never mutates its input. The Laravel layer validates at `R` first,
+  then upgrades.
 
 ## 10. Laravel bridge
 

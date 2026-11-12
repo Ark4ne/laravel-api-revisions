@@ -96,6 +96,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   properties, `__get()` without `isset()`), `has()`, `peek()` (no side effect). `Exceptions\ValueException`
   (`refused()`, `nullNotAllowed()`, `unconvertible()`; `class`, `field`, `revision`; never the value);
   `DefinitionException::missingDescriptor()`.
+- Upgrade: `Upgrade\Upgrader::upgrade($shape, $descriptors, $input, ?$hook)` takes a validated input of a request
+  shape's revision to the head, step by step: renames and `up` conversions of each `was()` read from a snapshot of the
+  step (values normalized to the type of the step first), the `Upgrade\UpgradesInput` hook, the defaults of the fields
+  added in the newer revision (never over an explicit `null`), the fields retired dropped; converted and defaulted
+  values serialized back to raw values, the result in the head order (model.md D26, D54); a response shape throws
+  `DefinitionException::notAnUpShape()`. `FieldVersion::$schemaChange` and `FieldDefinition::nameAt()` give the
+  descriptor in force and the name at a revision.
 - Benchmark gate: `composer benchmark` (`bin/benchmark.php`, reference `bin/benchmark/reference.json`, `--update`)
   compares the projection at the head and at the oldest revision with a plain `JsonResource` (time and memory ratios,
   10 % tolerance); run in CI. A projection costs about ×19 the time of the plain resource: `TypeRegistry::converters()`

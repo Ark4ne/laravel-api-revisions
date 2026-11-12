@@ -8,6 +8,7 @@ use Ark4ne\ApiRevisions\Conversion\ConversionChain;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 
 /**
  * One field of a class at one revision, decided by the `ShapeSelector` (model.md §4.5): its name and type at that
@@ -64,6 +65,23 @@ final readonly class FieldDefinition
      * Its shape up to the `was()` of `$revision` included, `null` when it has none there (nothing changes on the step
      * `$revision → $revision->next()`).
      */
+    /**
+     * Its name at `$revision` (at or after `$this->revision`): that of its oldest `was()` at or after `$revision`, else
+     * its head key.
+     */
+    public function nameAt(Revision $revision): string
+    {
+        $name = $this->headKey;
+        foreach ($this->versions as $version) {
+            if (RevisionOrder::compare($version->revision, $revision) < 0) {
+                break;
+            }
+            $name = $version->name;
+        }
+
+        return $name;
+    }
+
     public function versionAt(Revision $revision): ?FieldVersion
     {
         foreach ($this->versions as $version) {

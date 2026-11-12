@@ -35,6 +35,19 @@ final class FieldDefinitionTest extends TestCase
         self::assertNull(self::field([])->versionAt(ApiRevision::Winter25));
     }
 
+    public function test_the_name_at_a_revision_is_the_one_of_its_oldest_was_at_or_after_it(): void
+    {
+        $field = self::field([
+            new FieldVersion(ApiRevision::Spring26, 0, 'state', TypeDefinition::of(Kind::String)),
+            new FieldVersion(ApiRevision::Genesis, 1, 'code', TypeDefinition::of(Kind::String)),
+        ]);
+
+        self::assertSame('status', $field->nameAt(ApiRevision::Atlas));
+        self::assertSame('state', $field->nameAt(ApiRevision::Spring26));
+        self::assertSame('state', $field->nameAt(ApiRevision::Winter25));
+        self::assertSame('code', $field->nameAt(ApiRevision::Genesis));
+    }
+
     public function test_a_field_keeps_its_arguments(): void
     {
         $field = self::field([]);

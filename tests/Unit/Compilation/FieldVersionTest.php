@@ -22,5 +22,7 @@ final class FieldVersionTest extends TestCase
         self::assertSame(0, $version->change);
         self::assertSame('state', $version->name);
         self::assertSame($type, $version->type);
+        self::assertNull($version->schemaChange);
+        self::assertSame(1, (new FieldVersion(ApiRevision::Genesis, 1, 'state', $type, 1))->schemaChange);
     }
 }

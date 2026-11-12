@@ -911,6 +911,28 @@ Tests: `test_a_genesis_input_is_upgraded_to_the_head`, `test_a_renamed_key_is_mo
 `test_a_default_fills_an_absent_key_added_later`, `test_a_default_never_replaces_an_explicit_null`,
 `test_an_absent_key_is_not_converted`.
 
+**Done** (2026-11-12): `Upgrade\Upgrader` (`final readonly`, `Configuration` + optional `Converters`) and the hook
+contract `Upgrade\UpgradesInput`; fixture `OrderInputDeclaration` (the body of model.md §7 with its hook). The steps
+are read from the up `Shape` (visible and `added` fields, `FieldDefinition::$versions` with the new
+`FieldVersion::$schemaChange`, the new `FieldDefinition::nameAt()`, `ConversionChain::stepOf()`), nothing recomputed
+(F6); a down shape throws `DefinitionException::notAnUpShape()`. Findings: F1 (snapshot, removals before writes:
+`test_a_rename_chain_in_one_step_loses_nothing`), F3 / F9 (normalized value and snapshot of the step:
+`test_an_up_closure_receives_the_value_normalized_to_its_step_and_the_snapshot_of_the_step`), F5 (defaults at their
+`since`, travelling through later renames and conversions, never past an `until`:
+`test_a_default_travels_through_the_later_renames_and_conversions`,
+`test_a_default_of_a_field_retired_before_the_head_never_reaches_it`), F10 (`until(X)` dropped after the hook:
+`test_a_field_retired_is_dropped_after_the_hook_of_its_last_step`), F12 (round trip down then up at every revision,
+the same order sent at every revision). Details recorded as D54 (head order, unknown keys kept, only converted or
+defaulted values serialized, a refused value throws, a retired field never takes the name of a newer one, what the
+snapshot and the hook hold). Review: a retired field reusing the name of a newer field lost its value (fixed:
+`test_a_field_renamed_onto_the_name_of_a_retired_field_keeps_its_value`,
+`test_a_default_reusing_the_name_of_a_retired_field_is_written`); the descriptor in force and the names at a revision
+moved to the shape. Deviations: `upgrade()` also takes the head descriptors (like
+`Projector::project()`: the `up:` closures and the normalizing descriptor come from the instance); no `Input` class (an
+array and `array_key_exists()` tell absent from `null`) and no `UpgradeStep` class (the steps are the `Shape`'s); the
+hook is called already (US 7.2 adds its tests). Infection 98 % (one equivalent `break`). Follow-ups: nested objects and
+lists stay as values (US 7.3, with the head children from `headAt`).
+
 #### US 7.2 — The `upgrade()` hook · S · depends US 7.1
 
 - `Upgrade\UpgradesInput::upgrade(Revision $to, array $input): array`, called once per step, after the `was()` of the
@@ -1287,7 +1309,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 6.2 | Nested projection | M | 6.1 | M2 | done |
 | US 6.3 | Invariant test | S | 6.2 | M2 | done |
 | US 6.4 | Value errors | S | 6.1 | M2 | done |
-| US 7.1 | Upgrader | M | 5.2 | M2 | todo |
+| US 7.1 | Upgrader | M | 5.2 | M2 | done |
 | US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | todo |
 | US 7.3 | Nested upgrade | M | 7.1 | M2 | todo |
 | US 8.1 | Service provider and configuration | S | 1.3 | M2 | todo |
