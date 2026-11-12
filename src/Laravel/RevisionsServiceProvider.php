@@ -16,6 +16,7 @@ use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Laravel\Resources\EloquentSourceReader;
 use Ark4ne\ApiRevisions\Laravel\Routing\RevisionedRoutes;
+use Ark4ne\ApiRevisions\Laravel\Validation\RuleCompiler;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Projection\StrictValues;
@@ -38,7 +39,8 @@ use Illuminate\Support\ServiceProvider;
  * current container), its base the configured fixed default (D31); the `ValueErrorHandler` from `strict_values`, a
  * lenient one reporting each error once per class and field and request; the `ResolverChain` of `resolvers` and
  * `default` (`scoped`: a resolver may read request services); the `Projector` of `RevisionedResource` (`scoped`, with
- * the `EloquentSourceReader`, the `Shapes` and the `ValueErrorHandler`); in the console, the commands `revision:cache` /
+ * the `EloquentSourceReader`, the `Shapes` and the `ValueErrorHandler`); the `RuleCompiler` of the request shapes
+ * (one per application); in the console, the commands `revision:cache` /
  * `revision:clear`, run by `optimize` / `optimize:clear`; the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
  * macro and the other commands are added by their stories (US 8.4 onwards).
  */
@@ -90,6 +92,7 @@ final class RevisionsServiceProvider extends ServiceProvider
                 }
             });
         });
+        $this->app->singleton(RuleCompiler::class, static fn(Container $app): RuleCompiler => new RuleCompiler($app->make(Shapes::class)));
         $this->app->scoped(Projector::class, static fn(Container $app): Projector => new Projector(
             $app->make(Configuration::class),
             reader: new EloquentSourceReader(),

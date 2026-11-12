@@ -141,6 +141,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `Projection\PlainSourceReader` (the former class) and decorated for Eloquent by
   `Laravel\Resources\EloquentSourceReader` (attributes present in `getAttributes()`, relations loaded, never a lazy
   load).
+- Validation rules of a request shape: `Laravel\Validation\RuleCompiler::compile($shape, $descriptors)` (bound in the
+  container) gives the Laravel rules under the names of the client's revision (dotted for children and nested
+  resources, `.*` for items): `sometimes` / `required` / `nullable` as declared, the rules of the type (one
+  `Laravel\Validation\RuleMapper` per kind, replaceable: string length, pattern and known formats, `integer` /
+  `numeric`, `boolean`, `date_format:`, Laravel's `Enum`, `list` / `array`), those of the first up conversion
+  (`numeric`, `integer`, the values of an enum), then the descriptor's `rules()` as given. A required child of a parent
+  the client may leave out gets `required_unless:<parent>,null`. `DefinitionException::rulesOfAResponse()`,
+  `unknownKind()` (a mapper keyed by no kind).
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.

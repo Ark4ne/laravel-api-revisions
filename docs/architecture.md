@@ -379,7 +379,18 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   the provider's `boot()` (a macro closure is bound to the router, so it is not static); prefix, enum constraint and
   `revision` middleware.
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
-  producing Laravel rules under the names of the revision.
+  producing Laravel rules under the names of the revision. Since US 8.6 (`model.md` D62): `final readonly`, a
+  singleton of the provider built on the application's `Shapes`; `compile(Shape, descriptors)` walks the visible
+  fields of an up shape (the `added` ones never), takes presence and nullability from the `FieldDefinition`, the type
+  rules from the mapper of `$field->type` (the type at the revision), the conversion rules from the first step of the
+  chain (a `Registered` one only, bound against `TypeRegistry::converters()` or the registry given), the user rules from
+  the descriptor in force (`schemaChange`); nests through `children` / `items` where the head is in force, through the
+  `was()` schema and `$field->type` otherwise, and through `Shapes::for($class, kind, revision)` and
+  `describeRevisioned($kind, Probe)` for a nested resource. Mappers in `Laravel\Validation\Mappers\` (`StringRules`,
+  `NumberRules`, `DateRules`, `EnumRules`, `ArrayRules`, `FixedRules`), each `final readonly`; the default one per kind is an
+  exhaustive `match`, a mapper given replaces it (keys checked against `Kind`). The walk carries a guard, the nearest
+  parent the client may leave out (D62). The first conversion step is bound with `ConversionChain::bind()`, as the
+  projector and the upgrader do.
 - `Laravel\Requests\RevisionedRequest` and `Laravel\Resources\RevisionedResource` — traits **declared for
   applications**, used by no class of the package.
 - `Laravel\Console\*` — `revision:check`, `revision:lock`, `revision:cache`, `revision:clear`, `revision:export`,

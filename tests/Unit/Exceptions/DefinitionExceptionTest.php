@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Unit\Exceptions;
 
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Error;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Revisions\IntRevision;
 use Test\TestCase;
@@ -246,5 +247,28 @@ final class DefinitionExceptionTest extends TestCase
             "The descriptors projected for App\\OrderResource do not match the field 'total' of its shape.",
             DefinitionException::missingDescriptor('App\\OrderResource', 'total')->getMessage(),
         );
+    }
+
+    public function test_rules_of_a_response_names_the_class(): void
+    {
+        self::assertSame(
+            'The shape of App\\OrderResource is a response shape (down): only a request shape (up) has validation rules.',
+            DefinitionException::rulesOfAResponse('App\\OrderResource')->getMessage(),
+        );
+    }
+
+    public function test_unknown_kind_names_the_key(): void
+    {
+        self::assertSame("Unknown kind 'text': a rule mapper is keyed by a Kind value.", DefinitionException::unknownKind('text')->getMessage());
+    }
+
+    public function test_failed_describing_names_the_resource_and_keeps_the_error(): void
+    {
+        $error = new Error('boom');
+
+        $exception = DefinitionException::failedDescribing('App\\OrderResource', $error);
+
+        self::assertSame($error, $exception->getPrevious());
+        self::assertStringStartsWith('App\\OrderResource::toArray() failed while compiling on an empty subject (boom)', $exception->getMessage());
     }
 }

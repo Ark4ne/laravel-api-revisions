@@ -180,6 +180,22 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A rule mapper given for a key that is no `Kind` value.
+     */
+    public static function unknownKind(string $key): self
+    {
+        return new self("Unknown kind '{$key}': a rule mapper is keyed by a Kind value.");
+    }
+
+    /**
+     * Validation rules asked of a response shape: only a request shape (up) is validated (model.md §7.1).
+     */
+    public static function rulesOfAResponse(string $class): self
+    {
+        return new self("The shape of {$class} is a response shape (down): only a request shape (up) has validation rules.");
+    }
+
+    /**
      * A response shape (down) given to the upgrader, which upgrades request shapes (up) only (model.md D27).
      */
     public static function notAnUpShape(string $class): self

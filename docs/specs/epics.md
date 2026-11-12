@@ -1158,6 +1158,24 @@ provider test, docs rows. Follow-ups: US 9.2 reports `eager-value` (an `EagerSch
 Tests: `test_rules_use_the_names_of_the_client_revision`, `test_a_string_to_int_change_adds_numeric_to_the_old_rules`,
 `test_nested_rules_use_dotted_keys`, `test_user_rules_are_kept_as_given`.
 
+**Done** (2026-11-12): `Laravel\Validation\RuleCompiler` (`compile(Shape, descriptors)`, singleton of the provider on
+the application's `Shapes`), `Laravel\Validation\RuleMapper` and `Mappers\StringRules`, `NumberRules`, `DateRules`,
+`EnumRules`, `ArrayRules`, `FixedRules`; `DefinitionException::rulesOfAResponse()`, `unknownKind()`. Decision **D62**
+(with the maintainer: presence rules as declared, `date_format:` of the type, known string formats mapped, and after
+the review a required child of a parent the client may leave out gets `required_unless:<parent>,null`). Tests beyond
+the story's: the fields added later, an enum target adds `in:`, only the first up conversion, presence order and the
+nullability at the revision, nested resources and the query shape, the `was()` schema's children and items, the
+rules of a `was()` schema, dates, merged collisions, a replaced mapper, the refusals, the converters given, and
+`ShapeRulesTest` running Laravel's validator (old names, a resource left out, a `null` item). Coverage 99.7 %,
+Infection covered MSI 98 % (equivalent mutants: the default kind of a shape compiled by the `Compiler`, the converter of
+a registered step, a single extra rule). Deviations: the story's `test_a_string_to_int_change_adds_numeric…` is
+`…adds_integer…` (the built-in string → int gives `integer`, string → float `numeric`, both tested). Review: the guard
+of optional parents (D62, `required_with` replaced by `required_unless` since an empty object counts as absent for
+Laravel), the default mappers as a `match` with checked keys, the step bound through `ConversionChain::bind()`, one
+test class per mapper, the exception tests. Follow-ups: US 8.7 calls `RuleCompiler::compile()` with the request's
+shape and descriptors; US 10.1 exports the same presence (a required child of an optional parent is required within
+it, as in JSON Schema).
+
 #### US 8.7 — `RevisionedRequest` · L · depends US 7.3, US 8.6
 
 - Trait for `FormRequest`: `body()`, `query()`; `rules()` = rules of `Shape(current())`; after validation, the
@@ -1462,7 +1480,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.3 | `ResolveRevision` middleware | M | 8.2 | M2 | done |
 | US 8.4 | Path mode | M | 8.3 | M2 | done |
 | US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | done |
-| US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | todo |
+| US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | done |
 | US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | todo |
 | US 8.8 | Outside HTTP | S | 8.1 | M2 | todo |
 | US 9.1 | Diagnostics and checker | S | 5.2 | M3 | todo |
