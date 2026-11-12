@@ -2,12 +2,12 @@
     "tolerance": 0.1,
     "ratios": {
         "head": {
-            "time": 31.798,
-            "memory": 1.147
+            "time": 19.37,
+            "memory": 1.139
         },
         "oldest": {
-            "time": 29.79,
-            "memory": 1.041
+            "time": 18.935,
+            "memory": 1.033
         }
     }
 }

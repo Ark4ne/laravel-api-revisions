@@ -127,7 +127,8 @@ abstract class Descriptor
     /**
      * This descriptor with its own configured defaults resolved (a date without `format()` takes the configured format,
      * model.md D29); nothing to resolve by default. A composite or custom type holding descriptors resolves them with
-     * their `configured()`. Called through `configured()`, never directly.
+     * their `configured()`. Called through `configured()`, and alone by the projector before serializing (once per
+     * field per render): keep it cheap, and never let `serialize()` rely on the history being configured.
      */
     public function configure(Configuration $configuration): static
     {

@@ -164,14 +164,15 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
 
 - `Converter::convert(mixed $value, mixed $subject = null): mixed`, `lossless(): bool`, `extraRules(): list<mixed>` (e.g. `numeric`). A
   converter receives a normalized value of its source type; any other value passes through unchanged.
-- `Converters` is an immutable instance (no static state): `register(Kind|string $from, Kind|string $to, Direction, $factory)`
+- `Converters` is an immutable instance (no static state of its own): `register(Kind|string $from, Kind|string $to, Direction, $factory)`
   stores a factory `(TypeDefinition $from, TypeDefinition $to): ?Converter`, so a converter is built for the two
   types (`BackedToEnum` needs the enum class) or declined for them (`enum → int` of a string-backed enum, D41);
   `find(TypeDefinition, TypeDefinition, Direction)` resolves it; `keyOf()` (`int>float:down`, a custom type by its name:
   `custom(money)>float:down`) is what a chain stores. A custom type converts through the static
   `Schema\DeclaresConversions::conversions(Converters): Converters` of its class; `TypeRegistry::converters()` folds
-  those of every registered type onto the built-in registry (no static `Converters`: it is rebuilt from the static
-  `TypeRegistry`); the compiler passes it to `ShapeSelector::at()`, which stays pure (built-in registry by default).
+  those of every registered type onto the built-in registry; without argument the result is kept in the
+  `TypeRegistry` until the next `register()` or `flush()` (a projection asks for it on every render, US 5.5); the
+  compiler passes it to `ShapeSelector::at()`, which stays pure (built-in registry by default).
   `Kind::Custom` and an empty name are refused as sides (`DefinitionException::invalidConversionSide()`).
 - Built-ins are one class each under `Conversion\BuiltIn\` (`IntToFloat`, `NumericStringToFloat`, `EnumToBacked`,
   `BackedToEnum`…), registered in `Converters::builtIn()` for both directions (D25: the same cast serves both).
@@ -261,7 +262,8 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   `Descriptor::serialize()`.
   Each step has one owner; no step is skipped or reordered for a type.
 - `Projector` (`final readonly`) is built with the `Configuration` the shapes were compiled with (the descriptor that
-  serializes is `configured()` with it: the head, or the schema of the `was()` in force, `FieldDefinition::$schemaChange`),
+  serializes is `configure()`d with it, its own defaults only: serializing never reads the history, and a render
+  cannot afford `configured()` per field, US 5.5; the head, or the schema of the `was()` in force, `FieldDefinition::$schemaChange`),
   the `Converters` the unbound chains are bound to (`TypeRegistry::converters()` by default; explicit steps take the
   `down:` of the fresh descriptors) and a `SourceReader`. Descriptors missing a field of the shape throw
   `DefinitionException::missingDescriptor()`. A `when()` passes only when it returns `true`.
@@ -376,7 +378,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot, `flush()` for tests, `model.md` D42) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42) |
 | Facades and helpers | Only in `src/Laravel/` |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |

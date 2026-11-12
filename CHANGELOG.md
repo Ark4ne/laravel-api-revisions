@@ -98,7 +98,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `DefinitionException::missingDescriptor()`.
 - Benchmark gate: `composer benchmark` (`bin/benchmark.php`, reference `bin/benchmark/reference.json`, `--update`)
   compares the projection at the head and at the oldest revision with a plain `JsonResource` (time and memory ratios,
-  10 % tolerance); run in CI.
+  10 % tolerance); run in CI. A projection costs about ×19 the time of the plain resource: `TypeRegistry::converters()`
+  without argument is built once until the next `register()` or `flush()`, the projector configures only the
+  serializer's own defaults (`configure()`), and a `was()` inserts its change without sorting the history.
 - Value errors: `Projection\ValueErrorHandler` with `StrictValues` (throws) and `LenientValues` (an optional reporter;
   renders the cast of a refused value as it is, `null` for a failed conversion or a non-nullable `null`, model.md D53), given to
   the `Projector` or chosen from `Configuration::$strictValues` (`true` by default); a non-nullable field or item

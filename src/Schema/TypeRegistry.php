@@ -21,6 +21,11 @@ final class TypeRegistry
     private static array $types = [];
 
     /**
+     * The default converters, built on the first `converters()` and forgotten on `register()` and `flush()`.
+     */
+    private static ?Converters $converters = null;
+
+    /**
      * Registers (or replaces) a custom type. `$name` is a PHP method name that `Schema` does not already declare
      * (`DefinitionException::invalidTypeName()`), case-sensitive like Laravel's macros (`Schema::Money()` is not
      * `money`); `$class` is a concrete class extending `Descriptor` (`DefinitionException::invalidCustomType()`). The
@@ -38,6 +43,7 @@ final class TypeRegistry
             throw DefinitionException::invalidCustomType($name, $class);
         }
         self::$types[$name] = $class;
+        self::$converters = null;
     }
 
     public static function has(string $name): bool
@@ -62,11 +68,20 @@ final class TypeRegistry
 
     /**
      * `$converters` (the built-in ones by default) with the conversions of every registered type implementing
-     * `DeclaresConversions`, in registration order.
+     * `DeclaresConversions`, in registration order. Without `$converters`, built once until the next `register()` or
+     * `flush()` (a projection asks for them on every render).
      */
     public static function converters(?Converters $converters = null): Converters
     {
-        $converters ??= Converters::builtIn();
+        if ($converters === null) {
+            return self::$converters ??= self::extend(Converters::builtIn());
+        }
+
+        return self::extend($converters);
+    }
+
+    private static function extend(Converters $converters): Converters
+    {
         foreach (self::$types as $class) {
             if (is_subclass_of($class, DeclaresConversions::class)) {
                 $converters = $class::conversions($converters);
@@ -82,5 +97,6 @@ final class TypeRegistry
     public static function flush(): void
     {
         self::$types = [];
+        self::$converters = null;
     }
 }

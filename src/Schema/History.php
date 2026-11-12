@@ -55,16 +55,26 @@ final readonly class History
      */
     public function withChange(Change $change): self
     {
-        if (RevisionOrder::compare($change->revision, RevisionOrder::latest($change->revision::class)) === 0) {
+        if ($change->revision === RevisionOrder::latest($change->revision::class)) {
             throw DefinitionException::invalidHistory($change->revision, 'the head has no older shape');
         }
+        // inserted before the first older change: declarations list them newest first, so it is usually appended
+        $changes = [];
+        $placed = false;
         foreach ($this->changes as $existing) {
-            if (RevisionOrder::compare($existing->revision, $change->revision) === 0) {
+            $order = RevisionOrder::compare($existing->revision, $change->revision);
+            if ($order === 0) {
                 throw DefinitionException::invalidHistory($change->revision, 'this revision already has a was()');
             }
+            if (!$placed && $order < 0) {
+                $changes[] = $change;
+                $placed = true;
+            }
+            $changes[] = $existing;
         }
-        $changes = [...$this->changes, $change];
-        usort($changes, static fn(Change $a, Change $b): int => RevisionOrder::compare($b->revision, $a->revision));
+        if (!$placed) {
+            $changes[] = $change;
+        }
         $history = new self($this->lifetime, $changes);
         $history->assertOneEnum();
 

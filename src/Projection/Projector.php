@@ -242,6 +242,7 @@ final readonly class Projector
             ? $descriptor
             : ($changes[$field->schemaChange]->schema ?? throw DefinitionException::missingDescriptor($class, $field->headKey));
 
-        return [$serializer->configured($this->configuration)->serialize($value), false];
+        // its own defaults only (`configure()`): serializing never reads the history `configured()` would configure too
+        return [$serializer->configure($this->configuration)->serialize($value), false];
     }
 }

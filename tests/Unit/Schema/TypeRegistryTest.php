@@ -135,6 +135,30 @@ final class TypeRegistryTest extends TestCase
         self::assertNotNull($converters->find($int, $float, Direction::Down));
     }
 
+    public function test_the_default_converters_are_built_once_until_a_type_is_registered_or_flushed(): void
+    {
+        $first = TypeRegistry::converters();
+        self::assertSame($first, TypeRegistry::converters());
+
+        TypeRegistry::register('money', MoneySchema::class);
+        $registered = TypeRegistry::converters();
+        self::assertNotSame($first, $registered);
+        self::assertSame($registered, TypeRegistry::converters());
+
+        TypeRegistry::flush();
+        self::assertNotSame($registered, TypeRegistry::converters());
+        self::assertNull(TypeRegistry::converters()->find(TypeDefinition::custom('money'), TypeDefinition::of(Kind::Float), Direction::Down));
+    }
+
+    public function test_the_converters_extending_a_given_registry_are_never_cached(): void
+    {
+        TypeRegistry::register('money', MoneySchema::class);
+        $given = new Converters();
+
+        self::assertNotSame(TypeRegistry::converters($given), TypeRegistry::converters($given));
+        self::assertNotSame(TypeRegistry::converters(), TypeRegistry::converters($given));
+    }
+
     public function test_the_converters_extend_the_given_registry(): void
     {
         TypeRegistry::register('money', MoneySchema::class);

@@ -749,6 +749,19 @@ does not slow my API.*
 
 Tests: none new (the projection tests stay green); the benchmark gate measures the gain.
 
+**Done** (2026-11-12): measured without Xdebug (a split of describe / project, then an Xdebug profile for the
+distribution). Three changes take the projection from ×32 to about ×19 the time of the plain `JsonResource`
+(1 000 orders: 48 → 26 ms; memory unchanged): `TypeRegistry::converters()` without argument is built once until the
+next `register()` / `flush()` (it cost about 10 µs per `project()`, a third of the projection;
+`test_the_default_converters_are_built_once_until_a_type_is_registered_or_flushed`,
+`test_the_converters_extending_a_given_registry_are_never_cached`); the projector serializes through `configure()`
+instead of `configured()` (which also configured the history, never read to serialize); `History::withChange()`
+inserts the change at its place instead of appending and sorting. Reference lowered (head ×19.4, oldest ×18.9).
+Deviations: `ConversionChain::bind()` per field and the nested shape lookups (`Shapes::for()`, 0.1 µs) stay: each
+weighs under 1 % of a render. What remains is spread: about 40 % is the declaration itself (descriptors and `was()`
+built per render, with their checks), the rest the per-field pipeline. Infection: 98 % MSI (two equivalent mutants:
+the `(array)` cast of US 6.4, `$order <= 0` after the `=== 0` throw).
+
 ---
 
 ### E6 — Projection (response)
@@ -1269,7 +1282,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 5.2 | Shapes repository | S | 5.1 | M1 | done |
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | done |
-| US 5.5 | Projection cost | M | 5.4 | M3 | todo |
+| US 5.5 | Projection cost | M | 5.4 | M3 | done |
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | done |
 | US 6.2 | Nested projection | M | 6.1 | M2 | done |
 | US 6.3 | Invariant test | S | 6.2 | M2 | done |
