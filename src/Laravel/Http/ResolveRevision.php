@@ -23,8 +23,8 @@ use Symfony\Component\HttpFoundation\Response;
  * `response_header`, `Vary` on the headers the chain reads, and `Deprecation` (RFC 9745, `@` + Unix time) / `Sunset`
  * (RFC 8594, HTTP-date) from the revision's `#[Meta]` as soon as they are declared, at midnight of the day in the
  * application timezone (D30, D58). An unknown revision is answered **400** with a JSON body naming the accepted
- * values, never reported (a client error). A custom resolver reading a header leaves its `Vary` to the application
- * (Q19).
+ * values, never reported (a client error). The `Vary` covers the headers of every resolver implementing `VariesOn`
+ * (D59).
  */
 final readonly class ResolveRevision
 {

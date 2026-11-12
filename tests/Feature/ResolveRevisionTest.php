@@ -14,6 +14,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Routing\Router;
 use Test\FeatureTestCase;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Resolvers\AccountPinnedResolver;
 
 final class ResolveRevisionTest extends FeatureTestCase
 {
@@ -146,5 +147,14 @@ final class ResolveRevisionTest extends FeatureTestCase
         (new RevisionsServiceProvider($this->application()))->boot();
 
         self::assertSame('App\\Http\\Middleware\\Revision', $router->getMiddleware()['revision']);
+    }
+
+    public function test_a_custom_resolver_varying_on_a_header_adds_it_to_vary(): void
+    {
+        $this->application()['config']->set('revisions.resolvers', [HeaderResolver::class, AccountPinnedResolver::class => ['accounts' => ['ada' => 'winter-25']]]);
+
+        $response = $this->getJson('/orders', ['Authorization' => 'Bearer ada'])->assertJson(['revision' => 'winter-25']);
+
+        self::assertSame(['Api-Revision', 'Authorization'], $response->headers->all('vary'));
     }
 }

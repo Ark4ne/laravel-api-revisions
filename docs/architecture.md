@@ -360,6 +360,7 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   Since US 8.3 (`model.md` D58): alias `revision`, registered in `boot()`; resolved by the container on each request
   (the scoped `ResolverChain` and `RevisionScope` injected); it answers the 400 itself from `UnknownRevisionException`
   (no exception renderer, nothing reported); the days of `#[Meta]` read in `app.timezone`.
+  `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn` (D59).
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
   producing Laravel rules under the names of the revision.
 - `Laravel\Requests\RevisionedRequest` and `Laravel\Resources\RevisionedResource` — traits **declared for
@@ -403,7 +404,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 | Conversion | `Conversion\Converter` | `Converters` |
 | Export format | `Export\SchemaVisitor` | used directly |
 | Check rule | `Checking\Check` | `Checker` |
-| Resolver | `Laravel\Http\RevisionResolver` | `config/revisions.php` |
+| Resolver | `Laravel\Http\RevisionResolver` (+ `VariesOn` when it reads headers) | `config/revisions.php` |
 | Rule mapping | `Laravel\Validation\RuleMapper` | `RuleCompiler` |
 | Consumer | reads `Shape` + calls `Projector` / `Upgrader` | — |
 | Value errors | `Projection\ValueErrorHandler` | `Configuration` (Laravel: reporter = `report()`) |

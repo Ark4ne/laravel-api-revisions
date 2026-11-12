@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Laravel\Http\Resolvers;
 
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\VariesOn;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 use Illuminate\Http\Request;
@@ -46,7 +47,8 @@ final readonly class ResolverChain
     }
 
     /**
-     * The request headers the chain reads, each once: those of its `HeaderResolver`s, the default included (`Vary`).
+     * The request headers the chain reads, each once: those of its resolvers implementing `VariesOn`, the default
+     * included (`Vary`, model.md D59).
      *
      * @return list<string>
      */
@@ -54,8 +56,10 @@ final readonly class ResolverChain
     {
         $headers = [];
         foreach ([...$this->resolvers, $this->default] as $resolver) {
-            if ($resolver instanceof HeaderResolver) {
-                $headers[$resolver->header()] = true;
+            if ($resolver instanceof VariesOn) {
+                foreach ($resolver->headers() as $header) {
+                    $headers[$header] = true;
+                }
             }
         }
 

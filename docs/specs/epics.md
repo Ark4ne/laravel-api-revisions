@@ -1074,7 +1074,7 @@ Tests: `test_an_unknown_revision_is_answered_with_400`, `test_the_response_carri
 
 **Done** (2026-11-12): `Laravel\Http\ResolveRevision` (`final readonly`, alias `revision` registered by the provider):
 the `ResolverChain` result becomes the base of the request's `RevisionScope`; the response gets `response_header`,
-`Vary` appended (`ResolverChain::headers()`, `HeaderResolver::header()`), `Deprecation: @<Unix time>` and `Sunset:
+`Vary` appended (`ResolverChain::headers()`), `Deprecation: @<Unix time>` and `Sunset:
 <HTTP-date>` as soon as declared, at midnight in `app.timezone` (UTC without one). An unknown revision is answered 400
 by the middleware (`{message, revision, accepted}`, `JSON_INVALID_UTF8_SUBSTITUTE`), never reported;
 `UnknownRevisionException::unknown()` cuts the value to 64 characters (US 8.2 follow-up). Decision **D58**, taken with
@@ -1084,7 +1084,8 @@ name, invalid UTF-8, no dates no headers, query mode no `Vary`, a `Vary` of the 
 Review: the 400 carries the `Vary` too; the alias is registered only when the application defines none; `model.md`
 §2 declares the new `sunsetAt`; an unknown value from the query is answered 400 too. Deviations: `Vary` covers the
 headers of the `HeaderResolver`s only (the story says "in header / query mode": a query parameter is part of the URL,
-so query and path mode need none); custom resolvers reading headers are left to the application (Q19). Laravel-layer
+so query and path mode need none); custom resolvers reading headers: Q19, decided after the story as D59 (the
+optional contract `Laravel\Http\VariesOn`, implemented by `HeaderResolver` and collected by the chain). Laravel-layer
 classes are tested in `tests/Feature/` only, like the provider. Coverage 99.66 %, Infection MSI 97 %.
 
 #### US 8.4 — Path mode · M · depends US 8.3
@@ -1357,7 +1358,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q16 | Check codes for declaration errors (US 3.1). `lifetime-inverted` (and `since-older-than-group` / `until-newer-than-group`, US 3.2) are thrown as `DefinitionException` when declared, so the check never sees them: should the check catch a `DefinitionException` while building a class and report it under its code (the class then fails as one diagnostic), or are these codes dropped from §9? And is `bound-repeated` (rule 5) an error or a **warning**? | US 3.1 | **Decided** (2026-11-11): `bound-repeated` is a warning (D38); the check catches declaration errors and reports them under their code (D39) |
 | Q17 | A `was()` newer than the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | **Decided** (2026-11-11): D43 |
 | Q18 | Exceptions thrown by a user `up:` closure (US 4.2). Today only a `ConversionException` (raised by the library's converters) becomes a validation error on the client's key (US 8.7); any other exception from a closure bubbles up as a 500. Leaning towards letting a closure reject an input for its revision, either with a public `ConversionException::invalid($message)` or with an exception **contract** (an interface the Laravel layer catches) that an application exception may implement: compare both when US 8.7 starts | US 4.2 | Open (deferred to US 8.7) |
-| Q19 | `Vary` of custom resolvers (US 8.3). The middleware varies on the headers of the `HeaderResolver`s only; a custom resolver reading another header (an account pinned by `Authorization`, a tenant header) leaves its `Vary` to the application (a request with `Authorization` is not stored by a shared cache unless allowed, RFC 9111 §3.5). Proposed: an optional contract (`VariesOn::headers(): list<string>`) a resolver implements and the chain collects | US 8.3 | Open |
+| Q19 | `Vary` of custom resolvers (US 8.3). The middleware varies on the headers of the `HeaderResolver`s only; a custom resolver reading another header (an account pinned by `Authorization`, a tenant header) leaves its `Vary` to the application (a request with `Authorization` is not stored by a shared cache unless allowed, RFC 9111 §3.5). Proposed: an optional contract (`VariesOn::headers(): list<string>`) a resolver implements and the chain collects | US 8.3 | **Decided** (2026-11-12): as proposed (D59) |
 
 ---
 

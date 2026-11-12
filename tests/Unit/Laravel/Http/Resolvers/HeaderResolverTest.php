@@ -42,8 +42,8 @@ final class HeaderResolverTest extends TestCase
 
     public function test_it_names_the_header_it_reads(): void
     {
-        self::assertSame('Api-Revision', (new HeaderResolver(self::config()))->header());
-        self::assertSame('X-Version', (new HeaderResolver(self::config(), 'X-Version'))->header());
+        self::assertSame(['Api-Revision'], (new HeaderResolver(self::config()))->headers());
+        self::assertSame(['X-Version'], (new HeaderResolver(self::config(), 'X-Version'))->headers());
     }
 
     private static function config(): RevisionsConfig

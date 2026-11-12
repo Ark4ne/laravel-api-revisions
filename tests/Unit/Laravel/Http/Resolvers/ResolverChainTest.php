@@ -56,15 +56,16 @@ final class ResolverChainTest extends TestCase
         $chain->resolve(Request::create('/orders?revision=genesis', server: ['HTTP_API_REVISION' => 'v2']));
     }
 
-    public function test_it_names_the_headers_its_resolvers_read_each_once(): void
+    public function test_it_names_the_headers_its_resolvers_vary_on_each_once(): void
     {
         $chain = new ResolverChain(ApiRevision::class, [
             new HeaderResolver(self::config()),
             new QueryResolver(self::config()),
             new HeaderResolver(self::config(), 'X-Version'),
-        ], new HeaderResolver(self::config()));
+        ], new AccountPinnedResolver());
 
-        self::assertSame(['Api-Revision', 'X-Version'], $chain->headers());
+        self::assertSame(['Api-Revision', 'X-Version', 'Authorization'], $chain->headers());
+        self::assertSame(['Api-Revision'], (new ResolverChain(ApiRevision::class, [], new HeaderResolver(self::config())))->headers());
         self::assertSame([], (new ResolverChain(ApiRevision::class, [new QueryResolver(self::config())], ApiRevision::Atlas))->headers());
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Laravel\Http\Resolvers;
 
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\VariesOn;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Illuminate\Http\Request;
  * The revision named by the request header `$name` (`Api-Revision` by default): none when absent or empty,
  * `UnknownRevisionException` when it names no revision of the configured enum (`RevisionValue`).
  */
-final readonly class HeaderResolver implements RevisionResolver
+final readonly class HeaderResolver implements RevisionResolver, VariesOn
 {
     public function __construct(
         private RevisionsConfig $config,
@@ -21,11 +22,11 @@ final readonly class HeaderResolver implements RevisionResolver
     ) {}
 
     /**
-     * The name of the header it reads (for `Vary`).
+     * @return list<string> the header it reads
      */
-    public function header(): string
+    public function headers(): array
     {
-        return $this->name;
+        return [$this->name];
     }
 
     public function resolve(Request $request): ?Revision
