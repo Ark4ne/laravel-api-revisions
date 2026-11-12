@@ -87,6 +87,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   revision naming its class and kind: `Shape::$class`, `Shape::$kind`); `DefinitionException::notRevisioned()`,
   `undeclaredKind()`, `invalidDeclaration()`. `Descriptor::configured()` configures a descriptor and the schemas of its
   `was()`; composites configure their parts through it.
+- Nested resources: `Schema::resource(class-string<Revisioned>, $source)` (`Schema\ResourceSchema`, `class()`;
+  `DefinitionException::notRevisioned()` for another class): an `Object` kind referencing the class
+  (`TypeDefinition::$resource`, `withResource()`), never a copy of its shape, so cycles compile. The nested shape is
+  the class's declaration of the same kind at the same revision (model.md D49): the compiler refuses a nested class
+  that does not declare it (`undeclaredKind()`). Two types referencing different classes hold other values:
+  changing the referenced class needs a converter (a missing step otherwise).
 - Conversions of custom types: a custom type implementing `Schema\DeclaresConversions` registers its conversions
   (`conversions(Converters): Converters`); `TypeRegistry::converters()` gives the built-in registry with those of every
   registered type, to give to `ShapeSelector::at()`. `Converters::register()` takes a custom type's name as a

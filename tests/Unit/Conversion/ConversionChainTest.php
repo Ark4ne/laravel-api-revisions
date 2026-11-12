@@ -16,6 +16,8 @@ use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Test\Fixtures\Declarations\CustomerDeclaration;
+use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Enums\Priority;
 use Test\Fixtures\MoneySchema;
@@ -192,6 +194,7 @@ final class ConversionChainTest extends TestCase
             self::object(['a' => Schema::int(), 'b' => Schema::string()]),
             self::object(['b' => Schema::string()->max(3), 'a' => Schema::int()]),
         ];
+        yield 'the same resource' => [Schema::resource(CustomerDeclaration::class)->toType(), Schema::resource(CustomerDeclaration::class, 'buyer')->toType()];
     }
 
     #[DataProvider('sameValues')]
@@ -214,6 +217,8 @@ final class ConversionChainTest extends TestCase
         yield 'a list to items without type' => [self::list(Schema::int()), TypeDefinition::of(Kind::List), StepKind::Missing];
         yield 'objects of other children' => [self::object(['a' => Schema::int()]), self::object(['b' => Schema::int()]), StepKind::Missing];
         yield 'objects of children of another type' => [self::object(['a' => Schema::int()]), self::object(['a' => Schema::string()]), StepKind::Missing];
+        yield 'another resource' => [Schema::resource(CustomerDeclaration::class)->toType(), Schema::resource(OrderDeclaration::class)->toType(), StepKind::Missing];
+        yield 'a resource to an object' => [Schema::resource(CustomerDeclaration::class)->toType(), self::object([]), StepKind::Missing];
         yield 'objects of more children' => [self::object(['a' => Schema::int()]), self::object(['a' => Schema::int(), 'b' => Schema::int()]), StepKind::Missing];
     }
 

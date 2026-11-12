@@ -8,6 +8,7 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\Schema;
 use Ark4ne\ApiRevisions\Schema\TypeRegistry;
+use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\MoneySchema;
 use Test\Fixtures\NonStrictDeclarations;
@@ -43,6 +44,14 @@ final class SchemaTest extends TestCase
         self::assertSame(['tags'], $list->source()->path);
         self::assertSame(['street'], array_keys($object->children()));
         self::assertSame(['shippingAddress'], $object->source()->path);
+    }
+
+    public function test_the_resource_helper_returns_a_resource_schema_with_its_class_and_source(): void
+    {
+        $schema = Schema::resource(CustomerDeclaration::class, 'buyer');
+
+        self::assertSame(CustomerDeclaration::class, $schema->class());
+        self::assertSame(['buyer'], $schema->source()->path);
     }
 
     public function test_the_rule_helper_returns_a_rule_schema_with_its_rules_and_source(): void

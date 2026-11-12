@@ -100,6 +100,18 @@ final class Schema
     }
 
     /**
+     * Another `Revisioned` class, projected at the same revision with its own shape (model.md D20): the shape of its
+     * declaration of the same kind (model.md D49). `DefinitionException::notRevisioned()` for any other class.
+     *
+     * @param class-string<Revisioned> $class
+     * @param string|Closure|null $source see `string()`; its value is the subject of `$class`
+     */
+    public static function resource(string $class, mixed $source = null): ResourceSchema
+    {
+        return new ResourceSchema($class, $source);
+    }
+
+    /**
      * The escape hatch: a field typed only by its validation rules (`Kind::Any`).
      *
      * @param array<mixed> $rules strings, rule objects, closures; a rule implementing `DescribesSchema` enriches the export

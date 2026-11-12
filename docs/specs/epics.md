@@ -355,6 +355,21 @@ so that nested objects follow their own history at the same revision.*
 Tests: `test_a_nested_resource_uses_its_own_shape_at_the_same_revision`, `test_a_resource_cycle_compiles`,
 `test_a_non_revisioned_class_is_refused`.
 
+**Done** (2026-11-12): `Schema\ResourceSchema` (`Schema::resource()`, `class()`; `notRevisioned()` for another
+class; normalizes and serializes as an object), `TypeDefinition::$resource` / `withResource()` (an `Object` kind
+referencing the class, no children: never a copy of its shape), `Compiler` checking every resource nested in a field's
+type (items and children included) without compiling it. Decision taken with the maintainer: **D49** (the nested
+shape is the class's declaration of the same kind as its parent, at the same revision; the compiler refuses a class
+not declaring it, `undeclaredKind()`). Fixtures: `CustomerDeclaration` (response and body; its `orders` list back to
+`OrderDeclaration`: the cycle), `MisnestedDeclaration`, `ForeignResourceDeclaration`; `customer` added to
+`OrderDeclaration` and `StoreOrderDeclaration`. Coverage 99.89 %, Infection MSI 100 % on the changed classes after the
+fix of one mutant. Deviations: the nested shape is resolved by compiling the referenced class (`Shapes::for()` is
+US 5.2); `ConversionChain` treats two different referenced classes as other values (a converter is needed);
+the compiler also throws `notRevisioned()` for a custom descriptor whose type references another class. Review: the
+architecture no longer cites `Shapes::for()` as existing, CHANGELOG wording, `readonly` class. Follow-ups: US 6.2
+projects a nested resource with its shape; US 9.2 reports `unknown-resource` from these exceptions (D39); US 10.2
+exports a nested resource as a `$ref`.
+
 #### US 2.7 — Custom types seen by PHPStan · S · depends US 2.5
 
 *As an application developer, I want `Schema::money()` typed by PHPStan, so that a custom type is as safe as a
@@ -1133,7 +1148,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 2.3 | Lists and objects | M | 2.1 | M1 | done |
 | US 2.4 | Escape hatch and conditions | S | 2.1 | M1 | done |
 | US 2.5 | Custom types | M | 2.3, 4.1 | M1 | done |
-| US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | todo |
+| US 2.6 | Nested `Revisioned` classes | S | 2.3, 5.1 | M1 | done |
 | US 2.7 | Custom types seen by PHPStan | S | 2.5 | M1 | done |
 | US 3.1 | `since()` and `until()` | S | 1.1, 2.1 | M1 | done |
 | US 3.2 | Groups | S | 3.1 | M1 | done |

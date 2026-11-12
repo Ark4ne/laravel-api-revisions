@@ -107,6 +107,17 @@ final class TypeDefinitionTest extends TestCase
         self::assertSame([], TypeDefinition::of(Kind::String)->fragment);
     }
 
+    public function test_a_nested_resource_references_its_class_and_every_wither_keeps_it(): void
+    {
+        $type = TypeDefinition::of(Kind::Object)->withResource(stdClass::class)->withDescription('Customer')->withDeprecated(true);
+
+        self::assertSame(Kind::Object, $type->kind);
+        self::assertSame(stdClass::class, $type->resource);
+        self::assertSame('Customer', $type->description);
+        self::assertSame([], $type->children);
+        self::assertNull(TypeDefinition::of(Kind::Object)->resource);
+    }
+
     public function test_a_custom_type_needs_a_name(): void
     {
         $this->expectException(DefinitionException::class);

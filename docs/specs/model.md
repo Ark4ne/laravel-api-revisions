@@ -94,7 +94,7 @@ resources, form requests, ad hoc responses.
 | `Schema::object([...])` | `ObjectSchema` | free nesting |
 | `Schema::money()` | a custom type (`MoneySchema extends Descriptor`) | registered in the type registry, exposed by macro |
 | `Schema::rule(['array', new MetaRule])` | `RuleSchema` | escape hatch; `any` in the export unless `describe()`; a rule implementing `DescribesSchema` (here or in `rules()` of any descriptor, D36) adds its JSON Schema keywords |
-| `Schema::resource(CustomerResource::class)` | `ResourceSchema` | another `Revisioned` class, projected at the same revision with its own shape (§6.1) |
+| `Schema::resource(CustomerResource::class)` | `ResourceSchema` | another `Revisioned` class, projected at the same revision with its own shape of the same declaration kind (§6.1, D49) |
 
 Common to all: `nullable()`, `required()`, `sometimes()`, `describe()`, `example()`, `deprecated()`,
 `rules(...)` (strings, rule objects, closures; opaque to the core), `when(Closure)`, `whenHas()`.
@@ -555,7 +555,7 @@ discovered classes, so a forgotten path is visible.
 | `schema-override` | **warning**: a `DescribesSchema` keyword overrides a keyword of the field's type (`type`, `format`, `minimum`, `enum`…) with another value (D36) | all |
 | `native-condition` | a Laravel `MissingValue` / `MergeValue` in a declaration | all |
 | `eager-value` | a plain value instead of a descriptor (typed `any`, the same in every revision) | responses |
-| `unknown-resource` | `Schema::resource()` on a class that is not `Revisioned` | all |
+| `unknown-resource` | `Schema::resource()` on a class that is not `Revisioned`, or that does not declare the kind of its parent (D49) | all |
 | `definition-error` | a `DefinitionException` thrown while building the class, with no code of its own (D39) | all |
 | `lock-mismatch` | the shape of a locked revision differs from its lock | all |
 | `lock-order-changed` | a locked revision moved in `order()` | enum |
@@ -679,5 +679,6 @@ returns the declared type.
 | D46 | When a `was(schema:)` is in force at `R`, its schema gives what describes the **value** at `R`: the type, `nullable()` and the rules; the head gives what describes the **presence**: `required()`, `sometimes()`, the conditions (`conditional`), the default and the lifetime, as a `was()` can carry no condition (§6.4). A `required()` or `sometimes()` on a `was()` schema is ignored (US 3.4) | **Decided** (2026-11-12) |
 | D47 | `missing_default: 'null'` gives `null` as default to the `required()->since(R)` fields declared without `default:` only (the fields `required-since-without-default` reports, which it then no longer reports); an optional field without default stays without one (absent for older clients). A non-nullable field receives `null` too: opting in accepts that the controller gets `null` from older clients (the nullable-only variant was rejected). Resolved by the `ShapeSelector` from the `Configuration`, recursively in objects and lists (US 3.5) | **Decided** (2026-11-12) |
 | D48 | The `Revisioned` contract is static and per declaration kind: `declarationKinds(): non-empty-list<DeclarationKind>` (a resource `[Response]`, a request `[RequestBody, RequestQuery]`: `body()` and `query()` on one `FormRequest`) and the `@internal` bridge `describeRevisioned(DeclarationKind, mixed $probe): array<string, Descriptor>`, in which the class builds itself on the probe (only it knows its constructor). A shape is compiled per `(class, kind, revision)` and names its class and kind (US 5.1) | **Decided** (2026-11-12) |
+| D49 | A nested resource (`Schema::resource(Other::class)`) is the shape of `Other`'s declaration of the **same kind** as the declaration it is nested in, at the same revision: a resource in a response, a body in a body, a query in a query, so its direction is the parent's. Its type references the class (`TypeDefinition::$resource`), never copies its shape (cycles compile); the compiler refuses a nested class that does not declare that kind (`DefinitionException::undeclaredKind()`, US 2.6) | **Decided** (2026-11-12) |
 
 "Proposed" decisions are applied by default until decided.

@@ -19,8 +19,11 @@ use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Ark4ne\ApiRevisions\Support\Undefined;
 use stdClass;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\EagerDeclaration;
+use Test\Fixtures\Declarations\ForeignResourceDeclaration;
 use Test\Fixtures\Declarations\InvalidDeclaration;
+use Test\Fixtures\Declarations\MisnestedDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Declarations\ThrowingDeclaration;
@@ -34,7 +37,7 @@ final class CompilerTest extends TestCase
         $shape = (new Compiler())->compile(ThrowingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis);
 
         self::assertSame(['total'], $shape->names());
-        self::assertSame(['title', 'state', 'total', 'placed_at', 'delivery', 'name'], (new Compiler())
+        self::assertSame(['title', 'state', 'total', 'placed_at', 'delivery', 'customer', 'name'], (new Compiler())
             ->compile(OrderDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis)->names());
     }
 
@@ -79,7 +82,7 @@ final class CompilerTest extends TestCase
         $body = $compiler->compile(StoreOrderDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
         $query = $compiler->compile(StoreOrderDeclaration::class, DeclarationKind::RequestQuery, ApiRevision::Genesis);
 
-        self::assertSame(['title', 'total'], $body->names());
+        self::assertSame(['title', 'total', 'customer'], $body->names());
         self::assertSame(['surname'], array_keys($body->added));
         self::assertSame(Direction::Up, $body->direction);
         self::assertSame(DeclarationKind::RequestBody, $body->kind);
@@ -141,5 +144,66 @@ final class CompilerTest extends TestCase
         $this->expectExceptionObject(DefinitionException::invalidDeclaration(InvalidDeclaration::class, 0, 'Ark4ne\ApiRevisions\Schema\StringSchema'));
 
         (new Compiler())->compile(InvalidDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Atlas);
+    }
+
+    public function test_a_nested_resource_uses_its_own_shape_at_the_same_revision(): void
+    {
+        $compiler = new Compiler();
+
+        $order = $compiler->compile(OrderDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25);
+        $customer = $order->fields['customer'];
+        $class = $customer->type->resource;
+        self::assertNotNull($class);
+        self::assertNotNull($order->kind);
+        $nested = $compiler->compile($class, $order->kind, $customer->revision);
+
+        self::assertSame(Kind::Object, $customer->type->kind);
+        self::assertSame(CustomerDeclaration::class, $customer->type->resource);
+        self::assertSame([], $customer->type->children);
+        self::assertNull($customer->children);
+        self::assertNull($customer->items);
+        self::assertSame(ApiRevision::Winter25, $customer->revision);
+        self::assertSame(['full_name'], $nested->names());
+        self::assertSame(['name', 'orders'], $compiler->compile(CustomerDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas)->names());
+    }
+
+    public function test_a_resource_cycle_compiles(): void
+    {
+        $compiler = new Compiler();
+
+        foreach (ApiRevision::cases() as $revision) {
+            $order = $compiler->compile(OrderDeclaration::class, DeclarationKind::Response, $revision);
+            $customer = $compiler->compile(CustomerDeclaration::class, DeclarationKind::Response, $revision);
+
+            self::assertSame(CustomerDeclaration::class, $order->fields['customer']->type->resource);
+            self::assertSame(
+                $revision->isAtLeast(ApiRevision::Spring26) ? OrderDeclaration::class : null,
+                $customer->field('orders')?->items?->type->resource,
+            );
+        }
+    }
+
+    public function test_a_nested_resource_takes_the_declaration_kind_of_its_parent(): void
+    {
+        $body = (new Compiler())->compile(StoreOrderDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+        $nested = (new Compiler())->compile(CustomerDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+
+        self::assertSame(CustomerDeclaration::class, $body->fields['customer']->type->resource);
+        self::assertSame(['full_name'], $nested->names());
+        self::assertTrue($nested->fields['name']->required);
+    }
+
+    public function test_a_nested_class_without_the_declaration_kind_of_its_parent_is_refused(): void
+    {
+        $this->expectExceptionObject(DefinitionException::undeclaredKind(OrderDeclaration::class, 'request-body'));
+
+        (new Compiler())->compile(MisnestedDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Atlas);
+    }
+
+    public function test_a_type_referencing_a_class_that_is_not_revisioned_is_refused(): void
+    {
+        $this->expectExceptionObject(DefinitionException::notRevisioned(stdClass::class));
+
+        (new Compiler())->compile(ForeignResourceDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas);
     }
 }

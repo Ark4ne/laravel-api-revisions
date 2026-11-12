@@ -51,6 +51,7 @@ final readonly class OrderDeclaration implements Revisioned
             'delivery' => Schema::object([
                 'day' => Schema::date(),
             ]),
+            'customer' => Schema::resource(CustomerDeclaration::class),
             ...Schema::since(ApiRevision::Atlas, [
                 'tags' => Schema::list(Schema::string()),
                 'notes' => Schema::string()->nullable(),

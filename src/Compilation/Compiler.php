@@ -6,6 +6,7 @@ namespace Ark4ne\ApiRevisions\Compilation;
 
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Conversion\Converters;
+use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
@@ -55,12 +56,41 @@ final readonly class Compiler
             $head[$key] = $descriptor->configured($this->configuration);
         }
 
-        return ShapeSelector::at(
+        $shape = ShapeSelector::at(
             $head,
             $revision,
             $kind->direction(),
             $this->converters ?? TypeRegistry::converters(),
             $this->configuration,
         )->of($class, $kind);
+        foreach ([...$shape->fields, ...$shape->added] as $field) {
+            self::checkNested($field->type, $kind);
+        }
+
+        return $shape;
+    }
+
+    /**
+     * Every resource nested in `$type` (its items and children included) declares `$kind`: its shape is the one of the
+     * same declaration kind (model.md D49); a type of a custom descriptor may reference any class, so it is `Revisioned`
+     * too. Checked on the reference only: the nested class is not compiled here, so
+     * cycles compile.
+     */
+    private static function checkNested(TypeDefinition $type, DeclarationKind $kind): void
+    {
+        $class = $type->resource;
+        if ($class !== null) {
+            if (!is_subclass_of($class, Revisioned::class)) {
+                throw DefinitionException::notRevisioned($class);
+            }
+            if (!in_array($kind, $class::declarationKinds(), true)) {
+                throw DefinitionException::undeclaredKind($class, $kind->value);
+            }
+        }
+        foreach ([$type->items, ...$type->children] as $nested) {
+            if ($nested !== null) {
+                self::checkNested($nested, $kind);
+            }
+        }
     }
 }

@@ -23,6 +23,8 @@ final readonly class TypeDefinition
      * @param array<string, mixed> $jsonSchema JSON Schema keywords given by the rules (`DescribesSchema`), JSON-ready
      * @param non-empty-string|null $name the name a `Custom` kind declares (`money`); `null` for every other kind
      * @param array<string, mixed> $fragment the JSON Schema of a `Custom` kind, JSON-ready (exported once, US 10.2)
+     * @param class-string|null $resource the `Revisioned` class of a nested resource (an `Object` kind): its shape of
+     *                                    the same declaration kind at the same revision (model.md D49), referenced
      */
     private function __construct(
         public Kind $kind,
@@ -41,6 +43,7 @@ final readonly class TypeDefinition
         public array $jsonSchema = [],
         public ?string $name = null,
         public array $fragment = [],
+        public ?string $resource = null,
     ) {}
 
     /**
@@ -138,6 +141,16 @@ final readonly class TypeDefinition
     public function withChildren(array $children): self
     {
         return $this->with(['children' => $children]);
+    }
+
+    /**
+     * The `Revisioned` class of a nested resource, referenced (model.md D49).
+     *
+     * @param class-string $resource
+     */
+    public function withResource(string $resource): self
+    {
+        return $this->with(['resource' => $resource]);
     }
 
     /**

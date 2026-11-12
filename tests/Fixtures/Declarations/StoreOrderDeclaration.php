@@ -31,6 +31,7 @@ final class StoreOrderDeclaration implements Revisioned
                 'title' => Schema::string()->required(),
                 'total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string()),
                 'surname' => Schema::string()->required()->since(ApiRevision::Atlas),
+                'customer' => Schema::resource(CustomerDeclaration::class),
             ],
         };
     }

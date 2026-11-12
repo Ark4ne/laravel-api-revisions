@@ -112,7 +112,8 @@ the lock and external tools (`laravel-json-api`, `laravel-openapi-generator`). P
 ## 5. Schema descriptors
 
 The user vocabulary. Patterns: **Static Factory** (`Schema::…`), **Immutable Fluent Builder** (every modifier returns
-a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (custom types).
+a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Reference** (`ResourceSchema`), **Registry + Macro** (custom
+types).
 
 - `Schema` is a `final` class of static factories; its `__callStatic()` serves the macros of the `TypeRegistry`
   (`Schema::money()`).
@@ -129,6 +130,10 @@ a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Registry + Macro** (cu
   configuration itself.
 - A descriptor builds its `TypeDefinition` (`toType()`); it never builds a `Shape` (that is the compiler's job) and
   never reads a revision other than those declared in its `History`.
+- `ResourceSchema` (`Schema::resource()`) **references** another `Revisioned` class: its type is an `Object` kind
+  whose `TypeDefinition::$resource` names the class (no children). The nested shape is the class's shape of the same
+  declaration kind at the same revision (`model.md` D49), resolved by whoever reads the field
+  (compiled for `($type->resource, $shape->kind, $field->revision)`, through `Shapes::for()` from US 5.2), never inlined: cycles compile.
 - Composites (`ListSchema`, `ObjectSchema`) normalize only their own value: a list to `list` of elements, an object
   to the subject of its children. Projecting each item and child is the projection's job (a descriptor never reads
   the subject), before the composite's own `when()` and conversions (`model.md` D34). `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
@@ -205,7 +210,9 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
   calls
   `ShapeSelector::at($descriptors, $revision, $direction, $converters, $configuration)` (the direction of the class's
   declaration kind, the application's converters, the configuration whose `missingDefault` the selector resolves); the
-  `Shape` then names its class and kind (`Shape::of()`).
+  `Shape` then names its class and kind (`Shape::of()`). Last, every resource nested in a field's type (items and
+  children included) must be `Revisioned` and declare the same kind (`model.md` D49): checked on the reference, the
+  nested class is never compiled there.
 - `ShapeSelector` is **the** pure function of the model (`specs/model.md` §4.5). Nothing else decides visibility,
   names or conversion plans. Every story touching shapes tests it, and an **invariant test** compares, for every
   fixture class and every revision, the projected keys with `Shape::names()`.

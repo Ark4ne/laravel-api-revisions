@@ -136,7 +136,8 @@ final readonly class ConversionChain
      */
     private static function holdSameValues(TypeDefinition $a, TypeDefinition $b): bool
     {
-        if ($a->kind !== $b->kind || $a->enum !== $b->enum || $a->name !== $b->name || $a->fragment !== $b->fragment) {
+        if ($a->kind !== $b->kind || $a->enum !== $b->enum || $a->name !== $b->name || $a->fragment !== $b->fragment
+            || $a->resource !== $b->resource) {
             return false;
         }
         if ($a->items !== null || $b->items !== null) {
