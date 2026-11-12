@@ -392,6 +392,9 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
   reviewed in the diff.
 - `tests/Unit/Architecture/` holds the architecture checks phpat cannot do (the declared traits); they test the
   code base, not one class.
+- `tests/Unit/Projection/ProjectionInvariantTest.php` tests the model, not one class: every response declaration of
+  `tests/Fixtures/Declarations/` (found by scanning it, deliberately broken ones listed as excluded) projected at every
+  revision gives the shape's names, recursively.
 - Arrange / Act / Assert; test names are sentences (`test_a_renamed_field_keeps_its_old_name_up_to_its_revision`).
 - **Workflow:** contract (signatures and PHPDoc, neutral bodies) → red tests → implementation. Never implement
   behaviour that has no test yet.

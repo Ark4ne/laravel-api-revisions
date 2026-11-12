@@ -809,6 +809,20 @@ with the class of the nested resource; US 7.3 upgrades the head children from `h
 
 Tests: `test_projection_and_shape_agree_for_every_fixture_at_every_revision`.
 
+**Done** (2026-11-12): `tests/Unit/Projection/ProjectionInvariantTest.php` projects every response fixture
+(`OrderDeclaration` with its nested customer listing an order back, `CustomerDeclaration`, `BoundDeclaration`,
+`CountingDeclaration`) at every revision through `Shapes` and the `Projector`, and compares the keys with the shape
+names recursively: children, items, nested resources (their shape at `headAt`); a `null` only on a nullable field or
+item. The response fixtures are found by scanning `tests/Fixtures/Declarations/`; the deliberately broken ones are
+listed as excluded (`test_every_response_fixture_is_projected_or_excluded`). Fixture `Order` (the subject of the
+reference scenario, with `fullName()`). The invariant found a fixture bug: `OrderDeclaration`'s `placed_at` declared
+`was(Winter25, schema: date())` without `down:`, and no automatic date-time → date conversion exists
+(`conversion-missing`): a `down:` was added (`setTime(0, 0)`); its `name` closure now reads an `Order`. No production code changed.
+Deviations: the round trip of F12 needs the upgrader: it stays with US 7.1 (listed there); a composite under a
+`was(schema:)` is compared by US 10.1 (its type, not its head children); the test lives in `tests/Unit/Projection/`
+(pure core, no Testbench needed; recorded in architecture.md §17). Review: fixtures scanned, nulls checked against
+`nullable`, F12 row of §3.1 updated, the `down:` of `placed_at` drops the time. Follow-up: US 10.1 validates each projection against the exported JSON Schema.
+
 #### US 6.4 — Value errors · S · depends US 6.1
 
 *As an application developer, I want wrong data in my models to fail loudly in development and not to break
@@ -1107,7 +1121,7 @@ Findings carried into the stories (the stories cite them):
 | F9 | What an `up:` closure receives as `$subject` is order-dependent: define it as a snapshot of the input at the start of the step, in the shape of `X` | 7.1 (Q5) |
 | F10 | Model gaps: `until(X)` fields dropped after the hook of step `X → next` (not written in §7.1); a group `until()` widens a member's earlier `until()` silently; a `was()` newer than the field's `until` is not a rule; a `was(schema:)` carrying its own history or default is not refused | 3.2 (Q7), 3.3, 7.1, 9.2 |
 | F11 | Value errors: `normalize()` must report through the `ValueErrorHandler` with class, field, revision; a non-nullable `null` is not reported; `$subject->{$key} ?? null` calls `__isset()` and hides Eloquent strict-mode errors §6.2 wants visible | 6.1, 6.4 |
-| F12 | Tests to add: round trip (down then up gives the head value back: 1250 → 12.5 → 1250), upgrades from every revision, an `until` field the hook does not consume, `mixedRevisions` / `invalidOrder` | 1.1, 6.3, 7.1 |
+| F12 | Tests to add: round trip (down then up gives the head value back: 1250 → 12.5 → 1250), upgrades from every revision, an `until` field the hook does not consume, `mixedRevisions` / `invalidOrder` | 1.1, 7.1 (6.3: deferred to 7.1) |
 | F13 | Author trap: a `down:` closure receives the PHP value of the newer shape (`OrderStatus $s`, not `string`). Show it in the examples and the skill | 11.2 |
 
 ---
@@ -1214,7 +1228,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | todo |
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | done |
 | US 6.2 | Nested projection | M | 6.1 | M2 | done |
-| US 6.3 | Invariant test | S | 6.2 | M2 | todo |
+| US 6.3 | Invariant test | S | 6.2 | M2 | done |
 | US 6.4 | Value errors | S | 6.1 | M2 | todo |
 | US 7.1 | Upgrader | M | 5.2 | M2 | todo |
 | US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | todo |
