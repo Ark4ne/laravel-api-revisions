@@ -87,6 +87,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   revision naming its class and kind: `Shape::$class`, `Shape::$kind`); `DefinitionException::notRevisioned()`,
   `undeclaredKind()`, `invalidDeclaration()`. `Descriptor::configured()` configures a descriptor and the schemas of its
   `was()`; composites configure their parts through it.
+- Shapes repository: `Compilation\Shapes` (built with a `Compiler`, the default one by default), `for($class, $kind,
+  $revision)` compiling each `(class, declaration kind, revision)` once, `flush()`.
 - Nested resources: `Schema::resource(class-string<Revisioned>, $source)` (`Schema\ResourceSchema`, `class()`;
   `DefinitionException::notRevisioned()` for another class): an `Object` kind referencing the class
   (`TypeDefinition::$resource`, `withResource()`), never a copy of its shape, so cycles compile. The nested shape is

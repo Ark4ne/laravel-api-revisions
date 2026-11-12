@@ -28,8 +28,9 @@ Tooling : Shape(R) ─► SchemaVisitor (JSON Schema, lock, changelog) ─► Ch
 
 1. **Compilation.** The first time a class is needed at revision `R`, the `Compiler` runs its declaring hook on a
    `Probe` (no real subject, no request data): the descriptors are lazy, so no source runs. The `ShapeSelector`, one
-   pure function, turns the head descriptors into the `Shape` of `R`. Shapes are memoized per `(class, revision)` and
-   can be written to a file (`revision:cache`).
+   pure function, turns the head descriptors into the `Shape` of `R`. Shapes are memoized per
+   `(class, kind, revision)` by the `Shapes` repository (one per application) and can be written to a file
+   (`revision:cache`).
 2. **Resolution.** The `ResolveRevision` middleware runs the resolvers chain and stores the revision in the
    `RevisionScope` (`scoped` binding). `Revision::current()` reads it.
 3. **Projection (down).** The `Projector` pairs the compiled `Shape` with the fresh descriptors of the instance,
@@ -133,7 +134,7 @@ types).
 - `ResourceSchema` (`Schema::resource()`) **references** another `Revisioned` class: its type is an `Object` kind
   whose `TypeDefinition::$resource` names the class (no children). The nested shape is the class's shape of the same
   declaration kind at the same revision (`model.md` D49), resolved by whoever reads the field
-  (compiled for `($type->resource, $shape->kind, $field->revision)`, through `Shapes::for()` from US 5.2), never inlined: cycles compile.
+  (compiled for `($type->resource, $shape->kind, $field->revision)`, through `Shapes::for()`), never inlined: cycles compile.
 - Composites (`ListSchema`, `ObjectSchema`) normalize only their own value: a list to `list` of elements, an object
   to the subject of its children. Projecting each item and child is the projection's job (a descriptor never reads
   the subject), before the composite's own `when()` and conversions (`model.md` D34). `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
@@ -235,7 +236,11 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
     covers its own `was()`, and a `was()` without `schema:` converts only through an explicit converter: its children
     and items carry theirs. Two children under one name keep the first in the object's type; the nested `Shape`
     records the collision.
-- `Shapes::for($class, $kind, $revision)` memoizes (one shape per declaration kind, `model.md` D48); `CompiledShapes` reads/writes the file of `revision:cache`
+- `Shapes` (`final`, built with its `Compiler`) `for($class, $kind, $revision)` compiles each `(class, kind, revision)`
+  once (one shape per declaration kind, `model.md` D48) and keeps it in the instance, never in static state: two
+  configurations never share a shape; the Laravel layer binds one instance (US 8.1), `flush()` forgets the shapes
+  (tests, Octane). A compilation that throws stores nothing. Custom types are registered at boot, before
+  any `for()`; a type registered later needs a `flush()`. `CompiledShapes` reads/writes the file of `revision:cache`
   (`bootstrap/cache/revisions.php`, `var_export`, OPcache friendly). The Laravel layer registers `revision:cache` /
   `revision:clear` with `ServiceProvider::optimizes()`, so `artisan optimize` / `optimize:clear` handle it. A stale
   file is the application's responsibility, as for `route:cache`.

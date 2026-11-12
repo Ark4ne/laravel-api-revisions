@@ -691,13 +691,23 @@ the compiler.
 
 #### US 5.2 — Shapes repository · S · depends US 5.1
 
-- `Compilation\Shapes::for(class, kind, R)` memoized (one shape per declaration kind, D48) via `Support\Memo`; `Shapes::flush()` (Octane, tests).
+- `Compilation\Shapes::for(class, kind, R)` memoized (one shape per declaration kind, D48) (an instance repository keeping its shapes, not `Support\Memo`: see Done); `Shapes::flush()` (Octane, tests).
 
 Tests: `test_a_shape_is_compiled_once_per_class_and_revision`, `test_flush_forgets_compiled_shapes`.
 
+**Done** (2026-11-12): `Compilation\Shapes` (`final`, built with its `Compiler`; `for($class, $kind, $revision)`
+keyed `class@kind@RevisionEnum::Case`, `flush()`); fixture `CountingDeclaration`. Every reference fixture at every
+revision and kind equals its compilation (milestone M1). Coverage 99.89 %, Infection MSI 100 %. Deviation: an **instance** repository
+keeping its shapes itself, not static methods over `Support\Memo`: a static `Shapes::for()` would need a global
+compiler (new static state, DoD 8) and would serve a shape compiled with another configuration or other converters;
+the Laravel layer binds one instance (US 8.1). A compilation that throws stores nothing. Review: custom types registered after a
+`for()` need a `flush()` (documented), US 5.3 keys its file with the kind. Follow-ups: US 8.1 binds `Shapes` as a
+singleton built from the configuration and flushes it with Octane and with the `TypeRegistry`; US 5.3 reads `CompiledShapes`
+first; US 6.2 resolves a nested resource as `for($type->resource, $kind, $field->revision)` (D49).
+
 #### US 5.3 — Compiled file and `revision:cache` · M · depends US 5.2, US 8.1
 
-- `CompiledShapes` writes / reads a PHP file (`var_export` of the shapes, keyed `class@revision`); `Shapes` reads it
+- `CompiledShapes` writes / reads a PHP file (`var_export` of the shapes, keyed `class@kind@revision`); `Shapes` reads it
   first. Commands `revision:cache` and `revision:clear` (Laravel layer), registered with
   `ServiceProvider::optimizes()`; file `bootstrap/cache/revisions.php` (`cache_path`).
 - The compiled shapes depend on the configured date formats (D29): changing them requires `revision:cache` again.
@@ -1160,7 +1170,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 4.3 | Conversion chains | M | 4.2 | M1 | done |
 | US 4.4 | Conversions of custom types | S | 2.5, 4.3 | M1 | done |
 | US 5.1 | Probe and compiler | M | 3.4 | M1 | done |
-| US 5.2 | Shapes repository | S | 5.1 | M1 | todo |
+| US 5.2 | Shapes repository | S | 5.1 | M1 | done |
 | US 5.3 | Compiled file, `revision:cache` | M | 5.2, 8.1 | M3 | todo |
 | US 5.4 | Benchmark gate | M | 6.1 | M3 | todo |
 | US 6.1 | Projector and source reader | M | 5.2 | M2 | todo |
