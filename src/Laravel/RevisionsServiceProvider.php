@@ -11,9 +11,12 @@ use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Laravel\Console\CacheCommand;
 use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
+use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
 use Ark4ne\ApiRevisions\Projection\StrictValues;
 use Ark4ne\ApiRevisions\Projection\ValueErrorHandler;
+use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
 use Illuminate\Container\Container as ContainerInstance;
 use Illuminate\Contracts\Config\Repository;
@@ -24,12 +27,13 @@ use Illuminate\Support\ServiceProvider;
 /**
  * Registers the library in a Laravel application (auto-discovered, model.md §8, §10): `config/revisions.php` merged and
  * publishable (`revisions-config`), read lazily as a `RevisionsConfig`; the core `Configuration` and the `Shapes`
- * compiled with it, one per application, reading the compiled file of `revision:cache` first; the `RevisionScope` of the running context as a `scoped` binding (reset on
- * every request, Octane included; the scope provider reads the current container), its base the configured fixed
- * default (D31); the `ValueErrorHandler` from
- * `strict_values`, a lenient one reporting each error once per class and field and request; in the console, the commands
- * `revision:cache` / `revision:clear`, run by `optimize` / `optimize:clear`. The middleware, the route macro and the
- * other commands are added by their stories (US 8.2 onwards).
+ * compiled with it, one per application, reading the compiled file of `revision:cache` first; the `RevisionScope` of
+ * the running context as a `scoped` binding (reset on every request, Octane included; the scope provider reads the
+ * current container), its base the configured fixed default (D31); the `ValueErrorHandler` from `strict_values`, a
+ * lenient one reporting each error once per class and field and request; the `ResolverChain` of `resolvers` and
+ * `default` (`scoped`: a resolver may read request services); in the console, the commands `revision:cache` /
+ * `revision:clear`, run by `optimize` / `optimize:clear`. The middleware, the route macro and the other commands are
+ * added by their stories (US 8.3 onwards).
  */
 final class RevisionsServiceProvider extends ServiceProvider
 {
@@ -56,6 +60,15 @@ final class RevisionsServiceProvider extends ServiceProvider
 
             return $scope;
         });
+        $this->app->scoped(ResolverChain::class, static function (Container $app): ResolverChain {
+            $config = $app->make(RevisionsConfig::class);
+            $resolvers = [];
+            foreach ($config->resolvers as [$class, $options]) {
+                $resolvers[] = self::resolver($app, $class, $options);
+            }
+
+            return new ResolverChain($config->enum, $resolvers, $config->default instanceof Revision ? $config->default : self::resolver($app, $config->default));
+        });
         $this->app->scoped(ValueErrorHandler::class, static function (Container $app): ValueErrorHandler {
             if ($app->make(Configuration::class)->strictValues) {
                 return new StrictValues();
@@ -72,6 +85,20 @@ final class RevisionsServiceProvider extends ServiceProvider
         });
         // the container of the call, never the one of the boot: Octane runs each request in a clone of the application
         RevisionScope::provider(static fn(): RevisionScope => ContainerInstance::getInstance()->make(RevisionScope::class));
+    }
+
+    /**
+     * The resolver `$class`, built by the container with its options as named arguments.
+     *
+     * @param class-string<RevisionResolver> $class
+     * @param array<string, mixed> $options
+     */
+    private static function resolver(Container $app, string $class, array $options = []): RevisionResolver
+    {
+        $resolver = $app->make($class, $options);
+        assert($resolver instanceof RevisionResolver);
+
+        return $resolver;
     }
 
     public function boot(): void

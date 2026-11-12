@@ -6,11 +6,14 @@ namespace Test\Unit\Laravel;
 
 use Ark4ne\ApiRevisions\Configuration\MissingDefault;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Enums\OrderStatus;
+use Test\Fixtures\Resolvers\AbstractResolver;
+use Test\Fixtures\Resolvers\AccountPinnedResolver;
 use Test\Fixtures\Revisions\IntRevision;
 use Test\TestCase;
 
@@ -41,7 +44,7 @@ final class RevisionsConfigTest extends TestCase
     {
         $config = RevisionsConfig::fromArray([
             'enum' => ApiRevision::class,
-            'resolvers' => ['App\HeaderResolver' => ['name' => 'Api-Revision']],
+            'resolvers' => [HeaderResolver::class => ['name' => 'X-Revision'], AccountPinnedResolver::class],
             'default' => 'oldest',
             'response_header' => 'X-Revision',
             'missing_default' => 'null',
@@ -54,7 +57,7 @@ final class RevisionsConfigTest extends TestCase
         ], debug: true);
 
         self::assertSame(ApiRevision::class, $config->enum);
-        self::assertSame(['App\HeaderResolver' => ['name' => 'Api-Revision']], $config->resolvers);
+        self::assertSame([[HeaderResolver::class, ['name' => 'X-Revision']], [AccountPinnedResolver::class, []]], $config->resolvers);
         self::assertSame(ApiRevision::Genesis, $config->default);
         self::assertSame('X-Revision', $config->responseHeader);
         self::assertSame(MissingDefault::Null, $config->configuration->missingDefault);
@@ -71,7 +74,7 @@ final class RevisionsConfigTest extends TestCase
     {
         $config = RevisionsConfig::fromArray(['enum' => ApiRevision::class]);
 
-        self::assertSame([], $config->resolvers);
+        self::assertSame([[HeaderResolver::class, []]], $config->resolvers);
         self::assertSame(ApiRevision::Atlas, $config->default);
         self::assertSame('Api-Revision', $config->responseHeader);
         self::assertSame(MissingDefault::Error, $config->configuration->missingDefault);
@@ -102,9 +105,9 @@ final class RevisionsConfigTest extends TestCase
 
     public function test_a_resolver_class_as_default_gives_no_fixed_revision(): void
     {
-        $config = RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'default' => stdClass::class]);
+        $config = RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'default' => AccountPinnedResolver::class]);
 
-        self::assertSame(stdClass::class, $config->default);
+        self::assertSame(AccountPinnedResolver::class, $config->default);
         self::assertNull($config->fixedDefault());
     }
 
@@ -113,8 +116,9 @@ final class RevisionsConfigTest extends TestCase
      */
     public static function invalidValues(): iterable
     {
-        yield 'default' => ['default', 'unknown', "revisions.default must be 'latest', 'oldest', a backed value of Test\\Fixtures\\ApiRevision or a resolver class, got string."];
+        yield 'default' => ['default', 'unknown', "revisions.default must be 'latest', 'oldest', a backed value of Test\\Fixtures\\ApiRevision or a resolver class, got unknown."];
         yield 'default as an array' => ['default', ['latest'], "revisions.default must be 'latest', 'oldest', a backed value of Test\\Fixtures\\ApiRevision or a resolver class, got array."];
+        yield 'default a class not implementing the contract' => ['default', stdClass::class, "revisions.default must be 'latest', 'oldest', a backed value of Test\\Fixtures\\ApiRevision or a resolver class, got stdClass."];
         yield 'default of another type' => ['default', 1.5, "revisions.default must be 'latest', 'oldest', a backed value of Test\\Fixtures\\ApiRevision or a resolver class, got float."];
         yield 'missing_default' => ['missing_default', 'none', "revisions.missing_default must be 'error' or 'null', got string."];
         yield 'strict_values' => ['strict_values', 'yes', 'revisions.strict_values must be a bool or null, got string.'];
@@ -126,6 +130,31 @@ final class RevisionsConfigTest extends TestCase
         yield 'discovery' => ['discovery', 'app', 'revisions.discovery must be an array, got string.'];
         yield 'cache_path' => ['cache_path', '', 'revisions.cache_path must be a non-empty string, got string.'];
         yield 'lock_path' => ['lock_path', null, 'revisions.lock_path must be a non-empty string, got null.'];
+    }
+
+    /**
+     * @return iterable<string, array{array<array-key, mixed>, string}>
+     */
+    public static function invalidResolvers(): iterable
+    {
+        yield 'a missing class' => [['App\\Missing' => []], 'App\\Missing'];
+        yield 'a class not implementing the contract' => [[stdClass::class], stdClass::class];
+        yield 'an abstract class' => [[AbstractResolver::class], AbstractResolver::class];
+        yield 'not a class name' => [[12], 'int'];
+        yield 'options not an array' => [[HeaderResolver::class => 'X-Revision'], 'string'];
+        yield 'options not named' => [[HeaderResolver::class => ['X-Revision']], 'list'];
+    }
+
+    /**
+     * @param array<array-key, mixed> $resolvers
+     */
+    #[DataProvider('invalidResolvers')]
+    public function test_a_resolver_not_implementing_the_contract_is_refused(array $resolvers, string $given): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("revisions.resolvers must be classes implementing Ark4ne\\ApiRevisions\\Laravel\\Http\\RevisionResolver, each optionally => its options by name, got {$given}.");
+
+        RevisionsConfig::fromArray(['enum' => ApiRevision::class, 'resolvers' => $resolvers]);
     }
 
     #[DataProvider('invalidValues')]

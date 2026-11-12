@@ -1044,11 +1044,30 @@ and test added). Infection 100 % on the new classes.
 Tests: `test_a_resolver_not_implementing_the_contract_is_refused`, `test_the_first_resolver_returning_a_revision_wins`, `test_the_default_applies_when_no_resolver_answers`,
 `test_a_custom_resolver_pins_the_revision_of_an_account`.
 
+**Done** (2026-11-12): `Laravel\Http\RevisionResolver` (`resolve(Request): ?Revision`), `Laravel\Http\Resolvers\`
+`HeaderResolver` (`name`: `Api-Revision`), `QueryResolver` (`name`: `revision`, never the body), `PathResolver`
+(`parameter`: `revision`), `RevisionValue` (`@internal` parsing shared by the three), `ResolverChain` (the enum, the
+resolvers, the default: the first revision wins, else the fixed default, else the default resolver, else the head),
+bound `scoped` by the provider (each resolver made by the container with its options as named arguments),
+`Exceptions\UnknownRevisionException` (`unknown($value, $accepted)`, both public). `RevisionsConfig::$resolvers` is a
+list of `[class, options]`, defaulting to the header resolver; a resolver or a class `default` that is not an
+instantiable `RevisionResolver` is refused, as are options that are not named. Decision **D57** (an unknown value stops
+the chain; exact backed-value match, empty is absent; a resolver default answering `null` gives the head). Fixtures
+`Resolvers\AccountPinnedResolver` (bearer token → pinned revision), `AbstractResolver`. Coverage 99.65 %, Infection MSI
+98 %. Review: `ResolverChain` no longer implements `RevisionResolver` (as a default it would build itself); abstract
+resolvers refused; `RevisionValue` keeping a case of the enum and comparing an int by its digits recorded in D57;
+docblocks and §14 updated. Deviations: `UnknownRevisionException` is created here (the resolvers throw it), US 8.3
+renders it; `ResolverChain` takes the enum to give the head. Follow-up: US 8.3 bounds the echoed client value and does
+not report the exception (bullet added).
+
 #### US 8.3 — `ResolveRevision` middleware · M · depends US 8.2
 
 - Unknown value → `UnknownRevisionException` rendered **400** (JSON body naming the accepted values); stores the
   revision in the scope; response header; `Vary` in header / query mode; `Deprecation` / `Sunset` from `meta()`
   (midnight of the day in the application timezone, D30).
+
+- Follow-up of US 8.2: `UnknownRevisionException` echoes the client value as sent: bound its length in the 400 body and
+  do not report the exception (a client error, not a server one).
 
 Tests: `test_an_unknown_revision_is_answered_with_400`, `test_the_response_carries_the_revision_header`,
 `test_a_deprecated_revision_adds_deprecation_and_sunset_headers`, `test_header_mode_adds_vary`.
@@ -1385,7 +1404,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | done |
 | US 7.3 | Nested upgrade | M | 7.1 | M2 | done |
 | US 8.1 | Service provider and configuration | S | 1.3 | M2 | done |
-| US 8.2 | Resolvers | M | 8.1 | M2 | todo |
+| US 8.2 | Resolvers | M | 8.1 | M2 | done |
 | US 8.3 | `ResolveRevision` middleware | M | 8.2 | M2 | todo |
 | US 8.4 | Path mode | M | 8.3 | M2 | todo |
 | US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | todo |

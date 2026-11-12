@@ -7,8 +7,11 @@ namespace Ark4ne\ApiRevisions\Laravel;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Configuration\MissingDefault;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
+use ReflectionClass;
 
 /**
  * `config/revisions.php` validated (model.md §8): the revision enum, the options of the Laravel layer and the core
@@ -18,8 +21,10 @@ final readonly class RevisionsConfig
 {
     /**
      * @param class-string<Revision> $enum
-     * @param array<array-key, mixed> $resolvers checked by the resolvers (US 8.2)
-     * @param Revision|string $default a fixed revision (`latest`, `oldest` and backed values resolved), or a resolver class
+     * @param list<array{class-string<RevisionResolver>, array<string, mixed>}> $resolvers each resolver class with its
+     *                                                                            options (named constructor arguments)
+     * @param Revision|class-string<RevisionResolver> $default a fixed revision (`latest`, `oldest` and backed values
+     *                                                         resolved), or a resolver class
      * @param non-empty-string $responseHeader
      * @param list<string> $discoveryPaths
      * @param list<string> $discoveryClasses
@@ -57,7 +62,7 @@ final readonly class RevisionsConfig
         if ($missingDefault === null) {
             throw ConfigurationException::invalidValue('missing_default', "'error' or 'null'", get_debug_type($missing));
         }
-        $resolvers = $config['resolvers'] ?? [];
+        $resolvers = $config['resolvers'] ?? [HeaderResolver::class => []];
         if (!is_array($resolvers)) {
             throw ConfigurationException::invalidValue('resolvers', 'an array', get_debug_type($resolvers));
         }
@@ -68,7 +73,7 @@ final readonly class RevisionsConfig
 
         return new self(
             $enum,
-            $resolvers,
+            self::resolvers($resolvers),
             self::default($enum, $config['default'] ?? 'latest'),
             self::header(self::string($config, 'response_header', 'Api-Revision')),
             new Configuration(
@@ -107,9 +112,11 @@ final readonly class RevisionsConfig
 
     /**
      * `latest`, `oldest` or a backed value as its revision (the keywords first: a case backed by `'latest'` is reached
-     * by the keyword); any other existing class as it is (a resolver, US 8.2).
+     * by the keyword); a class implementing `RevisionResolver` as it is.
      *
      * @param class-string<Revision> $enum
+     *
+     * @return Revision|class-string<RevisionResolver>
      */
     private static function default(string $enum, mixed $default): Revision|string
     {
@@ -125,12 +132,41 @@ final readonly class RevisionsConfig
                     return $case;
                 }
             }
-            if (is_string($default) && class_exists($default)) {
+            if (is_string($default) && self::isResolver($default)) {
                 return $default;
             }
         }
 
-        throw ConfigurationException::invalidValue('default', "'latest', 'oldest', a backed value of {$enum} or a resolver class", get_debug_type($default));
+        throw ConfigurationException::invalidValue('default', "'latest', 'oldest', a backed value of {$enum} or a resolver class", is_string($default) ? $default : get_debug_type($default));
+    }
+
+    /**
+     * Each resolver with its options: `Class::class => [options by name]`, or `Class::class` alone.
+     *
+     * @param array<array-key, mixed> $resolvers
+     *
+     * @return list<array{class-string<RevisionResolver>, array<string, mixed>}>
+     */
+    private static function resolvers(array $resolvers): array
+    {
+        $chain = [];
+        foreach ($resolvers as $key => $value) {
+            [$class, $options] = is_int($key) ? [$value, []] : [$key, $value];
+            if (!is_string($class) || !self::isResolver($class)) {
+                $given = is_string($class) ? $class : get_debug_type($class);
+            } elseif (!is_array($options) || ($options !== [] && array_is_list($options))) {
+                $given = is_array($options) ? 'list' : get_debug_type($options);
+            } else {
+                /** @var array<string, mixed> $options */
+                $chain[] = [$class, $options];
+
+                continue;
+            }
+
+            throw ConfigurationException::invalidValue('resolvers', 'classes implementing ' . RevisionResolver::class . ', each optionally => its options by name', $given);
+        }
+
+        return $chain;
     }
 
     /**
@@ -177,5 +213,15 @@ final readonly class RevisionsConfig
 
         /** @var list<string> */
         return $values;
+    }
+
+    /**
+     * Whether `$class` is a class the container can build implementing `RevisionResolver`.
+     *
+     * @phpstan-assert-if-true class-string<RevisionResolver> $class
+     */
+    private static function isResolver(string $class): bool
+    {
+        return is_subclass_of($class, RevisionResolver::class) && (new ReflectionClass($class))->isInstantiable();
     }
 }

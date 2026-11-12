@@ -109,6 +109,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `Configuration`, one `Shapes`, the `RevisionScope` of each request (`scoped`, its base the configured fixed default
   outside a request) and the `ValueErrorHandler` (`strict_values`, `null` following `app.debug`; lenient errors
   reported once per class and field and request).
+- Resolvers: the `Laravel\Http\RevisionResolver` contract (`resolve(Request): ?Revision`), `HeaderResolver`
+  (`name`, `Api-Revision`), `QueryResolver` (`name`, `revision`) and `PathResolver` (`parameter`, `revision`) in
+  `Laravel\Http\Resolvers`, chained by `ResolverChain` (a `scoped` binding built from `revisions.resolvers`, each
+  resolver made by the container with its options as named arguments; the first revision wins, then `default`: a fixed
+  revision, or a resolver class whose `null` gives the head). A value naming no revision throws
+  `Exceptions\UnknownRevisionException` (the value and the accepted ones). `RevisionsConfig` refuses a resolver or a
+  class `default` not implementing `RevisionResolver`; `resolvers` defaults to the header resolver.
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.

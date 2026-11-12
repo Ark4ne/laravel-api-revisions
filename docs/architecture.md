@@ -352,6 +352,10 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   `RevisionsConfig::class` and `Shapes::class` to `octane.warm`: built lazily, a singleton first made during a request
   would live in that request's sandbox only.
 - `Laravel\Http\Resolvers\*` — **Chain of Responsibility** of `RevisionResolver`s built from the configuration.
+  Since US 8.2: `ResolverChain` (`scoped`, built by the provider: each `[class, options]` of `RevisionsConfig::$resolvers`
+  made by the container with its options as named arguments, then the `default`), `HeaderResolver`, `QueryResolver`,
+  `PathResolver` (built-in resolvers read one value through the `@internal` `RevisionValue::parse()`, `model.md`
+  D57). An unknown value throws `UnknownRevisionException` and stops the chain.
 - `Laravel\Http\ResolveRevision` — middleware (400 on unknown value, response headers, `Vary`, Deprecation / Sunset).
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
   producing Laravel rules under the names of the revision.
@@ -407,7 +411,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 declarations), `ConversionException`, `ValueException` (a subject value the type refuses, strict mode),
 `ConfigurationException` (`InvalidArgumentException`: an invalid `config/revisions.php`), `CacheException`
 (`RuntimeException`: the compiled shapes file unwritable or invalid),
-`UnknownRevisionException` (unknown client value), `LockException`. Named
+`UnknownRevisionException` (`RuntimeException`: unknown client value), `LockException`. Named
 constructors only (`DefinitionException::mixedRevisions()`); messages name the class, the field and the revision.
 
 `Exceptions` depends only on `Support` (phpat, PHPDoc included): an exception takes `\BackedEnum`, `\UnitEnum` or

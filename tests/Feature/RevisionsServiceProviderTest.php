@@ -8,6 +8,9 @@ use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\QueryResolver;
+use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Laravel\RevisionsServiceProvider;
 use Ark4ne\ApiRevisions\Projection\LenientValues;
@@ -16,10 +19,12 @@ use Ark4ne\ApiRevisions\Projection\ValueErrorHandler;
 use Ark4ne\ApiRevisions\Revisions\RevisionScope;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use stdClass;
 use Test\FeatureTestCase;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Resolvers\AccountPinnedResolver;
 use Throwable;
 
 final class RevisionsServiceProviderTest extends FeatureTestCase
@@ -51,7 +56,7 @@ final class RevisionsServiceProviderTest extends FeatureTestCase
 
     public function test_outside_a_request_a_resolver_default_gives_the_head(): void
     {
-        $this->configure(['enum' => ApiRevision::class, 'default' => stdClass::class]);
+        $this->configure(['enum' => ApiRevision::class, 'default' => AccountPinnedResolver::class]);
 
         self::assertSame(ApiRevision::Atlas, ApiRevision::current());
     }
@@ -135,6 +140,41 @@ final class RevisionsServiceProviderTest extends FeatureTestCase
         $again = ValueException::nullNotAllowed('App\Order', 'total', ApiRevision::Genesis);
         $this->application()->make(ValueErrorHandler::class)->handle($again, null);
         self::assertSame([$first, $other, $again], $reported->errors);
+    }
+
+    public function test_the_resolvers_of_the_configuration_are_chained_with_their_options(): void
+    {
+        $this->configure(['enum' => ApiRevision::class, 'resolvers' => [HeaderResolver::class => ['name' => 'X-Revision'], QueryResolver::class], 'default' => 'oldest']);
+        $chain = $this->application()->make(ResolverChain::class);
+
+        self::assertSame(ApiRevision::Atlas, $chain->resolve(Request::create('/orders?revision=winter-25', server: ['HTTP_X_REVISION' => 'atlas'])));
+        self::assertSame(ApiRevision::Winter25, $chain->resolve(Request::create('/orders?revision=winter-25', server: ['HTTP_API_REVISION' => 'atlas'])));
+        self::assertSame(ApiRevision::Genesis, $chain->resolve(Request::create('/orders')));
+    }
+
+    public function test_the_default_resolvers_read_the_revision_header(): void
+    {
+        $this->configure(['enum' => ApiRevision::class]);
+
+        self::assertSame(ApiRevision::Spring26, $this->application()->make(ResolverChain::class)->resolve(Request::create('/orders', server: ['HTTP_API_REVISION' => 'spring-26'])));
+    }
+
+    public function test_a_custom_resolver_pins_the_revision_of_an_account(): void
+    {
+        $this->configure(['enum' => ApiRevision::class, 'resolvers' => [HeaderResolver::class, AccountPinnedResolver::class => ['accounts' => ['ada' => 'winter-25']]]]);
+        $chain = $this->application()->make(ResolverChain::class);
+
+        self::assertSame(ApiRevision::Winter25, $chain->resolve(Request::create('/orders', server: ['HTTP_AUTHORIZATION' => 'Bearer ada'])));
+        self::assertSame(ApiRevision::Atlas, $chain->resolve(Request::create('/orders', server: ['HTTP_AUTHORIZATION' => 'Bearer bob'])));
+        self::assertSame(ApiRevision::Genesis, $chain->resolve(Request::create('/orders', server: ['HTTP_AUTHORIZATION' => 'Bearer ada', 'HTTP_API_REVISION' => 'genesis'])));
+    }
+
+    public function test_a_resolver_class_as_default_answers_after_the_chain(): void
+    {
+        $this->application()->bind(AccountPinnedResolver::class, static fn(): AccountPinnedResolver => new AccountPinnedResolver(['ada' => 'spring-26']));
+        $this->configure(['enum' => ApiRevision::class, 'default' => AccountPinnedResolver::class]);
+
+        self::assertSame(ApiRevision::Spring26, $this->application()->make(ResolverChain::class)->resolve(Request::create('/orders', server: ['HTTP_AUTHORIZATION' => 'Bearer ada'])));
     }
 
     /**

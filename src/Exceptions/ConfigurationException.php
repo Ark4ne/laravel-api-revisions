@@ -31,7 +31,7 @@ final class ConfigurationException extends InvalidArgumentException implements R
      *
      * @param string $key the dotted key, e.g. `discovery.paths`
      * @param string $expected what it holds, e.g. "a non-empty string"
-     * @param string $type the debug type of the value given
+     * @param string $type the value given when it names something (a class, a keyword), else its debug type
      */
     public static function invalidValue(string $key, string $expected, string $type): self
     {

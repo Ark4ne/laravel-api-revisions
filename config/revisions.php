@@ -14,10 +14,15 @@ return [
     'enum' => null,
 
     /*
-     * The chain of resolvers reading the revision of a request, the first returning a revision wins (US 8.2): a
-     * resolver class => its options, or a resolver class alone.
+     * The chain of resolvers reading the revision of a request, the first returning a revision wins: a class
+     * implementing Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver => its options (named constructor arguments),
+     * or the class alone. An unknown value is answered with 400. Custom resolvers pin the revision of an account.
      */
-    'resolvers' => [],
+    'resolvers' => [
+        Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver::class => ['name' => 'Api-Revision'],
+        // Ark4ne\ApiRevisions\Laravel\Http\Resolvers\PathResolver::class => ['parameter' => 'revision'],
+        // Ark4ne\ApiRevisions\Laravel\Http\Resolvers\QueryResolver::class => ['name' => 'revision'],
+    ],
 
     /*
      * The revision when no resolver gives one: 'latest' (the head), 'oldest', a backed value of the enum, or a
