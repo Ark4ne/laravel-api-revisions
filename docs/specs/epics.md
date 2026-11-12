@@ -955,6 +955,26 @@ No code change; a request's `protected upgrade()` reaches the interface through 
 
 Tests: `test_a_child_renamed_in_an_object_is_upgraded`, `test_each_item_of_a_list_is_upgraded`.
 
+**Done** (2026-11-12): the `Upgrader` steps every level in one pass (`level()` / `value()`): an object's children, each
+item of a list, a nested resource in the shape of its class for the request's kind at `headAt` (asked: upgraded, no
+hook); a composite converted at a step is converted whole and continues from the head's shape after its `was()`
+(D52); the converted and defaulted values are tracked by their path of head keys and serialized at the end (asked:
+serialization stays at the end, D54); `Upgrade\UpgradeRun` (`@internal`) carries the converters and the kind down the
+levels; a composite or resource on one side only throws `missingDescriptor()`. Decisions recorded as D55 (D50 amended:
+the upgrader builds nested resources too). Review: a composite converted whole after its children, or whose `up:` or
+default holds typed children, and a list the hook reindexes, came out typed (fixed: composites serialized deep, lists
+tracked whole; `test_a_composite_converted_whole_after_its_children_is_serialized_back_entirely`,
+`test_the_typed_children_an_up_closure_builds_are_serialized_back`, `test_a_list_the_hook_reindexes_is_serialized_back_whole`,
+`test_a_composite_default_is_serialized_back`); a resource on one side only was not refused (fixed). Fixture
+`ContactDeclaration` (a request resource converting a child). Tests beyond the story's: lists of objects, children and
+items serialized back, children added (default) and retired, a composite converted by its `up:`, nested resources
+(own shape, the request's kind, the `Shapes` given, children serialized), a value the hook replaces. Every level now
+comes out in the order its fields are written (two US 7.1 / 7.2 tests updated: the keys of a step are those of the
+shape, renamed or not). Infection 95 % (equivalent mutants: the narrowing `&& instanceof` after the composite guard, and
+marking a list never converted, which serializing leaves unchanged since every `serialize()` passes raw values). Follow-ups: a nested resource's descriptors are built
+on each step's value (one `describeRevisioned()` per step), a cost US 5.5's benchmark does not measure yet; nested
+levels are not put back in the head order.
+
 ---
 
 ### E8 — Laravel runtime
@@ -1320,7 +1340,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 6.4 | Value errors | S | 6.1 | M2 | done |
 | US 7.1 | Upgrader | M | 5.2 | M2 | done |
 | US 7.2 | The `upgrade()` hook | S | 7.1 | M2 | done |
-| US 7.3 | Nested upgrade | M | 7.1 | M2 | todo |
+| US 7.3 | Nested upgrade | M | 7.1 | M2 | done |
 | US 8.1 | Service provider and configuration | S | 1.3 | M2 | todo |
 | US 8.2 | Resolvers | M | 8.1 | M2 | todo |
 | US 8.3 | `ResolveRevision` middleware | M | 8.2 | M2 | todo |

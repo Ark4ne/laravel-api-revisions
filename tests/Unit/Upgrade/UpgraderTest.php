@@ -22,7 +22,11 @@ use Ark4ne\ApiRevisions\Upgrade\UpgradesInput;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Declarations\ContactDeclaration;
+use Test\Fixtures\Declarations\CountingDeclaration;
+use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\OrderInputDeclaration;
+use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\TestCase;
 
@@ -292,7 +296,7 @@ final class UpgraderTest extends TestCase
         ];
 
         self::assertSame(['status' => 'paid'], $this->upgrade($head, ApiRevision::Genesis, ['code' => 'paid', 'label' => 'Ada'], $hook));
-        self::assertSame(['Winter25' => ['label', 'phase'], 'Spring26' => ['state', 'name'], 'Atlas' => ['status', 'name']], $hook->seen);
+        self::assertSame(['Winter25' => ['phase', 'label'], 'Spring26' => ['state', 'name'], 'Atlas' => ['status', 'name']], $hook->seen);
     }
 
     public function test_a_value_never_converted_is_kept_as_sent(): void
@@ -338,6 +342,214 @@ final class UpgraderTest extends TestCase
         $this->expectExceptionObject(DefinitionException::notAnUpShape('object'));
 
         (new Upgrader())->upgrade(ShapeSelector::at($head, ApiRevision::Genesis, Direction::Down), $head, []);
+    }
+
+    public function test_a_child_renamed_in_an_object_is_upgraded(): void
+    {
+        $head = ['address' => Schema::object(['street' => Schema::string()->was(ApiRevision::Winter25, name: 'line'), 'zip' => Schema::string()])];
+
+        self::assertSame(
+            ['address' => ['street' => '1 rue', 'zip' => '75001']],
+            $this->upgrade($head, ApiRevision::Genesis, ['address' => ['line' => '1 rue', 'zip' => '75001']]),
+        );
+    }
+
+    public function test_each_item_of_a_list_is_upgraded(): void
+    {
+        $head = [
+            'totals' => Schema::list(Schema::int()->was(ApiRevision::Winter25, schema: Schema::string(), up: static fn(string $amount): int => (int) round(((float) $amount) * 100))),
+        ];
+
+        self::assertSame(['totals' => [1250, 100]], $this->upgrade($head, ApiRevision::Genesis, ['totals' => ['12.50', '1']]));
+    }
+
+    public function test_the_children_of_each_item_of_a_list_of_objects_are_upgraded(): void
+    {
+        $head = ['lines' => Schema::list(Schema::object(['label' => Schema::string()->was(ApiRevision::Spring26, name: 'name')]))];
+
+        self::assertSame(
+            ['lines' => [['label' => 'a'], ['label' => 'b']]],
+            $this->upgrade($head, ApiRevision::Winter25, ['lines' => [['name' => 'a'], ['name' => 'b']]]),
+        );
+    }
+
+    public function test_the_children_and_items_converted_are_serialized_back_by_their_head_descriptor(): void
+    {
+        $up = static fn(string $state): OrderStatus => OrderStatus::from($state);
+        $head = [
+            'order' => Schema::object([
+                'status' => Schema::enum(OrderStatus::class)->was(ApiRevision::Winter25, schema: Schema::string(), up: $up)->was(ApiRevision::Genesis, name: 'state'),
+                'history' => Schema::list(Schema::enum(OrderStatus::class)->was(ApiRevision::Winter25, schema: Schema::string(), up: $up)),
+            ]),
+        ];
+
+        self::assertSame(
+            ['order' => ['status' => 'paid', 'history' => ['pending', 'paid']]],
+            $this->upgrade($head, ApiRevision::Genesis, ['order' => ['state' => 'paid', 'history' => ['pending', 'paid']]]),
+        );
+    }
+
+    public function test_a_child_added_later_gets_its_default_and_a_child_retired_is_dropped(): void
+    {
+        $head = [
+            'meta' => Schema::object([
+                'priority' => Schema::int()->since(ApiRevision::Atlas, default: 0),
+                'legacy' => Schema::string()->until(ApiRevision::Winter25),
+                'note' => Schema::string(),
+            ]),
+        ];
+
+        self::assertSame(
+            ['meta' => ['note' => 'n', 'priority' => 0]],
+            $this->upgrade($head, ApiRevision::Genesis, ['meta' => ['legacy' => 'x', 'note' => 'n']]),
+        );
+    }
+
+    public function test_a_composite_converted_by_its_up_closure_continues_from_the_shape_after_its_was(): void
+    {
+        $head = [
+            'size' => Schema::object(['width' => Schema::int()->was(ApiRevision::Spring26, name: 'w')])
+                ->was(ApiRevision::Winter25, schema: Schema::string(), up: static fn(string $size): array => ['w' => (int) $size]),
+        ];
+
+        self::assertSame(['size' => ['width' => 3]], $this->upgrade($head, ApiRevision::Genesis, ['size' => '3']));
+    }
+
+    public function test_a_nested_resource_is_upgraded_in_its_own_shape(): void
+    {
+        $shape = (new Shapes())->for(StoreOrderDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+
+        self::assertSame(
+            ['title' => 'Book', 'total' => 12, 'customer' => ['name' => 'Ada']],
+            (new Upgrader())->upgrade(
+                $shape,
+                StoreOrderDeclaration::describeRevisioned(DeclarationKind::RequestBody, null),
+                ['title' => 'Book', 'total' => '12', 'customer' => ['full_name' => 'Ada']],
+            ),
+        );
+    }
+
+    public function test_the_children_converted_in_a_nested_resource_are_serialized_back(): void
+    {
+        $head = ['contact' => Schema::resource(ContactDeclaration::class)];
+
+        self::assertSame(['contact' => ['since' => '2026-03-04']], $this->upgrade($head, ApiRevision::Genesis, ['contact' => ['since' => '4 March 2026']]));
+    }
+
+    public function test_the_shapes_given_compile_the_nested_resources(): void
+    {
+        $shapes = new Shapes();
+        $shapes->for(CountingDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis);
+        CountingDeclaration::$described = 0;
+        $head = ['item' => Schema::resource(CountingDeclaration::class)];
+
+        $upgraded = (new Upgrader(shapes: $shapes))->upgrade(ShapeSelector::at($head, ApiRevision::Genesis, Direction::Up), $head, ['item' => ['name' => 'Book']]);
+
+        self::assertSame(['item' => ['title' => 'Book']], $upgraded);
+        // built on each value of each step, never compiled again (3 steps)
+        self::assertSame(3, CountingDeclaration::$described);
+    }
+
+    public function test_a_nested_resource_takes_the_declaration_kind_of_the_request(): void
+    {
+        $head = ['customer' => Schema::resource(CustomerDeclaration::class)];
+        $shape = ShapeSelector::at($head, ApiRevision::Genesis, Direction::Up)->of(StoreOrderDeclaration::class, DeclarationKind::RequestQuery);
+
+        $this->expectExceptionObject(DefinitionException::undeclaredKind(CustomerDeclaration::class, DeclarationKind::RequestQuery->value));
+
+        (new Upgrader())->upgrade($shape, $head, ['customer' => ['full_name' => 'Ada']]);
+    }
+
+    public function test_descriptors_with_a_composite_the_shape_has_not_throw(): void
+    {
+        $shape = ShapeSelector::at(['meta' => Schema::object(['a' => Schema::int()])], ApiRevision::Genesis, Direction::Up);
+
+        $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'meta'));
+
+        (new Upgrader())->upgrade($shape, ['meta' => Schema::string()], ['meta' => ['a' => 1]]);
+    }
+
+    public function test_a_nested_value_the_hook_replaces_is_kept_as_it_returns_it(): void
+    {
+        $hook = new class implements UpgradesInput {
+            public function upgrade(Revision $to, array $input): array
+            {
+                return $to === ApiRevision::Atlas ? ['order' => 'none'] : $input;
+            }
+        };
+        $head = ['order' => Schema::object(['total' => Schema::int()->was(ApiRevision::Genesis, schema: Schema::string())])];
+
+        self::assertSame(['order' => 'none'], $this->upgrade($head, ApiRevision::Genesis, ['order' => ['total' => '3']], $hook));
+    }
+
+    public function test_a_composite_converted_whole_after_its_children_is_serialized_back_entirely(): void
+    {
+        $head = [
+            'o' => Schema::object([
+                's' => Schema::enum(OrderStatus::class)->was(ApiRevision::Genesis, schema: Schema::string(), up: static fn(string $state): OrderStatus => OrderStatus::from($state)),
+            ])->was(ApiRevision::Spring26, up: static fn(array $o): array => $o),
+        ];
+
+        self::assertSame(['o' => ['s' => 'paid']], $this->upgrade($head, ApiRevision::Genesis, ['o' => ['s' => 'paid']]));
+    }
+
+    public function test_the_typed_children_an_up_closure_builds_are_serialized_back(): void
+    {
+        $head = [
+            'o' => Schema::object(['d' => Schema::date()])
+                ->was(ApiRevision::Winter25, schema: Schema::string(), up: static fn(string $day): array => ['d' => new DateTimeImmutable($day)]),
+        ];
+
+        self::assertSame(['o' => ['d' => '2026-03-04']], $this->upgrade($head, ApiRevision::Genesis, ['o' => '2026-03-04']));
+    }
+
+    public function test_a_list_the_hook_reindexes_is_serialized_back_whole(): void
+    {
+        $hook = new class implements UpgradesInput {
+            public function upgrade(Revision $to, array $input): array
+            {
+                if ($to === ApiRevision::Spring26 && is_array($input['l'] ?? null)) {
+                    $input['l'] = array_values(array_filter($input['l'], static fn(mixed $item): bool => $item !== null));
+                }
+
+                return $input;
+            }
+        };
+        $head = [
+            'l' => Schema::list(Schema::enum(OrderStatus::class)->nullable()->was(ApiRevision::Genesis, schema: Schema::string()->nullable(), up: static fn(string $state): OrderStatus => OrderStatus::from($state))),
+        ];
+
+        self::assertSame(['l' => ['paid']], $this->upgrade($head, ApiRevision::Genesis, ['l' => [null, 'paid']], $hook));
+    }
+
+    public function test_a_composite_default_is_serialized_back(): void
+    {
+        $head = ['o' => Schema::object(['s' => Schema::enum(OrderStatus::class)])->since(ApiRevision::Atlas, default: ['s' => OrderStatus::Paid])];
+
+        self::assertSame(['o' => ['s' => 'paid']], $this->upgrade($head, ApiRevision::Genesis, []));
+    }
+
+    public function test_an_empty_composite_converted_stays_an_array(): void
+    {
+        $head = ['o' => Schema::object(['a' => Schema::int()])->was(ApiRevision::Spring26, schema: Schema::string(), up: static fn(string $o): array => [])];
+
+        self::assertSame(['o' => []], $this->upgrade($head, ApiRevision::Genesis, ['o' => 'x']));
+    }
+
+    public function test_descriptors_with_a_resource_the_shape_has_not_throw(): void
+    {
+        $shape = ShapeSelector::at(['c' => Schema::resource(ContactDeclaration::class)], ApiRevision::Genesis, Direction::Up);
+
+        $this->expectExceptionObject(DefinitionException::missingDescriptor('object', 'c'));
+
+        (new Upgrader())->upgrade($shape, ['c' => Schema::string()], ['c' => ['since' => 'x']]);
+    }
+
+    public function test_a_nested_value_that_is_not_an_array_is_kept(): void
+    {
+        $head = ['address' => Schema::object(['street' => Schema::string()->was(ApiRevision::Winter25, name: 'line')])];
+
+        self::assertSame(['address' => 'none'], $this->upgrade($head, ApiRevision::Genesis, ['address' => 'none']));
     }
 
     public function test_a_key_the_shape_does_not_know_is_kept(): void

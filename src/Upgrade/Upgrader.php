@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Upgrade;
 
+use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\FieldDefinition;
 use Ark4ne\ApiRevisions\Compilation\FieldVersion;
 use Ark4ne\ApiRevisions\Compilation\Shape;
+use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Conversion\ExplicitConverter;
@@ -16,8 +18,12 @@ use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 use Ark4ne\ApiRevisions\Schema\Change;
+use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\InvalidValue;
+use Ark4ne\ApiRevisions\Schema\ListSchema;
+use Ark4ne\ApiRevisions\Schema\ObjectSchema;
+use Ark4ne\ApiRevisions\Schema\ResourceSchema;
 use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Ark4ne\ApiRevisions\Support\Undefined;
 
@@ -35,11 +41,18 @@ final readonly class Upgrader
      * @param Configuration $configuration the one the shapes were compiled with: it configures the descriptor that
      *                                     serializes
      * @param Converters|null $converters the registry the chains are bound to; `TypeRegistry::converters()` by default
+     * @param Shapes|null $shapes the shapes of the nested resources (model.md D49); one compiling with `$configuration`
+     *                            and `$converters` by default
      */
     public function __construct(
         private Configuration $configuration = new Configuration(),
         private ?Converters $converters = null,
-    ) {}
+        ?Shapes $shapes = null,
+    ) {
+        $this->shapes = $shapes ?? new Shapes(new Compiler($configuration, $converters));
+    }
+
+    private Shapes $shapes;
 
     /**
      * The input of `$from->revision` in the shape of the head. A value its type at `X` refuses throws a
@@ -57,64 +70,49 @@ final readonly class Upgrader
         if ($from->direction !== Direction::Up) {
             throw DefinitionException::notAnUpShape($class);
         }
-        $converters = $this->converters ?? TypeRegistry::converters();
-        // the fields visible at the revision, and those added later, each compiled at its `since`
-        $fields = $from->fields + $from->added;
+        $run = new UpgradeRun($this->converters ?? TypeRegistry::converters(), $from->kind ?? DeclarationKind::RequestBody);
+        /** @var array<array-key, mixed> $touched the head keys whose value was converted or defaulted: `true`, or the marks of its children or items */
+        $touched = [];
+        $revision = $from->revision;
+        while (($next = RevisionOrder::next($revision)) !== null) {
+            $input = $this->level($from, $descriptors, $input, $revision, $next, $hook, $touched, $class, $run);
+            $revision = $next;
+        }
+
+        return $this->head($descriptors, $input, $touched, $run);
+    }
+
+    /**
+     * One step `$revision → $next` on one level (the request, an object's children, a resource): the values of the
+     * fields retired after `$revision` set aside; every field existing at both revisions read from a snapshot of the
+     * level, renamed and converted (or its children and items upgraded), all old names removed before the new ones are
+     * written (spike F1); the retired values put back under the names no newer field took; the hook (the request only);
+     * the defaults of the fields added in `$next`; the retired values dropped.
+     *
+     * @param array<string, Descriptor<mixed>> $descriptors
+     * @param array<array-key, mixed> $input
+     * @param array<array-key, mixed> $touched
+     *
+     * @return array<array-key, mixed>
+     */
+    private function level(
+        Shape $shape,
+        array $descriptors,
+        array $input,
+        Revision $revision,
+        Revision $next,
+        ?UpgradesInput $hook,
+        array &$touched,
+        string $class,
+        UpgradeRun $run,
+    ): array {
+        // the fields visible at the revision of the shape, and those added later, each compiled at its `since`
+        $fields = $shape->fields + $shape->added;
         foreach (array_keys($fields) as $key) {
             if (!isset($descriptors[$key])) {
                 throw DefinitionException::missingDescriptor($class, $key);
             }
         }
-        /** @var array<string, true> $touched the head keys whose value was converted or defaulted */
-        $touched = [];
-        $revision = $from->revision;
-        while (($next = RevisionOrder::next($revision)) !== null) {
-            [$input, $retired] = $this->step($fields, $descriptors, $input, $revision, $next, $converters, $class, $touched);
-            if ($hook !== null) {
-                $input = $hook->upgrade($next, $input);
-            }
-            foreach ($from->added as $key => $field) {
-                $name = $field->name;
-                // a retired value still under the name is no value of the field (model.md D54)
-                if ($field->lifetime->since === $next && !Undefined::is($field->default)
-                    && (!array_key_exists($name, $input) || ($retired[$name] ?? false))) {
-                    $input[$name] = $field->default;
-                    $touched[$key] = true;
-                    unset($retired[$name]);
-                }
-            }
-            foreach (array_keys($retired) as $name) {
-                unset($input[$name]);
-            }
-            $revision = $next;
-        }
-
-        return $this->head($descriptors, $input, $touched);
-    }
-
-    /**
-     * The renames and `up` conversions of the `was($revision)` of the fields existing at both revisions, every old
-     * name read from a snapshot of the step, all removed before the new ones are written (spike F1). The values of the
-     * fields retired after `$revision` are set aside and put back under their name unless a newer field took it, for
-     * the hook; their names are returned, to be dropped after the hook.
-     *
-     * @param array<string, FieldDefinition> $fields
-     * @param array<string, Descriptor<mixed>> $descriptors
-     * @param array<string, mixed> $input
-     * @param array<string, true> $touched
-     *
-     * @return array{array<string, mixed>, array<string, true>} the input, and the names of the retired values put back
-     */
-    private function step(
-        array $fields,
-        array $descriptors,
-        array $input,
-        Revision $revision,
-        Revision $next,
-        Converters $converters,
-        string $class,
-        array &$touched,
-    ): array {
         $snapshot = $input;
         $aside = [];
         foreach ($fields as $field) {
@@ -126,16 +124,17 @@ final readonly class Upgrader
         }
         $moves = [];
         foreach ($fields as $key => $field) {
-            $version = $field->versionAt($revision);
-            if ($version === null || !$field->lifetime->covers($next) || !array_key_exists($version->name, $snapshot)) {
+            $old = $field->nameAt($revision);
+            if (!$field->lifetime->covers($revision) || !$field->lifetime->covers($next) || !array_key_exists($old, $snapshot)) {
                 continue;
             }
-            $value = $snapshot[$version->name];
-            if ($value !== null && $field->chain->stepOf($version->change) !== null) {
-                $value = $this->convert($field, $version, $descriptors[$key], $value, $snapshot, $converters, $class);
-                $touched[$key] = true;
+            [$value, $mark] = $this->value($field, $descriptors[$key], $snapshot[$old], $snapshot, $revision, $next, $touched[$key] ?? null, $class, $run);
+            if ($mark === null) {
+                unset($touched[$key]);
+            } else {
+                $touched[$key] = $mark;
             }
-            $moves[] = [$version->name, $field->nameAt($next), $value];
+            $moves[] = [$old, $field->nameAt($next), $value];
         }
         foreach ($moves as [$old]) {
             unset($input[$old]);
@@ -150,8 +149,101 @@ final readonly class Upgrader
                 $retired[$name] = true;
             }
         }
+        if ($hook !== null) {
+            /** @var array<string, mixed> $named the request level is keyed by names */
+            $named = $input;
+            $input = $hook->upgrade($next, $named);
+        }
+        foreach ($shape->added as $key => $field) {
+            $name = $field->name;
+            // a retired value still under the name is no value of the field (model.md D54)
+            if ($field->lifetime->since === $next && !Undefined::is($field->default)
+                && (!array_key_exists($name, $input) || ($retired[$name] ?? false))) {
+                $input[$name] = $field->default;
+                $touched[$key] = true;
+                unset($retired[$name]);
+            }
+        }
+        foreach (array_keys($retired) as $name) {
+            unset($input[$name]);
+        }
 
-        return [$input, $retired];
+        return $input;
+    }
+
+    /**
+     * The value of one field (or item) after the step: converted when its chain has a step at the `was($revision)`
+     * (a composite then as its `up` returns it, model.md D52), else the children, items or resource of a composite
+     * upgraded where its head descriptor is in force; any other value as it is. With the mark of what was converted.
+     *
+     * @param Descriptor<mixed> $descriptor the head descriptor
+     * @param array<array-key, mixed> $snapshot the snapshot of the level
+     * @param mixed $mark what was converted in it before this step: `true`, the marks of its children or items, or `null`
+     *
+     * @return array{mixed, mixed} the value, and its mark
+     */
+    private function value(
+        FieldDefinition $field,
+        Descriptor $descriptor,
+        mixed $value,
+        array $snapshot,
+        Revision $revision,
+        Revision $next,
+        mixed $mark,
+        string $class,
+        UpgradeRun $run,
+    ): array {
+        if ($value === null) {
+            return [null, $mark];
+        }
+        $version = $field->versionAt($revision);
+        if ($version !== null && $field->chain->stepOf($version->change) !== null) {
+            // a composite converted is serialized whole: its children may be typed (model.md D55)
+            return [$this->convert($field, $version, $descriptor, $value, $snapshot, $run->converters, $class), true];
+        }
+        if (!is_array($value) || RevisionOrder::compare($field->headAt, $revision) > 0) {
+            // before `headAt`, the value is in the shape of a `was()` schema: its own conversion takes it to the head's
+            return [$value, $mark];
+        }
+        if (($descriptor instanceof ObjectSchema) !== ($field->children !== null)
+            || ($descriptor instanceof ListSchema) !== ($field->items !== null)
+            // the type is the head's when no `was()` schema is in force at the revision of the shape
+            || ($field->headAt === $field->revision && ($descriptor instanceof ResourceSchema) !== ($field->type->resource !== null))) {
+            // descriptors that are not those of the shape: a composite on one side only
+            throw DefinitionException::missingDescriptor($class, $field->headKey);
+        }
+        $marks = is_array($mark) ? $mark : [];
+        if ($field->children !== null && $descriptor instanceof ObjectSchema) {
+            $value = $this->level($field->children, $descriptor->children(), $value, $revision, $next, null, $marks, $class, $run);
+        } elseif ($field->items !== null && $descriptor instanceof ListSchema) {
+            // a list is marked whole: the hook may filter or reindex its items
+            $converted = false;
+            foreach ($value as $index => $element) {
+                [$value[$index], $itemMark] = $this->value($field->items, $descriptor->items(), $element, $snapshot, $revision, $next, null, $class, $run);
+                $converted = $converted || $itemMark !== null;
+            }
+
+            return [$value, $converted ? true : $mark];
+        } elseif ($descriptor instanceof ResourceSchema) {
+            $resource = $descriptor->class();
+            $value = $this->level(
+                $this->shapes->for($resource, $run->kind, $field->headAt),
+                $resource::describeRevisioned($run->kind, $value),
+                $value,
+                $revision,
+                $next,
+                null,
+                $marks,
+                $resource,
+                $run,
+            );
+        }
+
+        if ($mark === true) {
+            return [$value, true];
+        }
+
+        return [$value, $marks === [] ? null : $marks];
     }
 
     /**
@@ -159,7 +251,7 @@ final readonly class Upgrader
      * `was()`, which receives the snapshot of the step (model.md §7.1, D26).
      *
      * @param Descriptor<mixed> $descriptor the head descriptor
-     * @param array<string, mixed> $snapshot
+     * @param array<array-key, mixed> $snapshot
      */
     private function convert(
         FieldDefinition $field,
@@ -185,27 +277,68 @@ final readonly class Upgrader
     }
 
     /**
-     * The upgraded input in the head order (keys the shape does not know last), the values converted or defaulted
-     * serialized by their head descriptor.
+     * The upgraded input in the head order (keys the shape does not know last), the values converted or defaulted,
+     * at any depth, serialized by their head descriptor.
      *
      * @param array<string, Descriptor<mixed>> $descriptors
-     * @param array<string, mixed> $input
-     * @param array<string, true> $touched
+     * @param array<array-key, mixed> $input
+     * @param array<array-key, mixed> $touched
      *
      * @return array<string, mixed>
      */
-    private function head(array $descriptors, array $input, array $touched): array
+    private function head(array $descriptors, array $input, array $touched, UpgradeRun $run): array
     {
+        $input = $this->serialized($descriptors, $input, $touched, $run);
         $head = [];
-        foreach ($descriptors as $key => $descriptor) {
+        foreach (array_keys($descriptors) as $key) {
             if (array_key_exists($key, $input)) {
-                $value = $input[$key];
-                $head[$key] = ($touched[$key] ?? false) && $value !== null
-                    ? $descriptor->configure($this->configuration)->serialize($value)
-                    : $value;
+                $head[$key] = $input[$key];
             }
         }
 
+        /** @var array<string, mixed> */
         return $head + $input;
+    }
+
+    /**
+     * @param array<array-key, Descriptor<mixed>> $descriptors
+     * @param array<array-key, mixed> $values
+     * @param array<array-key, mixed> $marks
+     *
+     * @return array<array-key, mixed>
+     */
+    private function serialized(array $descriptors, array $values, array $marks, UpgradeRun $run): array
+    {
+        foreach ($marks as $key => $mark) {
+            if (isset($descriptors[$key]) && array_key_exists($key, $values)) {
+                $values[$key] = $this->serialize($descriptors[$key], $values[$key], $mark, $run);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param Descriptor<mixed> $descriptor the head descriptor
+     */
+    private function serialize(Descriptor $descriptor, mixed $value, mixed $mark, UpgradeRun $run): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (!$descriptor instanceof ObjectSchema && !$descriptor instanceof ListSchema && !$descriptor instanceof ResourceSchema) {
+            return $mark === true ? $descriptor->configure($this->configuration)->serialize($value) : $value;
+        }
+        if (!is_array($value) || ($mark !== true && !is_array($mark))) {
+            // a composite marked whole serializes each child or item, never itself (an empty one stays an array)
+            return $value;
+        }
+        $children = match (true) {
+            $descriptor instanceof ObjectSchema => $descriptor->children(),
+            $descriptor instanceof ListSchema => array_fill_keys(array_keys($value), $descriptor->items()),
+            $descriptor instanceof ResourceSchema => $descriptor->class()::describeRevisioned($run->kind, $value),
+        };
+
+        return $this->serialized($children, $value, $mark === true ? array_fill_keys(array_keys($value), true) : $mark, $run);
     }
 }

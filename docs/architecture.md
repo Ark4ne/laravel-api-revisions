@@ -57,7 +57,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned` |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader`, `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
-| Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract |
+| Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits, commands, queue capture |
@@ -148,7 +148,7 @@ types).
   `RequestBody`, `RequestQuery`; `direction()`: down for a response, up for a request): `declarationKinds()` and the
   `@internal` bridge `describeRevisioned($kind, $subject)`, in which the class builds itself on its subject: the probe
   at compilation (`mixed`: the `Probe` lives in `Compilation`), the value of a nested resource at projection; called by
-  the compiler and the projector only; the Laravel traits implement it (`model.md` D48, D50). `Descriptor::toType()` merges the keywords of every declared
+  the compiler, the projector and the upgrader only; the Laravel traits implement it (`model.md` D48, D50). `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
   and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
 - `Descriptor::inGroup()` is a public `@internal` entry point: it sets the lifetime and default a group resolved
@@ -319,6 +319,15 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   4. the retired values still present are dropped (after the hook, which may consume them).
   Then the values converted or defaulted are serialized by their head descriptor (`configure()`d); the others stay as
   sent. The result is in the head order, keys the shape does not know last (`model.md` D54).
+- **Nesting** (`model.md` D55): each step runs on every level in one pass (`Upgrader::level()` recursing through
+  `value()`): an object's children (`FieldDefinition::$children`, compiled at `headAt`), each item of a list
+  (`$items`), a nested resource (`Shapes::for($class, $kind of the request, $field->headAt)` and
+  `describeRevisioned($kind, $value)`, a `Shapes` given to the upgrader or one compiling with its configuration). A
+  composite whose chain converts at `X` is converted whole and not stepped into; before `headAt` its value waits for
+  its conversion. Only the request's hook is called. The converted and defaulted values are tracked by their path of
+  head keys (a list whole) and serialized at the end by their head descriptor; a composite converted or defaulted is
+  serialized deep, child by child, never by its own `serialize()`. A composite or resource on one side only
+  (descriptor vs shape) throws `missingDescriptor()`.
 - Conversions and defaults apply to **present** keys only; a default never replaces an explicit `null`. A failed
   conversion throws its `ConversionException` (the Laravel layer turns it into a validation error, US 8.7, Q18).
 - The upgrader is pure: it does not validate and never mutates its input. The Laravel layer validates at `R` first,

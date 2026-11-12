@@ -102,7 +102,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   added in the newer revision (never over an explicit `null`), the fields retired dropped; converted and defaulted
   values serialized back to raw values, the result in the head order (model.md D26, D54); a response shape throws
   `DefinitionException::notAnUpShape()`. `FieldVersion::$schemaChange` and `FieldDefinition::nameAt()` give the
-  descriptor in force and the name at a revision.
+  descriptor in force and the name at a revision. Objects, lists and nested resources are upgraded too, in the same
+  step as their parent (model.md D55); the `Upgrader` takes an optional `Shapes` for the nested resources.
 - Benchmark gate: `composer benchmark` (`bin/benchmark.php`, reference `bin/benchmark/reference.json`, `--update`)
   compares the projection at the head and at the oldest revision with a plain `JsonResource` (time and memory ratios,
   10 % tolerance); run in CI. A projection costs about ×19 the time of the plain resource: `TypeRegistry::converters()`
