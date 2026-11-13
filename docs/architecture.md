@@ -60,7 +60,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
-| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`) |
+| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`) and the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
@@ -440,6 +440,17 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   of the `ClassFinder`, in its order; a check returns at once on a target it does not check. One `Shapes` over the
   checker's `Compiler` per run (never the compiled file), shared by the checks: a class is compiled once per run.
   `CheckContext::error()` / `warning()` fill the class (the enum when the target is the enum) and the revision.
+- Since US 9.2: before its checks, the `Checker` **builds** each class (`Compiler::describe()` for every kind, its
+  shape at every revision): whatever it throws is one error under `DefinitionException::$checkCode` (each named
+  constructor whose error has a code of `model.md` §9 sets it), else `definition-error`, and the class is skipped (D39,
+  D66); an invalid `order()` stops the run after the enum. The checks walk a declaration through `Checking\Fields`
+  (`@internal`: descriptors, visible fields and object shapes by their path of head keys, `customer.name`, `lines.*`;
+  conversion steps once per kind, field and `was()`); a nested resource is never entered, its class is checked on its
+  own. The rules of the core are listed by `Checker::builtIn()`; a rule needing Laravel lives in `Laravel\Checking\`
+  (`NativeCondition`, reading `RevisionedResource::revisionedNativeConditions()`), added by `revision:check` (US 9.3).
+  The codes of the errors thrown when declared are literals on `DefinitionException` (`Exceptions` cannot see
+  `Checking`); `Checker::DEFINITION_ERROR` equals the default one (tested). `CheckContext` memoizes the descriptors per
+  kind, `Shapes` the shapes: a class is described and compiled once per run.
 - `Diagnostic`: `code` (kebab-case, a constant of its check), `severity`, `class`, `field` (the head key), `revision`
   (its backed value, as a string: `Support` cannot see `Revision`), `message`; `null` field or revision when it
   concerns the whole class or every revision.
@@ -532,7 +543,9 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 
 ### Add a check rule
 
-1. `src/Checking/Checks/<Rule>.php` implementing `Check`, its `CODE` constant; register it in `Checker`.
+1. `src/Checking/Checks/<Rule>.php` implementing `Check`, its `CODE` constant; list it in `Checker::builtIn()` (a rule
+   reading Laravel: `src/Laravel/Checking/`). A rule already enforced when declared is a `DefinitionException` named
+   constructor carrying the code (`checkCode:`), not a class.
 2. Add the code to `specs/model.md` §9.
 3. Unit test: one passing and one failing declaration; the diagnostic names class, field, revision.
 

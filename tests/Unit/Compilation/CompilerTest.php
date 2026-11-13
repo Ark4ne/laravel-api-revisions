@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Unit\Compilation;
 
 use Ark4ne\ApiRevisions\Compilation\Compiler;
+use Ark4ne\ApiRevisions\Compilation\Probe;
 use Ark4ne\ApiRevisions\Compilation\ShapeSelector;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Configuration\MissingDefault;
@@ -205,5 +206,29 @@ final class CompilerTest extends TestCase
         $this->expectExceptionObject(DefinitionException::notRevisioned(stdClass::class));
 
         (new Compiler())->compile(ForeignResourceDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas);
+    }
+
+    public function test_describing_gives_the_head_descriptors_by_key(): void
+    {
+        $descriptors = (new Compiler())->describe(OrderDeclaration::class, DeclarationKind::Response);
+
+        self::assertSame(array_keys(OrderDeclaration::describeRevisioned(DeclarationKind::Response, new Probe(OrderDeclaration::class))), array_keys($descriptors));
+        self::assertContainsOnlyInstancesOf(Descriptor::class, $descriptors);
+    }
+
+    public function test_describing_refuses_what_compiling_refuses(): void
+    {
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage("Test\\Fixtures\\Declarations\\OrderDeclaration declares no 'request-body'.");
+
+        (new Compiler())->describe(OrderDeclaration::class, DeclarationKind::RequestBody);
+    }
+
+    public function test_the_converters_are_the_given_ones_else_the_registered_ones(): void
+    {
+        $converters = Converters::builtIn();
+
+        self::assertSame($converters, (new Compiler(converters: $converters))->converters());
+        self::assertSame(TypeRegistry::converters(), (new Compiler())->converters());
     }
 }

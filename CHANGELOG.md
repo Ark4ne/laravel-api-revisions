@@ -221,4 +221,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   enum then once per declaring class), `Checking\CheckContext` (the target, its shapes, `error()` / `warning()`),
   `Checking\Checker` (runs the checks with a fresh `Shapes` per run) and the `Checking\ClassFinder` contract,
   implemented by `Laravel\Discovery\PathClassFinder`; `DefinitionException::noShapeForRevisions()` when a check asks a
-  shape of the enum, `foreignRevision()` for a diagnostic on a revision of another enum. No check rule yet.
+  shape of the enum, `foreignRevision()` for a diagnostic on a revision of another enum.
+- Check rules (model.md §9): `Checking\Checker::builtIn()` — `Checks\OrderMissingCase`, `OrderDuplicateCase`,
+  `BoundRepeated` (warning), `HistoryBeforeSince`, `HistoryAfterUntil`, `ConversionMissing`, `ConversionLossy`
+  (warning), `NameCollision` (also a name in both the body and the query of a request), `RequiredSinceWithoutDefault`
+  (none under `missing_default: null`), `EagerValue`; `Laravel\Checking\NativeCondition` (warning, registered by `revision:check` in US 9.3). A
+  `DefinitionException` of a descriptor in a `RevisionedResource::toArray()` is no longer wrapped in `failedDescribing()`. Before its rules,
+  the checker builds each class (descriptors, shapes at every revision): anything thrown is one error under the code
+  of its `DefinitionException` (`DefinitionException::$checkCode`: `lifetime-inverted`, `since-older-than-group`,
+  `until-newer-than-group`, `history-unordered`, `unknown-resource`), else `definition-error`, and
+  the check goes on (D39, D66); an invalid `order()` stops it after the enum. `Compiler::describe()` (the configured
+  head descriptors) and `Compiler::converters()`; `CheckContext::order()`, `kinds()`, `descriptors()`, `converters()`.
+  `schema-override` comes with the export (US 10.1, D65).

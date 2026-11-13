@@ -1263,6 +1263,27 @@ type with `TypeDefinition::$jsonSchema`). The repeated `since()` / `until()` cal
 from `Descriptor::repeatedBounds()` (US 3.1). Declaration errors are caught per class and reported under their code, else
 `definition-error` (D39): `test_a_declaration_error_is_reported_and_the_check_goes_on`.
 
+**Done** (2026-11-13): `Checking\Checks\` `OrderMissingCase`, `OrderDuplicateCase`, `BoundRepeated`,
+`HistoryBeforeSince`, `HistoryAfterUntil`, `ConversionMissing`, `ConversionLossy`, `NameCollision`,
+`RequiredSinceWithoutDefault`, `EagerValue` (listed by `Checker::builtIn()`); `Laravel\Checking\NativeCondition` with
+`RevisionedResource::revisionedNativeConditions()` (`@internal`); `Checking\Fields` (`@internal` walker by path of head
+keys, conversion steps once per kind, field and `was()`); `Checker` builds each class first (descriptors, shapes at
+every revision, every kind) and reports what it throws under `DefinitionException::$checkCode` (`lifetime-inverted`,
+`since-older-than-group`, `until-newer-than-group`, `history-unordered`, `unknown-resource`) or `definition-error`;
+an invalid `order()` stops the run after the enum; `Compiler::describe()` / `converters()`; `CheckContext::order()`,
+`kinds()`, `descriptors()` (memoized), `converters()`. Decisions taken with the maintainer: **D65** (`native-condition`
+a warning, in the Laravel layer; `schema-override` moved to US 10.1) and **D66** (any exception building a class is one
+error, the class skipped). Spike findings: F8 (each shape checks its own direction), F10 (`history-after-until`).
+Review: a `DefinitionException` inside a `RevisionedResource::toArray()` lost its code through `failedDescribing()`
+(fixed: rethrown as it is, `InvertedResource` fixture); descriptors memoized per class; one failing declaration per
+thrown code through the checker; an invalid order reported unless an `order-*` check did; a `required()->since()`
+field retired before the head reported (shapes at every revision); `declaredTwice()` carries no code (thrown at run
+time only). Coverage 99.56 %; Infection not installed, mutation testing not run. Deviations: the codes thrown when
+declared are not classes (a literal on `DefinitionException`); `schema-override` and its test moved to US 10.1 (D65);
+`test_a_rule_keyword_overriding_the_type_is_reported` lives there; `ConversionLossy` re-finds the converter of a
+registered step by its types (as US 4.3 planned). Follow-ups: US 9.3 registers `Checker::builtIn()` plus
+`NativeCondition` and gives the `Checker` the application's `Compiler` (its `Configuration` and `Converters`).
+
 #### US 9.3 — `revision:check` and the PHPUnit assertion · S · depends US 9.2, US 8.1
 
 - `Laravel\Discovery\PathClassFinder` (`Revisioned` classes under `discovery.paths`, plus `discovery.classes`):
@@ -1294,6 +1315,8 @@ Tests: `test_a_field_leaking_into_a_locked_revision_fails_the_check`, `test_movi
   not only their `TypeDefinition` (from US 2.3).
 - `TypeDefinition::$jsonSchema` (the keywords of the `DescribesSchema` rules, US 2.4) is merged into the exported
   type, **after** the typed keywords: a rule keyword wins even when it contradicts them (D36).
+- Moved from US 9.2 (D65): the check rule `schema-override` (warning), comparing the keywords the exporter derives from
+  the type with `TypeDefinition::$jsonSchema`: `test_a_rule_keyword_overriding_the_type_is_reported`.
 
 Tests: `test_each_revision_exports_its_own_schema`, `test_a_projected_document_matches_the_schema_of_its_revision`.
 
@@ -1527,7 +1550,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | done |
 | US 8.8 | Outside HTTP | S | 8.1 | M2 | done |
 | US 9.1 | Diagnostics and checker | S | 5.2 | M3 | done |
-| US 9.2 | Check rules | M | 9.1 | M3 | todo |
+| US 9.2 | Check rules | M | 9.1 | M3 | done |
 | US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | todo |
 | US 9.4 | Lock | M | 10.1, 9.3 | M3 | todo |
 | US 10.1 | JSON Schema export | M | 5.2 | M3 | todo |

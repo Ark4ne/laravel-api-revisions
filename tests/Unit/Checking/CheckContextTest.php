@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Test\Unit\Checking;
 
 use Ark4ne\ApiRevisions\Checking\CheckContext;
+use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
+use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Support\Diagnostic;
@@ -13,6 +15,7 @@ use Ark4ne\ApiRevisions\Support\Diagnostics;
 use Ark4ne\ApiRevisions\Support\Severity;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CountingDeclaration;
+use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Revisions\IntRevision;
 use Test\TestCase;
 
@@ -21,7 +24,7 @@ final class CheckContextTest extends TestCase
     public function test_an_error_names_the_checked_class_its_field_and_revision(): void
     {
         $diagnostics = new Diagnostics();
-        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Shapes(), $diagnostics);
+        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Compiler(), new Shapes(), $diagnostics);
 
         $context->error('name-collision', 'Two fields named `title`.', 'title', ApiRevision::Spring26);
 
@@ -34,7 +37,7 @@ final class CheckContextTest extends TestCase
     public function test_a_warning_without_field_nor_revision_concerns_the_whole_class(): void
     {
         $diagnostics = new Diagnostics();
-        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Shapes(), $diagnostics);
+        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Compiler(), new Shapes(), $diagnostics);
 
         $context->warning('bound-repeated', 'Replaced.');
 
@@ -47,7 +50,7 @@ final class CheckContextTest extends TestCase
     public function test_a_diagnostic_on_the_enum_names_the_enum(): void
     {
         $diagnostics = new Diagnostics();
-        $context = new CheckContext(ApiRevision::class, null, new Shapes(), $diagnostics);
+        $context = new CheckContext(ApiRevision::class, null, new Compiler(), new Shapes(), $diagnostics);
 
         $context->error('order-missing-case', 'Missing.', revision: ApiRevision::Atlas);
 
@@ -59,7 +62,7 @@ final class CheckContextTest extends TestCase
 
     public function test_the_shape_is_the_one_of_the_checked_class(): void
     {
-        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Shapes(), new Diagnostics());
+        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Compiler(), new Shapes(), new Diagnostics());
 
         $shape = $context->shape(DeclarationKind::Response, ApiRevision::Genesis);
 
@@ -69,7 +72,7 @@ final class CheckContextTest extends TestCase
 
     public function test_the_enum_has_no_shape(): void
     {
-        $context = new CheckContext(ApiRevision::class, null, new Shapes(), new Diagnostics());
+        $context = new CheckContext(ApiRevision::class, null, new Compiler(), new Shapes(), new Diagnostics());
 
         $this->expectException(DefinitionException::class);
         $this->expectExceptionMessage('The revision enum Test\\Fixtures\\ApiRevision has no shape: a check asks a shape only of a declaring class.');
@@ -79,11 +82,32 @@ final class CheckContextTest extends TestCase
 
     public function test_a_diagnostic_on_a_revision_of_another_enum_is_refused(): void
     {
-        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Shapes(), new Diagnostics());
+        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Compiler(), new Shapes(), new Diagnostics());
 
         $this->expectException(DefinitionException::class);
         $this->expectExceptionMessage('Test\\Fixtures\\Revisions\\IntRevision::First is not a revision of Test\\Fixtures\\ApiRevision.');
 
         $context->warning('code', 'message', revision: IntRevision::First);
+    }
+
+    public function test_the_context_reads_the_declarations_of_the_checked_class(): void
+    {
+        $converters = Converters::builtIn();
+        $context = new CheckContext(ApiRevision::class, StoreOrderDeclaration::class, new Compiler(converters: $converters), new Shapes(), new Diagnostics());
+
+        self::assertSame(ApiRevision::order(), $context->order());
+        self::assertSame([DeclarationKind::RequestBody, DeclarationKind::RequestQuery], $context->kinds());
+        self::assertSame(['status'], array_keys($context->descriptors(DeclarationKind::RequestQuery)));
+        self::assertSame($converters, $context->converters());
+    }
+
+    public function test_the_enum_has_no_declaration(): void
+    {
+        $context = new CheckContext(ApiRevision::class, null, new Compiler(), new Shapes(), new Diagnostics());
+
+        self::assertSame([], $context->kinds());
+
+        $this->expectException(DefinitionException::class);
+        $context->descriptors(DeclarationKind::Response);
     }
 }

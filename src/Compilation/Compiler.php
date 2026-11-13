@@ -41,6 +41,30 @@ final readonly class Compiler
      */
     public function compile(string $class, DeclarationKind $kind, Revision $revision): Shape
     {
+        $shape = ShapeSelector::at(
+            $this->describe($class, $kind),
+            $revision,
+            $kind->direction(),
+            $this->converters(),
+            $this->configuration,
+        )->of($class, $kind);
+        foreach ([...$shape->fields, ...$shape->added] as $field) {
+            self::checkNested($field->type, $kind);
+        }
+
+        return $shape;
+    }
+
+    /**
+     * The head descriptors of the declaration `$kind` of `$class`, configured, built on a `Probe`; the same exceptions as
+     * `compile()`, but those of the nested resources, checked per revision.
+     *
+     * @param class-string $class
+     *
+     * @return array<string, Descriptor<mixed>>
+     */
+    public function describe(string $class, DeclarationKind $kind): array
+    {
         if (!is_subclass_of($class, Revisioned::class)) {
             throw DefinitionException::notRevisioned($class);
         }
@@ -56,18 +80,15 @@ final readonly class Compiler
             $head[$key] = $descriptor->configured($this->configuration);
         }
 
-        $shape = ShapeSelector::at(
-            $head,
-            $revision,
-            $kind->direction(),
-            $this->converters ?? TypeRegistry::converters(),
-            $this->configuration,
-        )->of($class, $kind);
-        foreach ([...$shape->fields, ...$shape->added] as $field) {
-            self::checkNested($field->type, $kind);
-        }
+        return $head;
+    }
 
-        return $shape;
+    /**
+     * The registry the chains are planned against: the one given, else `TypeRegistry::converters()`.
+     */
+    public function converters(): Converters
+    {
+        return $this->converters ?? TypeRegistry::converters();
     }
 
     /**

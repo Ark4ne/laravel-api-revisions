@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Checking;
 
+use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shape;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
+use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Ark4ne\ApiRevisions\Support\Diagnostic;
 use Ark4ne\ApiRevisions\Support\Diagnostics;
@@ -16,25 +20,67 @@ use Ark4ne\ApiRevisions\Support\Severity;
 
 /**
  * What one check sees of one target: the revision enum, the declaring class checked (`null` when the target is the
- * enum itself), its shapes (compiled once per run, shared by the checks) and the diagnostics it adds, each naming the
- * target class (the enum when `$class` is `null`).
+ * enum itself), its declarations (head descriptors and shapes, compiled once per run and shared by the checks) and the
+ * diagnostics it adds, each naming the target class (the enum when `$class` is `null`). Built by the `Checker`, after
+ * the class was built without error.
  */
-final readonly class CheckContext
+final class CheckContext
 {
+    /**
+     * @var array<string, array<string, Descriptor<mixed>>> the head descriptors read, by kind
+     */
+    private array $descriptors = [];
+
     /**
      * @param class-string<Revision> $revisions
      * @param class-string<Revisioned>|null $class
      */
     public function __construct(
-        public string $revisions,
-        public ?string $class,
-        private Shapes $shapes,
-        private Diagnostics $diagnostics,
+        public readonly string $revisions,
+        public readonly ?string $class,
+        private readonly Compiler $compiler,
+        private readonly Shapes $shapes,
+        private readonly Diagnostics $diagnostics,
     ) {}
 
     /**
-     * The shape of the declaration `$kind` of the checked class at `$revision`; `DefinitionException::noShapeForRevisions()`
-     * when the target is the enum.
+     * The revisions of the enum, oldest first.
+     *
+     * @return list<Revision>
+     */
+    public function order(): array
+    {
+        return RevisionOrder::between(RevisionOrder::oldest($this->revisions), RevisionOrder::latest($this->revisions));
+    }
+
+    /**
+     * The declaration kinds of the checked class; none for the enum.
+     *
+     * @return list<DeclarationKind>
+     */
+    public function kinds(): array
+    {
+        return $this->class === null ? [] : $this->class::declarationKinds();
+    }
+
+    /**
+     * The head descriptors of the declaration `$kind` of the checked class, by key, described once;
+     * `DefinitionException::noShapeForRevisions()` when the target is the enum.
+     *
+     * @return array<string, Descriptor<mixed>>
+     */
+    public function descriptors(DeclarationKind $kind): array
+    {
+        if ($this->class === null) {
+            throw DefinitionException::noShapeForRevisions($this->revisions);
+        }
+
+        return $this->descriptors[$kind->value] ??= $this->compiler->describe($this->class, $kind);
+    }
+
+    /**
+     * The shape of the declaration `$kind` of the checked class at `$revision`;
+     * `DefinitionException::noShapeForRevisions()` when the target is the enum.
      */
     public function shape(DeclarationKind $kind, Revision $revision): Shape
     {
@@ -46,7 +92,15 @@ final readonly class CheckContext
     }
 
     /**
-     * Adds an error of `$code`, on `$field` (a head key) and `$revision` when given.
+     * The registry the shapes were planned against.
+     */
+    public function converters(): Converters
+    {
+        return $this->compiler->converters();
+    }
+
+    /**
+     * Adds an error of `$code`, on `$field` (a head key, dotted below the top level) and `$revision` when given.
      */
     public function error(string $code, string $message, ?string $field = null, ?Revision $revision = null): void
     {
@@ -54,7 +108,7 @@ final readonly class CheckContext
     }
 
     /**
-     * Adds a warning of `$code`, on `$field` (a head key) and `$revision` when given.
+     * Adds a warning of `$code`, on `$field` (a head key, dotted below the top level) and `$revision` when given.
      */
     public function warning(string $code, string $message, ?string $field = null, ?Revision $revision = null): void
     {

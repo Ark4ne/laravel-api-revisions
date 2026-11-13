@@ -82,6 +82,27 @@ trait RevisionedResource
     }
 
     /**
+     * The keys of the native conditions `toArray()` returns at compilation (a `MergeValue`, a `MissingValue` or a resource
+     * built on one), in its order: what the check reports (`native-condition`, model.md D65).
+     *
+     * @return list<array-key>
+     *
+     * @internal called by the check
+     */
+    public static function revisionedNativeConditions(): array
+    {
+        $resource = new static(new DescribeSubject());
+        $keys = [];
+        foreach ($resource->revisionedDeclaration(true) as $key => $value) {
+            if ($value instanceof MergeValue || self::revisionedMissing($value)) {
+                $keys[] = $key;
+            }
+        }
+
+        return $keys;
+    }
+
+    /**
      * The resource at the current revision: the descriptors of `toArray()` projected on `$this->resource`, the plain
      * values and native conditions as `JsonResource` renders them, in the order of `toArray()`.
      *
@@ -120,7 +141,8 @@ trait RevisionedResource
 
     /**
      * What `toArray()` returns: at compilation with an empty request (the shape never depends on the request served),
-     * a failure of a plain value evaluated on the `DescribeSubject` thrown as `DefinitionException::failedDescribing()`;
+     * a failure of a plain value evaluated on the `DescribeSubject` thrown as `DefinitionException::failedDescribing()`
+     * (a `DefinitionException` of a descriptor as it is);
      * else with the request of the container.
      *
      * @return array<array-key, mixed>
@@ -132,6 +154,9 @@ trait RevisionedResource
         }
         try {
             return $this->revisionedData(new Request());
+        } catch (DefinitionException $error) {
+            // a declaration error of a descriptor, with its own check code (model.md D39)
+            throw $error;
         } catch (Throwable $error) {
             throw DefinitionException::failedDescribing(static::class, $error);
         }

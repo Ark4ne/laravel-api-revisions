@@ -22,6 +22,7 @@ use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Order as PlainOrder;
 use Test\Fixtures\Resources\BrokenResource;
 use Test\Fixtures\Resources\CustomerResource;
+use Test\Fixtures\Resources\InvertedResource;
 use Test\Fixtures\Resources\NativeResource;
 use Test\Fixtures\Resources\OrderResource;
 use Test\Fixtures\Resources\PlainOrderResource;
@@ -44,6 +45,7 @@ final class ResourceInvariantTest extends FeatureTestCase
         ReachingResource::class,
         WrapperResource::class,
         BrokenResource::class,
+        InvertedResource::class,
     ];
 
     protected function setUp(): void

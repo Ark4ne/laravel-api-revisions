@@ -17,6 +17,7 @@ use stdClass;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Customer;
 use Test\Fixtures\Declarations\BoundDeclaration;
+use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\EagerDeclaration;
@@ -42,6 +43,8 @@ final class ProjectionInvariantTest extends TestCase
         InvalidDeclaration::class,
         ThrowingDeclaration::class,
         ForeignResourceDeclaration::class,
+        // declared by each check test
+        CheckedDeclaration::class,
     ];
 
     /**

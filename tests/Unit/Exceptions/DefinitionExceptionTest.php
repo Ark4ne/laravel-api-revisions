@@ -279,4 +279,24 @@ final class DefinitionExceptionTest extends TestCase
         self::assertSame($error, $exception->getPrevious());
         self::assertStringStartsWith('App\\OrderResource::toArray() failed while compiling on an empty subject (boom)', $exception->getMessage());
     }
+
+    /**
+     * @return iterable<string, array{DefinitionException, string}>
+     */
+    public static function checkCodes(): iterable
+    {
+        yield 'inverted lifetime' => [DefinitionException::invertedLifetime(ApiRevision::Atlas, ApiRevision::Genesis), 'lifetime-inverted'];
+        yield 'since older than group' => [DefinitionException::sinceOlderThanGroup('a', ApiRevision::Genesis, ApiRevision::Atlas), 'since-older-than-group'];
+        yield 'until newer than group' => [DefinitionException::untilNewerThanGroup('a', ApiRevision::Atlas, ApiRevision::Genesis), 'until-newer-than-group'];
+        yield 'invalid history' => [DefinitionException::invalidHistory(ApiRevision::Atlas, 'the head'), 'history-unordered'];
+        yield 'not revisioned' => [DefinitionException::notRevisioned('App\\X'), 'unknown-resource'];
+        yield 'undeclared kind' => [DefinitionException::undeclaredKind('App\\X', 'response'), 'unknown-resource'];
+        yield 'any other' => [DefinitionException::eagerSource('int'), 'definition-error'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('checkCodes')]
+    public function test_a_declaration_error_carries_the_code_the_check_reports_it_under(DefinitionException $exception, string $code): void
+    {
+        self::assertSame($code, $exception->checkCode);
+    }
 }

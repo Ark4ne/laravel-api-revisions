@@ -9,11 +9,15 @@ use LogicException;
 use Throwable;
 
 /**
- * A programming error in a declaration. Named constructors only.
+ * A programming error in a declaration. Named constructors only. Each carries the code the check reports it under
+ * (model.md §9, D39): its own (`lifetime-inverted`…), else `definition-error`.
  */
 final class DefinitionException extends LogicException implements RevisionsException
 {
-    private function __construct(string $message, ?Throwable $previous = null)
+    /**
+     * @param string $checkCode the code of model.md §9 the check reports it under
+     */
+    private function __construct(string $message, ?Throwable $previous = null, public readonly string $checkCode = 'definition-error')
     {
         parent::__construct($message, 0, $previous);
     }
@@ -104,7 +108,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
             $since->name,
             $until::class,
             $until->name,
-        ));
+        ), checkCode: 'lifetime-inverted');
     }
 
     /**
@@ -119,7 +123,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
             $member->name,
             $group::class,
             $group->name,
-        ));
+        ), checkCode: 'since-older-than-group');
     }
 
     /**
@@ -134,7 +138,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
             $member->name,
             $group::class,
             $group->name,
-        ));
+        ), checkCode: 'until-newer-than-group');
     }
 
     /**
@@ -169,7 +173,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
      */
     public static function notRevisioned(string $class): self
     {
-        return new self("{$class} must implement Ark4ne\\ApiRevisions\\Schema\\Revisioned to be compiled.");
+        return new self("{$class} must implement Ark4ne\\ApiRevisions\\Schema\\Revisioned to be compiled.", checkCode: 'unknown-resource');
     }
 
     /**
@@ -177,7 +181,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
      */
     public static function undeclaredKind(string $class, string $kind): self
     {
-        return new self("{$class} declares no '{$kind}'.");
+        return new self("{$class} declares no '{$kind}'.", checkCode: 'unknown-resource');
     }
 
     /**
@@ -291,7 +295,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
      */
     public static function invalidHistory(BackedEnum $revision, string $reason): self
     {
-        return new self(sprintf('Invalid was(%s::%s): %s.', $revision::class, $revision->name, $reason));
+        return new self(sprintf('Invalid was(%s::%s): %s.', $revision::class, $revision->name, $reason), checkCode: 'history-unordered');
     }
 
     /**
