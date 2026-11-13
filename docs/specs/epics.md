@@ -1240,6 +1240,17 @@ Goal: CI catches every inconsistent declaration and every change to a published 
 
 Tests: `test_a_diagnostic_names_its_class_field_and_revision`, `test_the_checker_runs_every_check_on_every_class`.
 
+**Done** (2026-11-13): `Support\Severity`, `Diagnostic` (`isError()`; `revision` is the backed value as a string,
+`Support` cannot see `Revision`), `Diagnostics` (ordered, `errors()`, `warnings()`, `hasErrors()`, countable,
+iterable); `Checking\Check`, `CheckContext` (`shape()`, `error()`, `warning()`, filling the target class and refusing
+a revision of another enum), `Checker` (each check on the enum first — `CheckContext::$class` `null` —, then on every
+class of the finder; one fresh `Shapes` per run shared by its checks), `ClassFinder`.
+`DefinitionException::noShapeForRevisions()`. Deviations: `PathClassFinder` implements `ClassFinder` here rather than
+in US 9.3 (as architecture.md said); `Severity` has no test class (no behaviour). Infection is not installed, mutation
+testing not run. Follow-ups: US 9.2 catches what `CheckContext::shape()` throws per class (D39) — until then
+`Checker::run()` lets a declaration error through; US 9.3 gives the `Checker` the application's `Compiler` (its
+`Configuration`: `missing_default`, D47, changes `required-since-without-default`).
+
 #### US 9.2 — Check rules · M · depends US 9.1
 
 - One class per code of `model.md` §9 except the lock ones.
@@ -1255,7 +1266,7 @@ from `Descriptor::repeatedBounds()` (US 3.1). Declaration errors are caught per 
 #### US 9.3 — `revision:check` and the PHPUnit assertion · S · depends US 9.2, US 8.1
 
 - `Laravel\Discovery\PathClassFinder` (`Revisioned` classes under `discovery.paths`, plus `discovery.classes`):
-  shipped by US 5.3, left here: make it implement the `ClassFinder` contract (US 9.1); command `revision:check` (exit code ≠ 0 on error, table output, `--format=json`, `--list` prints the discovered
+  shipped by US 5.3, implements the `ClassFinder` contract since US 9.1; command `revision:check` (exit code ≠ 0 on error, table output, `--format=json`, `--list` prints the discovered
   classes); trait `Testing\InteractsWithRevisions` (D28) with `assertRevisionsAreConsistent()`.
 
 Tests: `test_the_check_command_fails_on_an_error`, `test_the_assertion_fails_with_the_diagnostics`,
@@ -1515,7 +1526,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | done |
 | US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | done |
 | US 8.8 | Outside HTTP | S | 8.1 | M2 | done |
-| US 9.1 | Diagnostics and checker | S | 5.2 | M3 | todo |
+| US 9.1 | Diagnostics and checker | S | 5.2 | M3 | done |
 | US 9.2 | Check rules | M | 9.1 | M3 | todo |
 | US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | todo |
 | US 9.4 | Lock | M | 10.1, 9.3 | M3 | todo |

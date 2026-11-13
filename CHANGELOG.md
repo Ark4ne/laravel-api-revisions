@@ -215,3 +215,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (`mixedRevisions()` when revisions of two enums are compared, `foreignRevision()` when a revision of another enum
   is used or current, `invalidOrder()` when `order()` misses a case, lists one twice, lists a foreign case, is not a
   list or is empty).
+- Check foundations: `Support\Diagnostic` (`code`, `severity`, `class`, `field`, `revision` as its backed value,
+  `message`, `isError()`), `Support\Severity` (`Error`, `Warning`) and `Support\Diagnostics` (collected in order,
+  `errors()`, `warnings()`, `hasErrors()`, countable and iterable); `Checking\Check` (one rule, run once on the revision
+  enum then once per declaring class), `Checking\CheckContext` (the target, its shapes, `error()` / `warning()`),
+  `Checking\Checker` (runs the checks with a fresh `Shapes` per run) and the `Checking\ClassFinder` contract,
+  implemented by `Laravel\Discovery\PathClassFinder`; `DefinitionException::noShapeForRevisions()` when a check asks a
+  shape of the enum, `foreignRevision()` for a diagnostic on a revision of another enum. No check rule yet.

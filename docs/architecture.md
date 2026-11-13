@@ -412,7 +412,7 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   (`ClearCommand`), registered in the console only.
 - `Laravel\Discovery\PathClassFinder` — the concrete `Revisioned` classes declared in the PHP files under
   `discovery.paths` (read from their tokens, then autoloaded), plus `discovery.classes` (an entry that is not a
-  concrete `Revisioned` class throws `ConfigurationException`); used by `revision:cache`; US 9.1 makes it implement the `ClassFinder` contract.
+  concrete `Revisioned` class throws `ConfigurationException`); used by `revision:cache`; implements the `ClassFinder` contract since US 9.1.
 - `Laravel\Queue\CapturesRevision` — the marker interface of a queued job running in the revision of its dispatch.
   Since US 8.8 (`model.md` D64): opt-in, no trait. The provider registers a payload hook (`Queue::createPayloadUsing`,
   static, reading the container of the dispatch) calling `Queue\CapturedRevisionHandler::capture()`: for a marked job
@@ -436,8 +436,13 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 **Snapshot** (`Lock`).
 
 - `Check::run(CheckContext): void` adds diagnostics; `Checker` runs the registered checks on every discovered class
-  and the enum.
-- `Diagnostic`: `code` (kebab-case, a constant of its check), `severity`, `class`, `field`, `revision`, `message`.
+  and the enum. Since US 9.1: each check runs once on the enum (`CheckContext::$class` is `null`), then once per class
+  of the `ClassFinder`, in its order; a check returns at once on a target it does not check. One `Shapes` over the
+  checker's `Compiler` per run (never the compiled file), shared by the checks: a class is compiled once per run.
+  `CheckContext::error()` / `warning()` fill the class (the enum when the target is the enum) and the revision.
+- `Diagnostic`: `code` (kebab-case, a constant of its check), `severity`, `class`, `field` (the head key), `revision`
+  (its backed value, as a string: `Support` cannot see `Revision`), `message`; `null` field or revision when it
+  concerns the whole class or every revision.
 - `ClassFinder` is a contract; the Laravel layer implements it over `discovery.paths` (classes implementing
   `Revisioned`) plus `discovery.classes`.
 - `Lock` writes and compares normalized snapshots (sorted keys) and the recorded `order()`.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Unit\Laravel\Discovery;
 
+use Ark4ne\ApiRevisions\Checking\ClassFinder;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Laravel\Discovery\PathClassFinder;
 use Test\Fixtures\Declarations\OrderDeclaration;
@@ -84,5 +85,20 @@ final class PathClassFinderTest extends TestCase
         require_once self::GLOBAL;
 
         self::assertSame(['GlobalDeclaration'], (new PathClassFinder([self::GLOBAL]))->find());
+    }
+
+    public function test_it_is_the_class_finder_of_the_check(): void
+    {
+        $finder = new PathClassFinder([self::PATH . '/DiscoveredDeclaration.php']);
+
+        self::assertSame([DiscoveredDeclaration::class], self::found($finder));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function found(ClassFinder $finder): array
+    {
+        return $finder->find();
     }
 }

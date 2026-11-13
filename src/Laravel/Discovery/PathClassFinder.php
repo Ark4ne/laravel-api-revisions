@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Laravel\Discovery;
 
+use Ark4ne\ApiRevisions\Checking\ClassFinder;
 use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use FilesystemIterator;
@@ -19,7 +20,7 @@ use SplFileInfo;
  * by `revision:cache` and `revision:check` (US 9.3). A path that does not exist gives no class; a given class that is
  * not a concrete `Revisioned` class throws `ConfigurationException`. The classes of a file are read from its tokens, then autoloaded.
  */
-final readonly class PathClassFinder
+final readonly class PathClassFinder implements ClassFinder
 {
     /**
      * @param list<string> $paths directories scanned recursively, or PHP files

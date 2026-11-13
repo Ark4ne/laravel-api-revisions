@@ -30,6 +30,16 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A check asked the shape of the revision enum, which declares none (`Checking\CheckContext::shape()`).
+     *
+     * @param class-string $enum
+     */
+    public static function noShapeForRevisions(string $enum): self
+    {
+        return new self(sprintf('The revision enum %s has no shape: a check asks a shape only of a declaring class.', $enum));
+    }
+
+    /**
      * A revision of another enum where a case of `$expected` is required (`ApiRevision::using(OtherRevision::X)`).
      *
      * @param class-string $expected the revision enum required
