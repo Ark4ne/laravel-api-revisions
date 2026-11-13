@@ -26,7 +26,8 @@ Sizes: **S** ≤ 1 day, **M** 2–3 days, **L** 4–5 days. Story ids are stable
 5. `composer test:coverage` ≥ 90 %; Infection MSI ≥ 80 % on the new classes.
 6. `CHANGELOG.md` updated under `[Unreleased]` for every public change.
 7. `docs/architecture.md` / `model.md` updated when the story adds a rule, a pattern or changes a decision.
-8. No static state outside `Support\Memo`, `RevisionScope::provider()` and `Schema\TypeRegistry` (D42).
+8. No static state outside `Support\Memo`, `RevisionScope::provider()` and `Schema\TypeRegistry` (D42), plus Laravel's
+   registries filled at boot (the `revisioned` router macro, the queue payload hook, US 8.8).
 9. §8 updated: status `done`, and a **Done** note under the story (what was built, deviations, follow-ups).
 
 ---
@@ -1215,6 +1216,17 @@ time); README (US 11.1): read the head from `validated()` / `safe()`, never `inp
 
 Tests: `test_a_job_runs_in_the_revision_of_its_dispatch`.
 
+**Done** (2026-11-13, D64). `Laravel\Queue\CapturesRevision` (opt-in **marker interface**, not a trait: nothing to
+share, and a trait would clash with a job's `middleware()` or `SerializesModels`) and `Laravel\Queue\CapturedRevisionHandler`
+(`@internal`): a payload hook registered by the provider stores the backed value of `current()` (`ark4ne:revision`) and
+swaps the payload's `CallQueuedHandler@call` for the handler, which runs `call()` / `failed()` inside `using()`.
+Deviation: the revision is stored in the **payload**, not on the job, and restored with `using()` around Laravel's
+handler (no `setBase()`: nothing leaks, a `sync` job in a request included). A revision the enum no longer knows fails
+the attempt (`UnknownRevisionException`), `failed()` then runs in the base revision. Only `ShouldQueue` jobs (queued
+notifications, mailables, listeners and broadcasts are wrapped by Laravel); a `PendingDispatch` returned out of
+`using()` pushes in the outer revision (documented). Extra tests: the base revision of an unmarked job, `failed()`,
+an unknown and a missing stored revision, the `sync` queue, a request through the `revision` middleware, a chain.
+
 ---
 
 ### E9 — Check and lock
@@ -1502,7 +1514,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.5 | `RevisionedResource` | M | 6.2, 8.1 | M2 | done |
 | US 8.6 | Validation rules of a shape | L | 5.2, 8.1 | M2 | done |
 | US 8.7 | `RevisionedRequest` | L | 7.3, 8.6 | M2 | done |
-| US 8.8 | Outside HTTP | S | 8.1 | M2 | todo |
+| US 8.8 | Outside HTTP | S | 8.1 | M2 | done |
 | US 9.1 | Diagnostics and checker | S | 5.2 | M3 | todo |
 | US 9.2 | Check rules | M | 9.1 | M3 | todo |
 | US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | todo |

@@ -14,6 +14,7 @@ use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
 use Ark4ne\ApiRevisions\Laravel\Http\ResolveRevision;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
+use Ark4ne\ApiRevisions\Laravel\Queue\CapturedRevisionHandler;
 use Ark4ne\ApiRevisions\Laravel\Resources\EloquentSourceReader;
 use Ark4ne\ApiRevisions\Laravel\Routing\RevisionedRoutes;
 use Ark4ne\ApiRevisions\Laravel\Validation\RuleCompiler;
@@ -29,6 +30,7 @@ use Illuminate\Container\Container as ContainerInstance;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Queue\Queue;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
@@ -42,7 +44,8 @@ use Illuminate\Support\ServiceProvider;
  * `default` (`scoped`: a resolver may read request services); the `Projector` of `RevisionedResource` (`scoped`, with
  * the `EloquentSourceReader`, the `Shapes` and the `ValueErrorHandler`); the `RuleCompiler` and the `Upgrader` of the
  * request shapes (one per application, `RevisionedRequest`); in the console, the commands `revision:cache` /
- * `revision:clear`, run by `optimize` / `optimize:clear`; the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
+ * `revision:clear`, run by `optimize` / `optimize:clear`; the payload hook of the jobs marked `CapturesRevision`
+ * (`CapturedRevisionHandler`, D64); the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
  * macro and the other commands are added by their stories (US 8.4 onwards).
  */
 final class RevisionsServiceProvider extends ServiceProvider
@@ -132,6 +135,15 @@ final class RevisionsServiceProvider extends ServiceProvider
         if (!array_key_exists('revision', $router->getMiddleware())) {
             $router->aliasMiddleware('revision', ResolveRevision::class);
         }
+        // a payload hook is static, it outlives the application booting it: it reads the container of the dispatch
+        Queue::createPayloadUsing(static fn(?string $connection, ?string $queue, array $payload): array => CapturedRevisionHandler::capture(
+            $payload,
+            static function (): Revision {
+                $app = ContainerInstance::getInstance();
+
+                return $app->make(RevisionScope::class)->current($app->make(RevisionsConfig::class)->enum);
+            },
+        ));
         $this->publishes([self::CONFIG => $this->app->configPath('revisions.php')], 'revisions-config');
 
         if ($this->app->runningInConsole()) {

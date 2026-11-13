@@ -60,7 +60,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
-| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture |
+| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`) |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`) and the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
@@ -413,7 +413,13 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
 - `Laravel\Discovery\PathClassFinder` — the concrete `Revisioned` classes declared in the PHP files under
   `discovery.paths` (read from their tokens, then autoloaded), plus `discovery.classes` (an entry that is not a
   concrete `Revisioned` class throws `ConfigurationException`); used by `revision:cache`; US 9.1 makes it implement the `ClassFinder` contract.
-- `Laravel\Queue\CapturesRevision` — job middleware / dispatch hook capturing the revision at dispatch.
+- `Laravel\Queue\CapturesRevision` — the marker interface of a queued job running in the revision of its dispatch.
+  Since US 8.8 (`model.md` D64): opt-in, no trait. The provider registers a payload hook (`Queue::createPayloadUsing`,
+  static, reading the container of the dispatch) calling `Queue\CapturedRevisionHandler::capture()`: for a marked job
+  handled by `CallQueuedHandler@call`, it stores the backed value of `current()` (`ark4ne:revision`) and names
+  `CapturedRevisionHandler@call` instead. The handler (`@internal`, made by the container on every attempt) wraps
+  Laravel's `CallQueuedHandler::call()` / `failed()` in `RevisionScope::using()` (**Execute Around**: no `setBase()`, so
+  nothing leaks after the job, a `sync` job in a request included); the value is read with `RevisionValue::parse()`.
 
 ## 11. Export
 
@@ -475,7 +481,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container), the queue payload hook (`Queue::createPayloadUsing`, registered at boot, reading the container of the dispatch; reset by Laravel's test lifecycle) |
 | Facades and helpers | Only in `src/Laravel/` |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |

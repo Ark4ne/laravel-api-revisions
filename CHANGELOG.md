@@ -160,6 +160,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   being the error; any other rejection gets Laravel's `validation.in` message. `ConversionException::missing()` stays
   a declaration error (`ConversionException::$declarationError`), as do the other exceptions of a closure (model.md
   D63).
+- Queued jobs outside HTTP: a job implementing the marker interface `Laravel\Queue\CapturesRevision` runs in the
+  revision current when it was dispatched (`handle()`, its middleware and `failed()` inside `using()`, the `sync` queue
+  included); the payload stores the backed value under `ark4ne:revision`. A revision the enum no longer knows fails the
+  attempt with `UnknownRevisionException`, and `failed()` runs in the base revision. Other jobs run in the base
+  revision (model.md D64).
 - Compiled shapes: `php artisan revision:cache` (run by `php artisan optimize`) compiles every declaration kind of every
   class implementing `Revisioned` found under `discovery.paths` (plus `discovery.classes`) at every revision, and
   writes `cache_path` (`bootstrap/cache/revisions.php`); `revision:clear` (run by `optimize:clear`) removes it.
