@@ -21,6 +21,23 @@ final readonly class Diagnostic
         public string $message,
     ) {}
 
+    /**
+     * The diagnostic as JSON-ready data (`revision:check --format=json`).
+     *
+     * @return array{code: string, severity: string, class: string, field: ?string, revision: ?string, message: string}
+     */
+    public function toArray(): array
+    {
+        return [
+            'code' => $this->code,
+            'severity' => $this->severity->value,
+            'class' => $this->class,
+            'field' => $this->field,
+            'revision' => $this->revision,
+            'message' => $this->message,
+        ];
+    }
+
     public function isError(): bool
     {
         return $this->severity === Severity::Error;

@@ -61,14 +61,15 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
-| Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites |
+| Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (US 9.3: `assertRevisionsAreConsistent()`, reading the application's `$app`) |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`) and the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
 
 - A layer depends only on the layers to its left. Checked by `phpat` (`tests/Architecture/ArchitectureTest.php`).
 - **Pure core.** Every layer left of `Laravel` is pure PHP: **no `Illuminate\*` at all**, not even contracts. Rules
   given to `->rules(...)` are opaque values to the core; only `Laravel` interprets them. Checked by `phpat`.
-- Only `src/Laravel/` uses facades, global helpers (`config()`, `app()`, `request()`…) and the container. Checked by
+- Only `src/Laravel/` uses facades, global helpers (`config()`, `app()`, `request()`…) and the container; `src/Testing/`
+  may resolve from the test case's `$app` (never a facade, a global helper or `getInstance()`). Checked by
   `spaze/phpstan-disallowed-calls`.
 
 ## 3. Revisions
@@ -447,7 +448,13 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   (`@internal`: descriptors, visible fields and object shapes by their path of head keys, `customer.name`, `lines.*`;
   conversion steps once per kind, field and `was()`); a nested resource is never entered, its class is checked on its
   own. The rules of the core are listed by `Checker::builtIn()`; a rule needing Laravel lives in `Laravel\Checking\`
-  (`NativeCondition`, reading `RevisionedResource::revisionedNativeConditions()`), added by `revision:check` (US 9.3).
+  (`NativeCondition`, reading `RevisionedResource::revisionedNativeConditions()`), added by the Laravel binding of the
+  `Checker`.
+- Since US 9.3: the container binds `ClassFinder` (`PathClassFinder` over `discovery.paths` / `discovery.classes`) and
+  `Checker` (the enum, that finder, `Checker::builtIn()` plus `NativeCondition`, a `Compiler` with the application's
+  `Configuration`; custom types through `TypeRegistry::converters()`), each built anew (never the compiled shapes).
+  `revision:check` (`--format=table|json`, `--list`) and `Testing\InteractsWithRevisions::assertRevisionsAreConsistent()`
+  resolve the `Checker`: errors fail, warnings alone pass.
   The codes of the errors thrown when declared are literals on `DefinitionException` (`Exceptions` cannot see
   `Checking`); `Checker::DEFINITION_ERROR` equals the default one (tested). `CheckContext` memoizes the descriptors per
   kind, `Shapes` the shapes: a class is described and compiled once per run.
@@ -498,7 +505,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
 | Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container), the queue payload hook (`Queue::createPayloadUsing`, registered at boot, reading the container of the dispatch; reset by Laravel's test lifecycle) |
-| Facades and helpers | Only in `src/Laravel/` |
+| Facades and helpers | Only in `src/Laravel/` (`src/Testing/` resolves from the test case's `$app` only) |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |
 | PHPDoc | Generics on the public API (`Descriptor<TValue>`, `Closure(TValue): mixed`); no redundant PHPDoc |

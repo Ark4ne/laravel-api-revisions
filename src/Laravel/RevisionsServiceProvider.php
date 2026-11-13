@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Laravel;
 
+use Ark4ne\ApiRevisions\Checking\Checker;
+use Ark4ne\ApiRevisions\Checking\ClassFinder;
 use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
+use Ark4ne\ApiRevisions\Laravel\Checking\NativeCondition;
 use Ark4ne\ApiRevisions\Laravel\Console\CacheCommand;
+use Ark4ne\ApiRevisions\Laravel\Console\CheckCommand;
 use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
+use Ark4ne\ApiRevisions\Laravel\Discovery\PathClassFinder;
 use Ark4ne\ApiRevisions\Laravel\Http\ResolveRevision;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
@@ -66,6 +71,17 @@ final class RevisionsServiceProvider extends ServiceProvider
         $this->app->singleton(Shapes::class, static fn(Container $app): Shapes => new Shapes(
             new Compiler($app->make(Configuration::class)),
             CompiledShapes::load($app->make(RevisionsConfig::class)->cachePath),
+        ));
+        $this->app->bind(ClassFinder::class, static function (Container $app): ClassFinder {
+            $config = $app->make(RevisionsConfig::class);
+
+            return new PathClassFinder($config->discoveryPaths, $config->discoveryClasses);
+        });
+        $this->app->bind(Checker::class, static fn(Container $app): Checker => new Checker(
+            $app->make(RevisionsConfig::class)->enum,
+            $app->make(ClassFinder::class),
+            [...Checker::builtIn(), new NativeCondition()],
+            new Compiler($app->make(Configuration::class)),
         ));
         $this->app->scoped(RevisionScope::class, static function (Container $app): RevisionScope {
             $scope = new RevisionScope();
@@ -147,7 +163,7 @@ final class RevisionsServiceProvider extends ServiceProvider
         $this->publishes([self::CONFIG => $this->app->configPath('revisions.php')], 'revisions-config');
 
         if ($this->app->runningInConsole()) {
-            $this->commands([CacheCommand::class, ClearCommand::class]);
+            $this->commands([CacheCommand::class, CheckCommand::class, ClearCommand::class]);
             $this->optimizes(optimize: 'revision:cache', clear: 'revision:clear', key: 'revisions');
         }
     }

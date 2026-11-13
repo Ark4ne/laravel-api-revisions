@@ -27,4 +27,12 @@ final class DiagnosticTest extends TestCase
         self::assertTrue((new Diagnostic('a', Severity::Error, 'C', null, null, 'm'))->isError());
         self::assertFalse((new Diagnostic('a', Severity::Warning, 'C', null, null, 'm'))->isError());
     }
+
+    public function test_a_diagnostic_is_json_ready(): void
+    {
+        self::assertSame(
+            ['code' => 'bound-repeated', 'severity' => 'warning', 'class' => 'C', 'field' => null, 'revision' => 'atlas', 'message' => 'm'],
+            (new Diagnostic('bound-repeated', Severity::Warning, 'C', null, 'atlas', 'm'))->toArray(),
+        );
+    }
 }

@@ -225,7 +225,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Check rules (model.md §9): `Checking\Checker::builtIn()` — `Checks\OrderMissingCase`, `OrderDuplicateCase`,
   `BoundRepeated` (warning), `HistoryBeforeSince`, `HistoryAfterUntil`, `ConversionMissing`, `ConversionLossy`
   (warning), `NameCollision` (also a name in both the body and the query of a request), `RequiredSinceWithoutDefault`
-  (none under `missing_default: null`), `EagerValue`; `Laravel\Checking\NativeCondition` (warning, registered by `revision:check` in US 9.3). A
+  (none under `missing_default: null`), `EagerValue`; `Laravel\Checking\NativeCondition` (warning). A
   `DefinitionException` of a descriptor in a `RevisionedResource::toArray()` is no longer wrapped in `failedDescribing()`. Before its rules,
   the checker builds each class (descriptors, shapes at every revision): anything thrown is one error under the code
   of its `DefinitionException` (`DefinitionException::$checkCode`: `lifetime-inverted`, `since-older-than-group`,
@@ -233,3 +233,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   the check goes on (D39, D66); an invalid `order()` stops it after the enum. `Compiler::describe()` (the configured
   head descriptors) and `Compiler::converters()`; `CheckContext::order()`, `kinds()`, `descriptors()`, `converters()`.
   `schema-override` comes with the export (US 10.1, D65).
+- `php artisan revision:check` (`Laravel\Console\CheckCommand`): runs `Checker::builtIn()` plus `NativeCondition` on the
+  enum and every class of `discovery.paths` / `discovery.classes`, with the application's configuration; a table of
+  diagnostics (`--format=json` for CI tools), fails on an error, warnings alone pass; `--list` prints the discovered
+  classes. The container binds `Checking\ClassFinder` (`PathClassFinder` over the discovery, also used by
+  `revision:cache`) and `Checking\Checker`. `Support\Diagnostic::toArray()`.
+- `Testing\InteractsWithRevisions` for an application's `TestCase`: `assertRevisionsAreConsistent()` fails with every
+  diagnostic when one is an error.

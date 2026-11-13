@@ -1293,6 +1293,20 @@ registered step by its types (as US 4.3 planned). Follow-ups: US 9.3 registers `
 Tests: `test_the_check_command_fails_on_an_error`, `test_the_assertion_fails_with_the_diagnostics`,
 `test_explicit_classes_outside_the_paths_are_checked`.
 
+**Done** (2026-11-13): `Laravel\Console\CheckCommand` (`revision:check`: table of diagnostics and a summary, fails on
+an error, warnings alone pass; `--format=json` with `classes`, `errors`, `warnings`, `diagnostics`; `--list`, as a JSON
+list under `--format=json`; an unknown format or an invalid discovery entry fails with its reason), container
+bindings of `Checking\ClassFinder` (`PathClassFinder` over the discovery) and `Checking\Checker` (the enum,
+`Checker::builtIn()` plus `NativeCondition`, a `Compiler` with the application's `Configuration`), both built anew;
+`CacheCommand` now resolves the `ClassFinder`; `Support\Diagnostic::toArray()`; `Testing\InteractsWithRevisions`
+(`assertRevisionsAreConsistent()`, a `LogicException` without the application). Fixtures `tests/Fixtures/Checked/`.
+Coverage 99.67 %; Infection not installed. Review: `src/Testing/` resolves from the test case's `$app` (architecture.md
+§2 and §16 reworded; the "Pure core" bullet of CLAUDE.md still says only `src/Laravel/`, left to the maintainer), a
+configuration error of the discovery reported instead of thrown, `--list` honours `--format=json`, the classes of the
+explicit-classes test pinned. Deviations: `PathClassFinder` was already shipped (US 5.3) and implements `ClassFinder`
+since US 9.1; the command and the `Checker` each scan the discovery (two scans, a simpler contract); `withRevision()`
+of D28 stays in US 10.4.
+
 #### US 9.4 — Lock · M · depends US 10.1, US 9.3
 
 - `Checking\Lock` writes / compares normalized snapshots (`model.md` §14 D11) and the recorded `order()`; command
@@ -1551,7 +1565,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 8.8 | Outside HTTP | S | 8.1 | M2 | done |
 | US 9.1 | Diagnostics and checker | S | 5.2 | M3 | done |
 | US 9.2 | Check rules | M | 9.1 | M3 | done |
-| US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | todo |
+| US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | done |
 | US 9.4 | Lock | M | 10.1, 9.3 | M3 | todo |
 | US 10.1 | JSON Schema export | M | 5.2 | M3 | todo |
 | US 10.2 | `$ref` components | M | 10.1 | M4 | todo |
