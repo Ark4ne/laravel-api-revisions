@@ -424,10 +424,17 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
 
 ## 11. Export
 
-Patterns: **Visitor** (`SchemaVisitor` over `Shape` / `TypeDefinition`), **Registry** (`Components` for `$ref`).
+Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Components` for `$ref`).
 
 - `JsonSchemaExporter` (draft 2020-12) is the reference visitor; the lock snapshot and the OpenAPI generator read its
   output. Other formats are new visitors, without touching the core.
+- Since US 10.1 (`model.md` D67): `SchemaVisitor::visit(Shape)` (the shape of a declaring class: `visit()` references its own nested resources as `'#'`,
+  so the shape of another class would leave a dangling `$ref`); the exporter reads the
+  `Shape` only (fields at `R`, their presence and nullability; children and items from the field definitions where the
+  head is in force, from the type at `R` where a `was()` schema is), never a descriptor; nested resources resolved
+  through its `Shapes` into a flat `$defs` (same kind, same revision). `typeKeywords()` gives the keywords of a type
+  before its rule keywords, read by the check `schema-override`. `Export\DatePattern` (`@internal`) derives the
+  `pattern` of a numeric PHP date format, `Export\RegexPattern` (`@internal`) the ECMA `pattern` of a PCRE (D68). Exported by `revision:export` (`Laravel\Console\ExportCommand`).
 - `Changelog` diffs two consecutive `Shape`s of each class (added, removed, renamed — known from the `History`, never
   guessed —, type changed) and renders Markdown with the revisions' `meta()`.
 

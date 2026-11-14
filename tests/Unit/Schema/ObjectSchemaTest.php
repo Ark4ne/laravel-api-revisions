@@ -11,6 +11,7 @@ use Ark4ne\ApiRevisions\Schema\DateSchema;
 use Ark4ne\ApiRevisions\Schema\IntSchema;
 use Ark4ne\ApiRevisions\Schema\ListSchema;
 use Ark4ne\ApiRevisions\Schema\ObjectSchema;
+use Ark4ne\ApiRevisions\Schema\Schema;
 use Ark4ne\ApiRevisions\Schema\StringSchema;
 use ArrayObject;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -136,5 +137,15 @@ final class ObjectSchemaTest extends TestCase
         ]))->configure(new Configuration(dateFormat: 'd/m/Y'));
 
         self::assertSame('d/m/Y', $object->children()['day']->history()->changes[0]->schema?->toType()->format);
+    }
+
+    public function test_the_children_types_carry_their_nullability(): void
+    {
+        $type = Schema::object(['a' => Schema::string()->nullable(), 'b' => Schema::list(Schema::int()->nullable())])->toType();
+
+        self::assertTrue($type->children['a']->nullable);
+        self::assertFalse($type->children['b']->nullable);
+        self::assertTrue($type->children['b']->items?->nullable);
+        self::assertFalse(Schema::string()->nullable()->toType()->nullable);
     }
 }

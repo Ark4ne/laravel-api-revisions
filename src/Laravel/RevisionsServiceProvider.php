@@ -15,6 +15,7 @@ use Ark4ne\ApiRevisions\Laravel\Checking\NativeCondition;
 use Ark4ne\ApiRevisions\Laravel\Console\CacheCommand;
 use Ark4ne\ApiRevisions\Laravel\Console\CheckCommand;
 use Ark4ne\ApiRevisions\Laravel\Console\ClearCommand;
+use Ark4ne\ApiRevisions\Laravel\Console\ExportCommand;
 use Ark4ne\ApiRevisions\Laravel\Discovery\PathClassFinder;
 use Ark4ne\ApiRevisions\Laravel\Http\ResolveRevision;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\ResolverChain;
@@ -163,7 +164,7 @@ final class RevisionsServiceProvider extends ServiceProvider
         $this->publishes([self::CONFIG => $this->app->configPath('revisions.php')], 'revisions-config');
 
         if ($this->app->runningInConsole()) {
-            $this->commands([CacheCommand::class, CheckCommand::class, ClearCommand::class]);
+            $this->commands([CacheCommand::class, CheckCommand::class, ClearCommand::class, ExportCommand::class]);
             $this->optimizes(optimize: 'revision:cache', clear: 'revision:clear', key: 'revisions');
         }
     }

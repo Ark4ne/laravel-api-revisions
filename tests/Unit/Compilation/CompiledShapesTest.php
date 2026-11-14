@@ -116,7 +116,7 @@ final class CompiledShapesTest extends TestCase
         CompiledShapes::write($this->path(), [$shape]);
 
         $key = CompiledShapes::key(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis);
-        self::assertSame(['@format' => '1', $key => serialize($shape)], require $this->path());
+        self::assertSame(['@format' => (string) CompiledShapes::FORMAT, $key => serialize($shape)], require $this->path());
         self::assertSame('Test\Fixtures\Declarations\CountingDeclaration@response@Test\Fixtures\ApiRevision::Genesis', $key);
     }
 
@@ -206,8 +206,8 @@ final class CompiledShapesTest extends TestCase
         yield 'not an array' => ['<?php return 1;'];
         yield 'without format' => ['<?php return [];'];
         yield 'of another format' => ["<?php return ['@format' => '0'];"];
-        yield 'not a string' => ["<?php return ['@format' => '1', 'a' => 1];"];
-        yield 'an integer key' => ["<?php return ['@format' => '1', 'a'];"];
+        yield 'not a string' => ["<?php return ['@format' => '2', 'a' => 1];"];
+        yield 'an integer key' => ["<?php return ['@format' => '2', 'a'];"];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidFiles')]
@@ -234,7 +234,7 @@ final class CompiledShapesTest extends TestCase
     public function test_an_entry_that_is_not_a_shape_is_refused(string $entry): void
     {
         $key = CompiledShapes::key(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis);
-        file_put_contents($this->path(), '<?php return ' . var_export(['@format' => '1', $key => $entry], true) . ';');
+        file_put_contents($this->path(), '<?php return ' . var_export(['@format' => (string) CompiledShapes::FORMAT, $key => $entry], true) . ';');
         $compiled = CompiledShapes::load($this->path());
 
         $this->expectException(CacheException::class);

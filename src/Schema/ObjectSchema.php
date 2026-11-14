@@ -87,7 +87,7 @@ final class ObjectSchema extends Descriptor
     protected function type(): TypeDefinition
     {
         return TypeDefinition::of(Kind::Object)->withChildren(array_map(
-            static fn(Descriptor $child): TypeDefinition => $child->toType(),
+            static fn(Descriptor $child): TypeDefinition => $child->toType()->withNullable($child->isNullable()),
             $this->children,
         ));
     }

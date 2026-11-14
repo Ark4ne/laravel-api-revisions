@@ -133,4 +133,13 @@ final class TypeDefinitionTest extends TestCase
 
         TypeDefinition::custom('money', ['default' => new stdClass()]);
     }
+
+    public function test_a_type_is_not_nullable_until_said(): void
+    {
+        $type = TypeDefinition::of(Kind::String);
+
+        self::assertFalse($type->nullable);
+        self::assertTrue($type->withNullable(true)->nullable);
+        self::assertTrue($type->withNullable(true)->withMin(1)->nullable);
+    }
 }

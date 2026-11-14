@@ -240,3 +240,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `revision:cache`) and `Checking\Checker`. `Support\Diagnostic::toArray()`.
 - `Testing\InteractsWithRevisions` for an application's `TestCase`: `assertRevisionsAreConsistent()` fails with every
   diagnostic when one is an error.
+- JSON Schema export (model.md §11, D67): `Export\JsonSchemaExporter` (draft 2020-12; `export($class, $kind,
+  $revision)`, `visit(Shape)`, `typeKeywords()`), implementing the `Export\SchemaVisitor` contract: one document per
+  class, kind and revision, its revision `meta()` in `$comment`; types and constraints, enum values, nullable (`null`
+  in `type` / `enum`, or `anyOf`), `required` (a response field unless conditional, a request field `required()`
+  without `sometimes()`), descriptions, examples, `deprecated`, custom fragments, dates in their wire format (a
+  `pattern` for a numeric PHP format), the `DescribesSchema` keywords last (D36); nested resources in `$defs`
+  (`$ref`, cycles included); objects open. `php artisan revision:export {--revision=} {--class=}` prints it as JSON.
+- A `pattern()` is exported without its delimiters when its flags are `u` / `D` only, otherwise described in `$comment`
+  (D68). `Definition\TypeDefinition::$nullable` (`withNullable()`): the nullability of the items and children of a
+  composite. The compiled-shapes cache format is now `2`: run `php artisan revision:cache` again after upgrading.
+- Check rule `schema-override` (warning, `Checking\Checks\SchemaOverride`, in `Checker::builtIn()`): a rule keyword
+  overriding a keyword of its field's type.

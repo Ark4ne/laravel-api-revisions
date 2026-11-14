@@ -239,7 +239,7 @@ final class ShapeSelector
     /**
      * The type of `$descriptor` itself (never its own `was()`) at `$revision`: the items and the visible children of a
      * composite are those in force at `$revision`, the children under their name there (the first child of a colliding
-     * name).
+     * name), each nullable as the descriptor in force says (model.md D68).
      *
      * @param Descriptor<mixed> $descriptor
      */
@@ -247,7 +247,9 @@ final class ShapeSelector
     {
         $type = $descriptor->toType();
         if ($descriptor instanceof ListSchema) {
-            return $type->withItems(self::typeOf(self::inForce(self::ITEMS, $descriptor->items(), $revision)[1], $revision));
+            $items = self::inForce(self::ITEMS, $descriptor->items(), $revision)[1];
+
+            return $type->withItems(self::typeOf($items, $revision)->withNullable($items->isNullable()));
         }
         if ($descriptor instanceof ObjectSchema) {
             $children = [];
@@ -255,7 +257,7 @@ final class ShapeSelector
                 if ($child->lifetime()->covers($revision)) {
                     [$name, $current] = self::inForce($key, $child, $revision);
                     // two children under one name: the first one is kept, the nested shape records the collision
-                    $children[$name] ??= self::typeOf($current, $revision);
+                    $children[$name] ??= self::typeOf($current, $revision)->withNullable($current->isNullable());
                 }
             }
 

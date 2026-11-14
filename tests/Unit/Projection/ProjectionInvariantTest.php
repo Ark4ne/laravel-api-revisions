@@ -7,11 +7,14 @@ namespace Test\Unit\Projection;
 use Ark4ne\ApiRevisions\Compilation\FieldDefinition;
 use Ark4ne\ApiRevisions\Compilation\Shape;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
+use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use DateTimeImmutable;
+use Opis\JsonSchema\Errors\ErrorFormatter;
+use Opis\JsonSchema\Validator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Test\Fixtures\ApiRevision;
@@ -31,7 +34,7 @@ use Test\TestCase;
 
 /**
  * The invariant of docs/architecture.md §7: for every fixture at every revision, the projected keys, recursively, are
- * the names of the `Shape`. Extended by US 10.1 (the projection validates against the exported JSON Schema).
+ * the names of the `Shape`, and the projection validates against the exported JSON Schema of its revision (US 10.1).
  */
 final class ProjectionInvariantTest extends TestCase
 {
@@ -89,6 +92,26 @@ final class ProjectionInvariantTest extends TestCase
         $projected = (new Projector(shapes: $shapes))->project($shape, $class::describeRevisioned(DeclarationKind::Response, $subject), $subject);
 
         self::assertAgree($shapes, $shape, $projected, $class);
+    }
+
+    /**
+     * @param class-string<Revisioned> $class
+     */
+    #[DataProvider('fixtures')]
+    public function test_a_projected_document_matches_the_schema_of_its_revision(string $class, mixed $subject, Revision $revision): void
+    {
+        $shapes = new Shapes();
+        $shape = $shapes->for($class, DeclarationKind::Response, $revision);
+        $projected = (new Projector(shapes: $shapes))->project($shape, $class::describeRevisioned(DeclarationKind::Response, $subject), $subject);
+
+        $schema = (new JsonSchemaExporter($shapes))->export($class, DeclarationKind::Response, $revision);
+        $result = (new Validator())->validate(
+            json_decode(json_encode($projected, JSON_THROW_ON_ERROR)),
+            json_encode($schema, JSON_THROW_ON_ERROR),
+        );
+
+        $error = $result->error();
+        self::assertNull($error, $error === null ? '' : json_encode((new ErrorFormatter())->format($error), JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
     }
 
     /**

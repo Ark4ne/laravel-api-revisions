@@ -14,6 +14,7 @@ use Ark4ne\ApiRevisions\Checking\Checks\NameCollision;
 use Ark4ne\ApiRevisions\Checking\Checks\OrderDuplicateCase;
 use Ark4ne\ApiRevisions\Checking\Checks\OrderMissingCase;
 use Ark4ne\ApiRevisions\Checking\Checks\RequiredSinceWithoutDefault;
+use Ark4ne\ApiRevisions\Checking\Checks\SchemaOverride;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
@@ -68,6 +69,7 @@ final readonly class Checker
             new NameCollision(),
             new RequiredSinceWithoutDefault(),
             new EagerValue(),
+            new SchemaOverride(),
         ];
     }
 

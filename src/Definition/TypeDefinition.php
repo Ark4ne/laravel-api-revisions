@@ -25,6 +25,8 @@ final readonly class TypeDefinition
      * @param array<string, mixed> $fragment the JSON Schema of a `Custom` kind, JSON-ready (exported once, US 10.2)
      * @param class-string|null $resource the `Revisioned` class of a nested resource (an `Object` kind): its shape of
      *                                    the same declaration kind at the same revision (model.md D49), referenced
+     * @param bool $nullable whether `null` is a value, for the items and children of a composite (model.md D68); a
+     *                       field's own nullability is on its `FieldDefinition`
      */
     private function __construct(
         public Kind $kind,
@@ -44,6 +46,7 @@ final readonly class TypeDefinition
         public ?string $name = null,
         public array $fragment = [],
         public ?string $resource = null,
+        public bool $nullable = false,
     ) {}
 
     /**
@@ -161,6 +164,11 @@ final readonly class TypeDefinition
     public function withJsonSchema(array $jsonSchema): self
     {
         return $this->with(['jsonSchema' => $jsonSchema]);
+    }
+
+    public function withNullable(bool $nullable): self
+    {
+        return $this->with(['nullable' => $nullable]);
     }
 
     public function withDeprecated(bool $deprecated): self

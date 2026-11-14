@@ -17,6 +17,7 @@ use Ark4ne\ApiRevisions\Checking\Checks\NameCollision;
 use Ark4ne\ApiRevisions\Checking\Checks\OrderDuplicateCase;
 use Ark4ne\ApiRevisions\Checking\Checks\OrderMissingCase;
 use Ark4ne\ApiRevisions\Checking\Checks\RequiredSinceWithoutDefault;
+use Ark4ne\ApiRevisions\Checking\Checks\SchemaOverride;
 use Ark4ne\ApiRevisions\Checking\ClassFinder;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
@@ -221,6 +222,7 @@ final class CheckerTest extends TestCase
                 NameCollision::class,
                 RequiredSinceWithoutDefault::class,
                 EagerValue::class,
+                SchemaOverride::class,
             ],
             array_map(static fn(Check $check): string => $check::class, Checker::builtIn()),
         );

@@ -93,6 +93,6 @@ final class ListSchema extends Descriptor
         return TypeDefinition::of(Kind::List)
             ->withMin($this->min)
             ->withMax($this->max)
-            ->withItems($this->items->toType());
+            ->withItems($this->items->toType()->withNullable($this->items->isNullable()));
     }
 }

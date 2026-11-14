@@ -1334,6 +1334,22 @@ Tests: `test_a_field_leaking_into_a_locked_revision_fails_the_check`, `test_movi
 
 Tests: `test_each_revision_exports_its_own_schema`, `test_a_projected_document_matches_the_schema_of_its_revision`.
 
+**Done** (2026-11-14): `Export\SchemaVisitor` (`visit(Shape)`), `Export\JsonSchemaExporter` (draft 2020-12:
+`export($class, $kind, $revision)`, `visit()`, `typeKeywords()`; `title`, revision `meta()` in `$comment`, types,
+constraints, enum values, nullable in `type` / `enum` or `anyOf`, `required` per D67, descriptions, examples,
+`deprecated`, custom fragments, dates in their wire format with a derived `pattern`, rule keywords last; nested
+resources in a flat `$defs`, `'#'` for the exported class; objects open), `Export\DatePattern` and
+`Export\RegexPattern` (`@internal`), check `schema-override` (`Checking\Checks\SchemaOverride`, in
+`Checker::builtIn()`), `revision:export` (`Laravel\Console\ExportCommand`). Decisions D67 (mapping, `$defs`, dates,
+command output) and D68 (PCRE patterns, `TypeDefinition::$nullable`). Tests: `test_each_revision_exports_its_own_schema`
+(`RevisionExportTest`), `test_a_projected_document_matches_the_schema_of_its_revision` (`ProjectionInvariantTest`, opis),
+`test_a_rule_keyword_overriding_the_type_is_reported` (`SchemaOverrideTest`). Coverage 99.65 %; Infection not
+installed. Review: patterns exported without delimiters (or described when flags forbid it), the nullability of items
+and children carried by `TypeDefinition` (also through `ShapeSelector::typeOf()` for a `was()` schema), the
+compiled-shapes cache format bumped to `2`. Deviations: `meta()` goes to `$comment` only (`description` stays the
+field's); `schema-override` compares the field's own type and does not walk the children of a `was()` schema; the
+`$defs` are per document until US 10.2 (`Components`).
+
 #### US 10.2 — `$ref` components · M · depends US 10.1
 
 - `Export\Components`: an object or custom type used in several classes is exported once and referenced; its
@@ -1567,7 +1583,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 9.2 | Check rules | M | 9.1 | M3 | done |
 | US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | done |
 | US 9.4 | Lock | M | 10.1, 9.3 | M3 | todo |
-| US 10.1 | JSON Schema export | M | 5.2 | M3 | todo |
+| US 10.1 | JSON Schema export | M | 5.2 | M3 | done |
 | US 10.2 | `$ref` components | M | 10.1 | M4 | todo |
 | US 10.3 | Changelog | M | 10.1 | M4 | todo |
 | US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | todo |

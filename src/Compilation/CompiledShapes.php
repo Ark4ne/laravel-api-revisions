@@ -21,7 +21,7 @@ final readonly class CompiledShapes
      */
     public const string FORMAT_KEY = '@format';
 
-    public const int FORMAT = 1;
+    public const int FORMAT = 2;
 
     /**
      * @param array<string, string> $shapes the serialized shapes, by key
