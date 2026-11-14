@@ -27,6 +27,8 @@ final readonly class TypeDefinition
      *                                    the same declaration kind at the same revision (model.md D49), referenced
      * @param bool $nullable whether `null` is a value, for the items and children of a composite (model.md D68); a
      *                       field's own nullability is on its `FieldDefinition`
+     * @param non-empty-string|null $component the name an `Object` kind is exported under, as a component (model.md
+     *                                         D70); a `Custom` kind is one under its `$name`
      */
     private function __construct(
         public Kind $kind,
@@ -47,6 +49,7 @@ final readonly class TypeDefinition
         public array $fragment = [],
         public ?string $resource = null,
         public bool $nullable = false,
+        public ?string $component = null,
     ) {}
 
     /**
@@ -164,6 +167,16 @@ final readonly class TypeDefinition
     public function withJsonSchema(array $jsonSchema): self
     {
         return $this->with(['jsonSchema' => $jsonSchema]);
+    }
+
+    /**
+     * The component name of an `Object` kind (model.md D70).
+     *
+     * @param non-empty-string|null $component
+     */
+    public function withComponent(?string $component): self
+    {
+        return $this->with(['component' => $component]);
     }
 
     public function withNullable(bool $nullable): self

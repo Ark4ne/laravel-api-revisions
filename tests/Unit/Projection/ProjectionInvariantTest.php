@@ -27,7 +27,9 @@ use Test\Fixtures\Declarations\EagerDeclaration;
 use Test\Fixtures\Declarations\ForeignResourceDeclaration;
 use Test\Fixtures\Declarations\InvalidDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
+use Test\Fixtures\Declarations\ShippingDeclaration;
 use Test\Fixtures\Declarations\ThrowingDeclaration;
+use Test\Fixtures\Declarations\WarehouseDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Order;
 use Test\TestCase;
@@ -38,6 +40,8 @@ use Test\TestCase;
  */
 final class ProjectionInvariantTest extends TestCase
 {
+    private const array ADDRESS = ['street' => '1 Main Street', 'zip' => '75001'];
+
     /**
      * The response declarations that cannot be projected on purpose: they test refusals.
      */
@@ -177,6 +181,13 @@ final class ProjectionInvariantTest extends TestCase
             CustomerDeclaration::class => ['name' => 'Ada Lovelace', 'orders' => [self::order([])]],
             BoundDeclaration::class => ['label' => 'ada'],
             CountingDeclaration::class => ['title' => 'Book'],
+            WarehouseDeclaration::class => ['address' => self::ADDRESS, 'docks' => [self::ADDRESS]],
+            ShippingDeclaration::class => [
+                'from' => ['address' => null, 'docks' => [self::ADDRESS]],
+                'to' => self::ADDRESS,
+                'price' => ['amount' => 1250, 'currency' => 'EUR'],
+                'fee' => null,
+            ],
         ];
     }
 

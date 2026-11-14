@@ -27,6 +27,11 @@ final class ObjectSchema extends Descriptor
     private array $children;
 
     /**
+     * @var non-empty-string|null
+     */
+    private ?string $component = null;
+
+    /**
      * @param array<string, Descriptor<mixed>> $children by key; anything else throws `DefinitionException::invalidChild()`
      * @param mixed $source see `Descriptor::__construct()`
      */
@@ -45,6 +50,21 @@ final class ObjectSchema extends Descriptor
             }
         }
         $this->children = $children;
+    }
+
+    /**
+     * Exports this object as the component `$name`, referenced from every use in a document (model.md D70);
+     * `DefinitionException::invalidComponentName()` for an empty name.
+     */
+    public function component(string $name): static
+    {
+        if ($name === '') {
+            throw DefinitionException::invalidComponentName();
+        }
+        $clone = clone $this;
+        $clone->component = $name;
+
+        return $clone;
     }
 
     /**
@@ -89,6 +109,6 @@ final class ObjectSchema extends Descriptor
         return TypeDefinition::of(Kind::Object)->withChildren(array_map(
             static fn(Descriptor $child): TypeDefinition => $child->toType()->withNullable($child->isNullable()),
             $this->children,
-        ));
+        ))->withComponent($this->component);
     }
 }

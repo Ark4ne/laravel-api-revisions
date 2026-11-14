@@ -188,4 +188,15 @@ final class LockMismatchTest extends TestCase
             self::runCheck($check, [self::CHECKED]),
         );
     }
+
+    public function test_a_component_conflict_is_left_to_component_conflict(): void
+    {
+        $this->lockRevisions([self::CHECKED], ApiRevision::Genesis);
+        CheckedDeclaration::$describe = static fn(): array => [
+            'title' => Schema::object(['a' => Schema::string()])->component('Title'),
+            'total' => Schema::object(['b' => Schema::string()])->component('Title'),
+        ];
+
+        self::assertSame([], self::runCheck(new LockMismatch($this->lock()), [self::CHECKED]));
+    }
 }

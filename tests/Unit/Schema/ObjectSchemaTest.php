@@ -148,4 +148,22 @@ final class ObjectSchemaTest extends TestCase
         self::assertTrue($type->children['b']->items?->nullable);
         self::assertFalse(Schema::string()->nullable()->toType()->nullable);
     }
+
+    public function test_a_named_object_is_exported_as_a_component(): void
+    {
+        $object = Schema::object(['a' => Schema::string()]);
+        $component = $object->component('Address');
+
+        self::assertNotSame($object, $component);
+        self::assertNull($object->toType()->component);
+        self::assertSame('Address', $component->toType()->component);
+        self::assertSame('Address', $component->nullable()->configured(new Configuration())->toType()->component);
+    }
+
+    public function test_a_component_needs_a_name(): void
+    {
+        $this->expectExceptionObject(DefinitionException::invalidComponentName());
+
+        Schema::object([])->component('');
+    }
 }

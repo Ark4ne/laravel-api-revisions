@@ -291,6 +291,7 @@ final class DefinitionExceptionTest extends TestCase
         yield 'invalid history' => [DefinitionException::invalidHistory(ApiRevision::Atlas, 'the head'), 'history-unordered'];
         yield 'not revisioned' => [DefinitionException::notRevisioned('App\\X'), 'unknown-resource'];
         yield 'undeclared kind' => [DefinitionException::undeclaredKind('App\\X', 'response'), 'unknown-resource'];
+        yield 'component conflict' => [DefinitionException::componentConflict('Address', 'to', 'response', 'atlas'), 'component-conflict'];
         yield 'any other' => [DefinitionException::eagerSource('int'), 'definition-error'];
     }
 
@@ -298,5 +299,19 @@ final class DefinitionExceptionTest extends TestCase
     public function test_a_declaration_error_carries_the_code_the_check_reports_it_under(DefinitionException $exception, string $code): void
     {
         self::assertSame($code, $exception->checkCode);
+    }
+
+    public function test_a_component_conflict_names_the_component_and_the_field_of_its_second_use(): void
+    {
+        $exception = DefinitionException::componentConflict('Address', 'billing.address', 'response', 'winter-25');
+
+        self::assertSame("The component 'Address' of 'billing.address' (response) at winter-25 differs from another use of it: give each shape its own name.", $exception->getMessage());
+        self::assertSame('billing.address', $exception->field);
+        self::assertNull(DefinitionException::eagerSource('int')->field);
+    }
+
+    public function test_an_empty_component_name_is_refused(): void
+    {
+        self::assertSame('A component needs a name: ObjectSchema::component() was given an empty one.', DefinitionException::invalidComponentName()->getMessage());
     }
 }

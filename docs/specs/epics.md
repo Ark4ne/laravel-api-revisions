@@ -1374,6 +1374,20 @@ field's); `schema-override` compares the field's own type and does not walk the 
 
 Tests: `test_a_shared_object_is_exported_as_a_component`.
 
+**Done** (2026-11-14): `Export\Components` (the `$defs` of one document: nested resources reserved then filled,
+components defined at first use, `reference()` a JSON Pointer), `Schema\ObjectSchema::component()`,
+`Definition\TypeDefinition::$component`, `DefinitionException::componentConflict()` (with `$field`) and
+`invalidComponentName()`, check `Checking\Checks\ComponentConflict` (`component-conflict`, in `Checker::builtIn()`);
+the exporter threads the registry and the field path; a custom type is now a `$ref` to `#/$defs/<name>`; compiled
+shapes cache format `3`. Fixtures `Address`, `ShippingDeclaration`, `WarehouseDeclaration` (projected by the
+invariant test, so validated with their `$defs`). Decision D70. Test `test_a_shared_object_is_exported_as_a_component`
+(`JsonSchemaExporterTest`). Coverage 99.6 %; Infection not installed. Review: a component named as a nested resource
+is a conflict (`reserve()` / `fill()`), the conflict test of `LockMismatch`, one component used under the head and
+under a `was()` schema at one revision is a conflict (D70, tested), docs reworded (names at `R` below a `was()`
+schema). Deviations: "exported once" means once per document (D70: documents stay self-contained, a generator lifts
+`$defs` by name); the first conflict of a document stops its export, so `component-conflict` reports one conflict per
+document and revision at a time.
+
 #### US 10.3 — Changelog · M · depends US 10.1
 
 - `Export\Changelog`: diff of consecutive shapes per class (added, removed, renamed from the `History`, type changed),
@@ -1601,7 +1615,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | done |
 | US 9.4 | Lock | M | 10.1, 9.3 | M3 | done |
 | US 10.1 | JSON Schema export | M | 5.2 | M3 | done |
-| US 10.2 | `$ref` components | M | 10.1 | M4 | todo |
+| US 10.2 | `$ref` components | M | 10.1 | M4 | done |
 | US 10.3 | Changelog | M | 10.1 | M4 | todo |
 | US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | todo |
 | US 10.5 | `revision:prune` | S | 9.2 | M4 | todo |

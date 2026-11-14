@@ -7,15 +7,19 @@ namespace Test\Unit\Export;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
+use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Schema\Schema;
 use Closure;
 use DateTimeInterface;
+use Test\Fixtures\Address;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
+use Test\Fixtures\Declarations\ShippingDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Enums\Priority;
 use Test\Fixtures\MoneySchema;
@@ -94,7 +98,7 @@ final class JsonSchemaExporterTest extends TestCase
             'bool' => ['type' => 'boolean', 'deprecated' => true],
             'string' => ['type' => 'string', 'format' => 'email', 'pattern' => '^.+@.+$'],
             'priority' => ['type' => 'integer', 'enum' => [1, 3]],
-            'money' => ['type' => 'object', 'properties' => ['amount' => ['type' => 'integer'], 'currency' => ['type' => 'string', 'pattern' => '^[A-Z]{3}$']], 'required' => ['amount', 'currency']],
+            'money' => ['$ref' => '#/$defs/money'],
             'any' => [],
         ], self::head(static fn(): array => [
             'int' => Schema::int()->min(1)->max(9),
@@ -112,10 +116,7 @@ final class JsonSchemaExporterTest extends TestCase
         self::assertEquals([
             'string' => ['type' => ['string', 'null']],
             'status' => ['type' => ['string', 'null'], 'enum' => ['pending', 'paid', 'shipped', null]],
-            'money' => ['anyOf' => [
-                ['type' => 'object', 'properties' => ['amount' => ['type' => 'integer'], 'currency' => ['type' => 'string', 'pattern' => '^[A-Z]{3}$']], 'required' => ['amount', 'currency']],
-                ['type' => 'null'],
-            ]],
+            'money' => ['anyOf' => [['$ref' => '#/$defs/money'], ['type' => 'null']]],
             'customer' => ['anyOf' => [['$ref' => self::CUSTOMER], ['type' => 'null']], 'description' => 'The buyer'],
             'any' => [],
         ], self::head(static fn(): array => [
@@ -331,5 +332,87 @@ final class JsonSchemaExporterTest extends TestCase
     public function test_the_keywords_of_a_nullable_type_accept_null(): void
     {
         self::assertSame(['type' => ['string', 'null']], (new JsonSchemaExporter())->typeKeywords(TypeDefinition::of(Kind::String), nullable: true));
+    }
+
+    public function test_a_shared_object_is_exported_as_a_component(): void
+    {
+        $exporter = new JsonSchemaExporter(new Shapes());
+        $address = ['$ref' => '#/$defs/Address'];
+        $money = ['$ref' => '#/$defs/money'];
+
+        $atlas = $exporter->export(ShippingDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas);
+
+        self::assertSame([
+            'from' => ['$ref' => '#/$defs/Test.Fixtures.Declarations.WarehouseDeclaration'],
+            'to' => $address,
+            'price' => $money,
+            'fee' => ['anyOf' => [$money, ['type' => 'null']]],
+        ], $atlas['properties']);
+        self::assertEquals([
+            'Test.Fixtures.Declarations.WarehouseDeclaration' => [
+                'type' => 'object',
+                'properties' => [
+                    'address' => ['anyOf' => [$address, ['type' => 'null']]],
+                    'docks' => ['type' => 'array', 'items' => $address],
+                ],
+                'required' => ['address', 'docks'],
+            ],
+            'Address' => [
+                'type' => 'object',
+                'properties' => ['street' => ['type' => 'string'], 'zip' => ['type' => 'string']],
+                'required' => ['street', 'zip'],
+            ],
+            'money' => ['type' => 'object', 'properties' => ['amount' => ['type' => 'integer'], 'currency' => ['type' => 'string', 'pattern' => '^[A-Z]{3}$']], 'required' => ['amount', 'currency']],
+        ], $atlas['$defs']);
+    }
+
+    public function test_the_history_of_a_component_applies_in_every_reference(): void
+    {
+        $winter = (new JsonSchemaExporter(new Shapes()))->export(ShippingDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25);
+
+        self::assertSame(
+            ['type' => 'object', 'properties' => ['street' => ['type' => 'string']], 'required' => ['street']],
+            self::dig($winter, '$defs', 'Address'),
+        );
+    }
+
+    public function test_a_component_under_the_schema_of_a_was_is_typed_only(): void
+    {
+        $document = self::export(static fn(): array => [
+            'to' => Schema::string()->was(ApiRevision::Winter25, schema: Schema::object(['street' => Schema::string()])->component('OldAddress')),
+        ], ApiRevision::Winter25);
+
+        self::assertSame(['$ref' => '#/$defs/OldAddress'], self::dig($document, 'properties', 'to'));
+        self::assertSame(['type' => 'object', 'properties' => ['street' => ['type' => 'string']]], self::dig($document, '$defs', 'OldAddress'));
+    }
+
+    public function test_two_bodies_under_one_component_name_are_a_declaration_error(): void
+    {
+        $this->expectExceptionObject(DefinitionException::componentConflict('Address', 'billing.address', 'response', 'atlas'));
+
+        self::export(static fn(): array => [
+            'to' => Address::schema(),
+            'billing' => Schema::object(['address' => Schema::object(['line' => Schema::string()])->component('Address')]),
+        ], ApiRevision::Atlas);
+    }
+
+    public function test_the_type_keywords_of_a_component_stay_inline(): void
+    {
+        $exporter = new JsonSchemaExporter(new Shapes());
+
+        self::assertSame(['type' => 'object', 'properties' => ['street' => ['type' => 'string']]], $exporter->typeKeywords(Schema::object(['street' => Schema::string()])->component('Address')->toType()));
+        self::assertSame(['type' => 'object'], array_intersect_key($exporter->typeKeywords((new MoneySchema())->toType()), ['type' => true]));
+    }
+
+    public function test_a_component_under_the_head_and_under_a_was_schema_at_one_revision_is_a_conflict(): void
+    {
+        // presence where the head is in force, typed only under the was() schema (D70)
+        $street = static fn(): ObjectSchema => Schema::object(['street' => Schema::string()])->component('Street');
+        $this->expectExceptionObject(DefinitionException::componentConflict('Street', 'from', 'response', 'winter-25'));
+
+        self::export(static fn(): array => [
+            'to' => $street(),
+            'from' => Schema::string()->was(ApiRevision::Winter25, schema: $street()),
+        ], ApiRevision::Winter25);
     }
 }

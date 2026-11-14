@@ -142,4 +142,13 @@ final class TypeDefinitionTest extends TestCase
         self::assertTrue($type->withNullable(true)->nullable);
         self::assertTrue($type->withNullable(true)->withMin(1)->nullable);
     }
+
+    public function test_an_object_is_a_component_only_when_named(): void
+    {
+        $type = TypeDefinition::of(Kind::Object);
+
+        self::assertNull($type->component);
+        self::assertSame('Address', $type->withComponent('Address')->component);
+        self::assertSame('Address', $type->withComponent('Address')->withNullable(true)->component);
+    }
 }

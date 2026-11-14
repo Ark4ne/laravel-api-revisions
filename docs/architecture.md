@@ -434,7 +434,16 @@ Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Component
   head is in force, from the type at `R` where a `was()` schema is), never a descriptor; nested resources resolved
   through its `Shapes` into a flat `$defs` (same kind, same revision). `typeKeywords()` gives the keywords of a type
   before its rule keywords, read by the check `schema-override`. `Export\DatePattern` (`@internal`) derives the
-  `pattern` of a numeric PHP date format, `Export\RegexPattern` (`@internal`) the ECMA `pattern` of a PCRE (D68). Exported by `revision:export` (`Laravel\Console\ExportCommand`).
+  `pattern` of a numeric PHP date format, `Export\RegexPattern` (`@internal`) the ECMA `pattern` of a PCRE (D68).
+  Exported by `revision:export` (`Laravel\Console\ExportCommand`).
+- Since US 10.2 (`model.md` D70): `Components` is the registry of one document's `$defs` (nested resources reserved
+  then filled, components defined at first use; another body under a name, or a component named as a nested resource,
+  throws `componentConflict()` naming the field: its head key path from the top level, or from the referencing field
+  inside a nested resource, the names at `R` below a `was()` schema). The exporter
+  threads it and that path through its walk; a component (`TypeDefinition::$component`, or a custom type's `$name`)
+  is defined with its typed keywords and replaced by its `$ref`, only inside a document (`typeKeywords()` stays
+  inline). The check `component-conflict` exports each kind at every revision, newest first: the first conflict of a
+  document stops its export, so one conflict per document and revision is reported at a time.
 - `Changelog` diffs two consecutive `Shape`s of each class (added, removed, renamed — known from the `History`, never
   guessed —, type changed) and renders Markdown with the revisions' `meta()`.
 

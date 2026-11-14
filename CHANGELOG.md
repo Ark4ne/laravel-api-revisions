@@ -258,5 +258,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   but the head that have no lock yet; `--revision=` (re)locks one, the head included. Check rules `lock-mismatch`
   (per field, keyword, class or kind; a class or kind added only when it has fields there) and `lock-order-changed` (`Checking\Checks\LockMismatch`,
   `LockOrderChanged`), added by the Laravel binding of the `Checker` over the configured `lock_path`.
+- Components (model.md §11, D70): `Schema\ObjectSchema::component($name)` names an object, a custom type is one under
+  its `TypeDefinition::custom()` name; each is defined once in the `$defs` of a document (`Export\Components`) and
+  referenced `#/$defs/<name>` from every use, its body at the revision exported (so its history applies everywhere).
+  `Definition\TypeDefinition::$component` (`withComponent()`); the compiled-shapes cache format is now `3` (run
+  `php artisan revision:cache` again). Two bodies under one name throw `DefinitionException::componentConflict()`
+  (`DefinitionException::$field`) and are reported by the check rule `component-conflict` (error,
+  `Checking\Checks\ComponentConflict`, in `Checker::builtIn()`). A custom type is now a `$ref` in the export instead
+  of its fragment inline.
 - `Checking\CheckContext::$classes` (every class of the run), `revision()` (a case by its backed value) and `export()`
   (the JSON Schema of the checked class from the shapes of the run).

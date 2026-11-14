@@ -16,9 +16,14 @@ final class DefinitionException extends LogicException implements RevisionsExcep
 {
     /**
      * @param string $checkCode the code of model.md §9 the check reports it under
+     * @param string|null $field the field it concerns, when the check reports it on one (`component-conflict`)
      */
-    private function __construct(string $message, ?Throwable $previous = null, public readonly string $checkCode = 'definition-error')
-    {
+    private function __construct(
+        string $message,
+        ?Throwable $previous = null,
+        public readonly string $checkCode = 'definition-error',
+        public readonly ?string $field = null,
+    ) {
         parent::__construct($message, 0, $previous);
     }
 
@@ -370,5 +375,26 @@ final class DefinitionException extends LogicException implements RevisionsExcep
             'Invalid child key %s of Schema::object(): children are keyed by non-empty strings.',
             is_int($key) ? $key : "'{$key}'",
         ));
+    }
+
+    /**
+     * `ObjectSchema::component()` with an empty name.
+     */
+    public static function invalidComponentName(): self
+    {
+        return new self('A component needs a name: ObjectSchema::component() was given an empty one.');
+    }
+
+    /**
+     * Two uses of the component `$component` with different bodies in one document (model.md D70): `$field` (a head
+     * key, dotted below the top level) is the second one.
+     */
+    public static function componentConflict(string $component, string $field, string $kind, string $revision): self
+    {
+        return new self(
+            "The component '{$component}' of '{$field}' ({$kind}) at {$revision} differs from another use of it: give each shape its own name.",
+            checkCode: 'component-conflict',
+            field: $field,
+        );
     }
 }

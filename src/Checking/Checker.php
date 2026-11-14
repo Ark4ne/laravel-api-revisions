@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Checking;
 
 use Ark4ne\ApiRevisions\Checking\Checks\BoundRepeated;
+use Ark4ne\ApiRevisions\Checking\Checks\ComponentConflict;
 use Ark4ne\ApiRevisions\Checking\Checks\ConversionLossy;
 use Ark4ne\ApiRevisions\Checking\Checks\ConversionMissing;
 use Ark4ne\ApiRevisions\Checking\Checks\EagerValue;
@@ -70,6 +71,7 @@ final readonly class Checker
             new RequiredSinceWithoutDefault(),
             new EagerValue(),
             new SchemaOverride(),
+            new ComponentConflict(),
         ];
     }
 

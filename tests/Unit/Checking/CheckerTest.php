@@ -8,6 +8,7 @@ use Ark4ne\ApiRevisions\Checking\Check;
 use Ark4ne\ApiRevisions\Checking\CheckContext;
 use Ark4ne\ApiRevisions\Checking\Checker;
 use Ark4ne\ApiRevisions\Checking\Checks\BoundRepeated;
+use Ark4ne\ApiRevisions\Checking\Checks\ComponentConflict;
 use Ark4ne\ApiRevisions\Checking\Checks\ConversionLossy;
 use Ark4ne\ApiRevisions\Checking\Checks\ConversionMissing;
 use Ark4ne\ApiRevisions\Checking\Checks\EagerValue;
@@ -240,6 +241,7 @@ final class CheckerTest extends TestCase
                 RequiredSinceWithoutDefault::class,
                 EagerValue::class,
                 SchemaOverride::class,
+                ComponentConflict::class,
             ],
             array_map(static fn(Check $check): string => $check::class, Checker::builtIn()),
         );

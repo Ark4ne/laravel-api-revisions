@@ -40,6 +40,9 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     }
 
     /**
+     * The document of `$shape`, the shape of a declaring class: its own nested resources are referenced as `'#'`, so
+     * the shape of another class would leave a dangling `$ref`.
+     *
      * @return array<string, mixed>
      */
     public function visit(Shape $shape): array
@@ -49,10 +52,10 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
             $document['title'] = $shape->class;
         }
         $document['$comment'] = self::comment($shape);
-        $defs = [];
-        $document += $this->object($shape, $shape, $defs);
-        if ($defs !== []) {
-            $document['$defs'] = $defs;
+        $components = new Components($shape->kind->value ?? 'object', (string) $shape->revision->value);
+        $document += $this->object($shape, $shape, $components, '');
+        if ($components->all() !== []) {
+            $document['$defs'] = $components->all();
         }
 
         return $document;
@@ -61,30 +64,28 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     /**
      * The keywords the type itself gives, `null` accepted when `$nullable`, before the keywords of its rules
      * (`TypeDefinition::$jsonSchema`) and its documentation: what `schema-override` compares the rule keywords with
-     * (D36). A nested resource gives its `$ref`.
+     * (D36). A nested resource gives its `$ref`; a component stays inline (D70).
      *
      * @return array<string, mixed>
      */
     public function typeKeywords(TypeDefinition $type, bool $nullable = false): array
     {
-        $defs = [];
-
-        return self::nullable($this->keywords($type, null, $defs), $type, $nullable);
+        return self::nullable($this->keywords($type, null, new Components('', ''), ''), $type, $nullable);
     }
 
     /**
      * The object of the fields of `$shape`, each with its presence (D67).
      *
-     * @param array<string, array<string, mixed>> $defs the definitions of the nested resources, filled
+     * @param string $prefix the path of the object in the document, `''` at the top level
      *
      * @return array<string, mixed>
      */
-    private function object(Shape $shape, ?Shape $root, array &$defs): array
+    private function object(Shape $shape, ?Shape $root, Components $components, string $prefix): array
     {
         $properties = [];
         $required = [];
         foreach ($shape->fields as $field) {
-            $properties[$field->name] = $this->field($field, $root, $defs);
+            $properties[$field->name] = $this->field($field, $root, $components, self::path($prefix, $field->headKey));
             $always = $shape->direction === Direction::Down ? !$field->conditional : $field->required && !$field->sometimes;
             if ($always) {
                 $required[] = $field->name;
@@ -105,28 +106,27 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
      * A field at the revision of its shape: its children and items read from the field definitions where the head is
      * in force, from its type where the schema of a `was()` is.
      *
-     * @param array<string, array<string, mixed>> $defs
+     * @param string $path its head key, dotted from the top level (`lines.*` for items)
      *
      * @return array<string, mixed>
      */
-    private function field(FieldDefinition $field, ?Shape $root, array &$defs): array
+    private function field(FieldDefinition $field, ?Shape $root, Components $components, string $path): array
     {
         $head = $field->schemaChange === null;
-        $keywords = $this->keywords($field->type, $root, $defs, $head ? $field->children : null, $head ? $field->items : null);
+        $keywords = $this->keywords($field->type, $root, $components, $path, $head ? $field->children : null, $head ? $field->items : null);
 
         return self::finish($keywords, $field->type, $field->nullable);
     }
 
     /**
-     * The typed keywords of `$type`.
-     *
-     * @param array<string, array<string, mixed>> $defs
+     * The typed keywords of `$type`; in a document (`$root`), a component is defined in `$components` and referenced
+     * (D70).
      *
      * @return array<string, mixed>
      */
-    private function keywords(TypeDefinition $type, ?Shape $root, array &$defs, ?Shape $children = null, ?FieldDefinition $items = null): array
+    private function keywords(TypeDefinition $type, ?Shape $root, Components $components, string $path, ?Shape $children = null, ?FieldDefinition $items = null): array
     {
-        return match ($type->kind) {
+        $keywords = match ($type->kind) {
             Kind::String => self::filter([
                 'type' => 'string',
                 'minLength' => $type->min,
@@ -146,32 +146,39 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
                 'minItems' => $type->min,
                 'maxItems' => $type->max,
                 'items' => match (true) {
-                    $items !== null => $this->field($items, $root, $defs),
-                    $type->items !== null => self::finish($this->keywords($type->items, $root, $defs), $type->items, $type->items->nullable),
+                    $items !== null => $this->field($items, $root, $components, "{$path}.*"),
+                    $type->items !== null => self::finish($this->keywords($type->items, $root, $components, "{$path}.*"), $type->items, $type->items->nullable),
                     default => null,
                 },
             ]),
-            Kind::Object => $type->resource !== null
-                ? ['$ref' => $this->reference($type->resource, $root, $defs)]
-                : ($children !== null ? $this->object($children, $root, $defs) : $this->children($type, $root, $defs)),
+            Kind::Object => match (true) {
+                $type->resource !== null => ['$ref' => $this->reference($type->resource, $root, $components, $path)],
+                $children !== null => $this->object($children, $root, $components, $path),
+                default => $this->children($type, $root, $components, $path),
+            },
             Kind::Custom => $type->fragment,
             Kind::Any => [],
         };
+        $component = $type->kind === Kind::Custom ? $type->name : ($type->resource === null ? $type->component : null);
+        if ($component === null || $root === null) {
+            return $keywords;
+        }
+        $components->define($component, $keywords, $path);
+
+        return ['$ref' => Components::reference($component)];
     }
 
     /**
      * An object typed only: its children never required, nullable as their types say (the schema of a `was()` in force,
      * D67, D68).
      *
-     * @param array<string, array<string, mixed>> $defs
-     *
      * @return array<string, mixed>
      */
-    private function children(TypeDefinition $type, ?Shape $root, array &$defs): array
+    private function children(TypeDefinition $type, ?Shape $root, Components $components, string $path): array
     {
         $properties = [];
         foreach ($type->children as $name => $child) {
-            $properties[$name] = self::finish($this->keywords($child, $root, $defs), $child, $child->nullable);
+            $properties[$name] = self::finish($this->keywords($child, $root, $components, self::path($path, $name)), $child, $child->nullable);
         }
 
         return $properties === [] ? ['type' => 'object'] : ['type' => 'object', 'properties' => $properties];
@@ -181,20 +188,24 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
      * The `$ref` of a nested resource: `#` for the class exported, else its definition, added once (cycles end there).
      *
      * @param class-string $class
-     * @param array<string, array<string, mixed>> $defs
      */
-    private function reference(string $class, ?Shape $root, array &$defs): string
+    private function reference(string $class, ?Shape $root, Components $components, string $path): string
     {
         if ($root?->class === $class) {
             return '#';
         }
         $name = str_replace('\\', '.', $class);
-        if ($root !== null && $root->kind !== null && !isset($defs[$name])) {
-            $defs[$name] = [];
-            $defs[$name] = $this->object($this->shapes->for($class, $root->kind, $root->revision), $root, $defs);
+        if ($root !== null && $root->kind !== null && !$components->has($name)) {
+            $components->reserve($name);
+            $components->fill($name, $this->object($this->shapes->for($class, $root->kind, $root->revision), $root, $components, $path));
         }
 
-        return '#/$defs/' . $name;
+        return Components::reference($name);
+    }
+
+    private static function path(string $prefix, string $key): string
+    {
+        return $prefix === '' ? $key : "{$prefix}.{$key}";
     }
 
     /**
