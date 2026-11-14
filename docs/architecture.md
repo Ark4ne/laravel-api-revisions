@@ -445,7 +445,11 @@ Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Component
   inline). The check `component-conflict` exports each kind at every revision, newest first: the first conflict of a
   document stops its export, so one conflict per document and revision is reported at a time.
 - `Changelog` diffs two consecutive `Shape`s of each class (added, removed, renamed — known from the `History`, never
-  guessed —, type changed) and renders Markdown with the revisions' `meta()`.
+  guessed —, type changed) and renders Markdown with the revisions' `meta()`. Since US 10.3 (`model.md` D71): fields
+  are matched per level by head key (`FieldDefinition::$headKey`), walked through `children` / `items` where the head
+  is in force on both sides; a type is compared by `JsonSchemaExporter::typeKeywords()` (shallow — without
+  `properties`, `required`, `items` — when walked), so the changelog, the export and the lock read the same keywords.
+  `revision:changelog` (`Laravel\Console\ChangelogCommand`) compiles anew and prints it line by line.
 
 ## 12. Checking and lock
 

@@ -1395,6 +1395,19 @@ document and revision at a time.
 
 Tests: `test_the_changelog_lists_a_rename_as_a_rename`, `test_the_changelog_uses_the_revision_descriptions`.
 
+**Done** (2026-11-14): `Export\Changelog` (`changes()`: per class, kind and revision against the one before it, fields
+matched per level by head key, walked through object children and list items where the head is in force on both
+sides; `markdown()`: newest first, `meta()` heading each revision, "No change." when nothing changes), `Export\Change`
+(`describe()`), `Export\ChangeKind`, `Laravel\Console\ChangelogCommand` (`revision:changelog {--from=} {--to=}`,
+`--from` excluded, `--to` included), `JsonSchemaExporter::DOCUMENTATION` (moved from `Lock`, shared by the lock and the
+changelog). Decision D71. Tests `test_the_changelog_lists_a_rename_as_a_rename`,
+`test_the_changelog_uses_the_revision_descriptions` (`ChangelogTest`). Coverage 99.6 %; Infection not installed.
+Review: the documentation of children and items is left out of a type compared whole, the dead `anyOf` strip removed,
+the command's catch-all explained (the declarations are application code, D66). Deviations: the "now required /
+optional" line agreed first is left out (the presence of a field comes from its head, D46, so it never changes between
+two revisions); the days of `meta()` are rendered by the changelog and the exporter separately (two formats: a
+paragraph and a `$comment`).
+
 #### US 10.4 — Testing helpers · M · depends US 10.1, US 8.3
 
 - `Testing` (D28): `TestResponse` macro `assertMatchesRevisionSchema(R)`; `withRevision(R)` (header or path according
@@ -1616,7 +1629,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 9.4 | Lock | M | 10.1, 9.3 | M3 | done |
 | US 10.1 | JSON Schema export | M | 5.2 | M3 | done |
 | US 10.2 | `$ref` components | M | 10.1 | M4 | done |
-| US 10.3 | Changelog | M | 10.1 | M4 | todo |
+| US 10.3 | Changelog | M | 10.1 | M4 | done |
 | US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | todo |
 | US 10.5 | `revision:prune` | S | 9.2 | M4 | todo |
 | US 11.1 | README and guide | S | M3 | M4 | todo |

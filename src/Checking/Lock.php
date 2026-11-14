@@ -16,11 +16,6 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
  */
 final readonly class Lock
 {
-    /**
-     * The documentation keywords left out of a snapshot, wherever a schema holds them (D69).
-     */
-    public const array DOCUMENTATION = ['title', 'description', 'examples', 'deprecated'];
-
     public function __construct(public string $directory) {}
 
     /**
@@ -119,7 +114,7 @@ final readonly class Lock
         $structure = [];
         foreach ($schema as $keyword => $value) {
             $keyword = (string) $keyword;
-            if (in_array($keyword, self::DOCUMENTATION, true)) {
+            if (in_array($keyword, JsonSchemaExporter::DOCUMENTATION, true)) {
                 continue;
             }
             $structure[$keyword] = match (true) {

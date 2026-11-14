@@ -25,6 +25,11 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
 {
     public const string DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 
+    /**
+     * The documentation keywords it writes, left out by the lock and the changelog (model.md D69, D71).
+     */
+    public const array DOCUMENTATION = ['title', 'description', 'examples', 'deprecated'];
+
     public function __construct(private Shapes $shapes = new Shapes()) {}
 
     /**

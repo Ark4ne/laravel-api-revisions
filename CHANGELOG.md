@@ -266,5 +266,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (`DefinitionException::$field`) and are reported by the check rule `component-conflict` (error,
   `Checking\Checks\ComponentConflict`, in `Checker::builtIn()`). A custom type is now a `$ref` in the export instead
   of its fragment inline.
+- Changelog (model.md §11, D71): `Export\Changelog` (`changes($class, $kind, $revision)`: what a revision changes
+  against the one before it, fields matched by their head key path through object children and list items;
+  `markdown($classes, $from, $to)`: newest first, each revision headed by its `meta()`), `Export\Change`,
+  `Export\ChangeKind` (added, removed, renamed, type changed). `php artisan revision:changelog {--from=} {--to=}`
+  prints it.
 - `Checking\CheckContext::$classes` (every class of the run), `revision()` (a case by its backed value) and `export()`
   (the JSON Schema of the checked class from the shapes of the run).
