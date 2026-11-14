@@ -463,6 +463,27 @@ php artisan revision:changelog --from=genesis --to=winter-25 # --from excluded, 
 - The changelog lists, per revision, the fields added, removed, renamed or whose type changed, each revision headed by
   its `#[Meta]`.
 
+A generator reads the same data from PHP:
+
+```php
+use Ark4ne\ApiRevisions\Checking\Declarations;
+use Ark4ne\ApiRevisions\Export\Changelog;
+use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
+
+$exporter = app(JsonSchemaExporter::class);
+foreach (app(Declarations::class)->at(ApiRevision::Winter25) as $class => $kinds) {
+    foreach ($kinds as $kind) {
+        $schema = JsonSchemaExporter::objects($exporter->export($class, $kind, ApiRevision::Winter25));
+    }
+}
+$markdown = app(Changelog::class)->markdown(array_keys(app(Declarations::class)->declarations()), ApiRevision::Genesis, ApiRevision::Winter25);
+```
+
+- `Declarations::declarations()` lists the discovered classes with their declaration kinds; `at($revision)` keeps the
+  classes existing at that revision.
+- These classes, the structure printed by `revision:export` and `Changelog::changes()` are public contract: from 1.0,
+  they change only in a major version.
+
 ## Retiring a revision
 
 When the oldest revision `P` has no client left:

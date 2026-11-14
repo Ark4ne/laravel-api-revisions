@@ -282,6 +282,9 @@ Implemented by the package; an application rarely needs them.
   (`$context->error()` / `warning()`); a package contributes its own by tagging them
   `Ark4ne\ApiRevisions\Laravel\RevisionsServiceProvider::CHECKS` (built by the container, run after the built-in ones).
 - `Ark4ne\ApiRevisions\Checking\ClassFinder`: finds the classes the commands run on.
+- `Ark4ne\ApiRevisions\Checking\Declarations`: the discovered classes with their declaration kinds, `declarations()`
+  (all) and `at(Revision)` (those existing at it); public contract for generators, with `JsonSchemaExporter::export()`
+  and `Changelog::changes()` / `markdown()`.
 - `Ark4ne\ApiRevisions\Export\SchemaVisitor`: turns a shape into a format (JSON Schema).
 - `Ark4ne\ApiRevisions\Laravel\Validation\RuleMapper`: the Laravel rules a type implies.
 - `Ark4ne\ApiRevisions\Projection\SourceReader`: reads a subject (Eloquent without lazy load).

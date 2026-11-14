@@ -59,7 +59,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Projection | `src/Projection/` | `Projector`, `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
-| Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract |
+| Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract, `Declarations` (discovered classes with their kinds, D84) |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (US 9.3: `assertRevisionsAreConsistent()`, reading the application's `$app`; US 10.4: `withRevision()`, `assertRendersAtEveryRevision()`, `setUpInteractsWithRevisions()` registering the macro), `TestResponseMacros` (`assertMatchesRevisionSchema()`), `RevisionSchema` (validation against the closed export, opis) — model.md D72 |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`), the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`) and the `TestResponse` macro (`RevisionSchemaAssertionExtension`, reading `Testing\TestResponseMacros::assert()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes`, `TestResponseMacros` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
@@ -110,6 +110,20 @@ the lock and external tools (`laravel-json-api`, `laravel-openapi-generator`). P
   `values`, `items`, `children`; `format` is a PHP date format for dates), its description, examples, deprecation.
 - `Lifetime`: `since`, `until`; `covers(Revision): bool`.
 - `final readonly`, private constructor, named constructors, `with*()` replacing setters, `add*()` appenders.
+
+**Public contract for tools** (US 12.6, `model.md` D84; semver from 1.0: a breaking change to any item below is a
+major version). What a generator (`laravel-openapi-generator`, X2) or another consumer reads:
+
+| Item | Contract |
+| --- | --- |
+| Definition model | `TypeDefinition`, `Kind`, `Lifetime`, `Direction`, with `Compilation\Shape` and `Compilation\FieldDefinition` (§7), read only: their constructors and `Shape::of()` are `@internal` |
+| `Export\JsonSchemaExporter` | `export(class, kind, revision)`: one JSON Schema document (draft 2020-12, `$defs` for nested resources and components); `objects()` for `json_encode()` |
+| `revision:export` | `{revision value: {class: {kind value: schema}}}`, only the revisions a class exists in (D81); the schema alone when one revision, one class and one kind remain |
+| `Export\Changelog` | `changes(class, kind, revision)`: `list<Change>` (`kind`: `ChangeKind`; `path` at the revision, dotted, `''` for the class itself; `previousPath`; `before` / `after`; `describe()`); `markdown(classes, from, to)` |
+| `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
+| `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
+
+Only the items of this table are the contract for tools. Anything marked `@internal`, a class (`DatePattern`, `RegexPattern`…) or a member, may change in a minor version.
 
 ## 5. Schema descriptors
 

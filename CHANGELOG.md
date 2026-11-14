@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Checking\Declarations`: the discovered classes with their declaration kinds (`declarations()`), or those existing at
+  one revision (`at()`), resolvable from the container.
+- Public contract under semver from 1.0, named in `docs/architecture.md` §4: the definition model, `Shape`,
+  `JsonSchemaExporter::export()` / `objects()`, the structure of `revision:export`, `Changelog::changes()` /
+  `markdown()` with `Change` / `ChangeKind`, `ClassFinder` and `Declarations`.
 - Documentation: the README (install, the enum, a resource, a request, resolution, check and lock in CI, retiring a
   revision, outside HTTP, testing) and the guide `docs/guide.md`, covering every feature.
 - Without configured enum (`revisions.enum` left `null`), the library works on the implicit one-case

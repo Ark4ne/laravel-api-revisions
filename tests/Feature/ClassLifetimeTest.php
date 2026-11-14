@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Feature;
 
+use Ark4ne\ApiRevisions\Checking\Declarations;
 use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Definition\Lifetime;
+use Ark4ne\ApiRevisions\Export\Changelog;
+use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Testing\InteractsWithRevisions;
 use Illuminate\Contracts\Console\Kernel;
@@ -99,6 +102,34 @@ final class ClassLifetimeTest extends FeatureTestCase
         self::assertSame(6, $compiled->count());
         self::assertNull($compiled->get(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25));
         self::assertSame(['title', 'duration'], $compiled->get(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26)?->names());
+    }
+
+    public function test_the_container_lists_the_discovered_classes_with_their_kinds(): void
+    {
+        $declarations = $this->application()->make(Declarations::class);
+
+        self::assertSame([
+            PodcastDeclaration::class => [DeclarationKind::Response],
+            ShowDeclaration::class => [DeclarationKind::Response],
+        ], $declarations->declarations());
+        self::assertSame([ShowDeclaration::class => [DeclarationKind::Response]], $declarations->at(ApiRevision::Winter25));
+    }
+
+    public function test_a_generator_reads_the_export_and_the_changelog_from_the_container(): void
+    {
+        $app = $this->application();
+        $exporter = $app->make(JsonSchemaExporter::class);
+        $documents = [];
+        foreach ($app->make(Declarations::class)->at(ApiRevision::Spring26) as $class => $kinds) {
+            foreach ($kinds as $kind) {
+                $documents[$class][$kind->value] = $exporter->export($class, $kind, ApiRevision::Spring26);
+            }
+        }
+        $markdown = $app->make(Changelog::class)->markdown(array_keys($app->make(Declarations::class)->declarations()), ApiRevision::Winter25, ApiRevision::Spring26);
+
+        self::assertSame([PodcastDeclaration::class, ShowDeclaration::class], array_keys($documents));
+        self::assertSame(['response'], array_keys($documents[PodcastDeclaration::class]));
+        self::assertStringContainsString('### ' . PodcastDeclaration::class . " (response)\n\n- The class is added.", $markdown);
     }
 
     private function kernel(): Kernel

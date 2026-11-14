@@ -1605,6 +1605,15 @@ dependency). Tests: `tests/Feature/ContributedChecksTest.php`. Deviations: none.
   programmatic listing of the discovered classes with their kinds are named public contract in `architecture.md`
   (semver from 1.0) (R7).
 
+**Done** (US 12.6): `Checking\Declarations` (built from a `ClassFinder`, resolved by the container): `declarations()`
+gives the discovered classes with their declaration kinds in the finder's order, `at(Revision)` those existing at it
+(D81). `architecture.md` §4 names the public contract for tools (semver from 1.0): the definition model (read only),
+`JsonSchemaExporter::export()` / `objects()`, the `revision:export` structure, `Changelog::changes()` / `markdown()`
+with `Change`, `ClassFinder`, `Declarations`. Guide: reading the export and the changelog from PHP. Decided in
+`model.md` D84. Deviation: the listing with kinds is a new class rather than a method of `ClassFinder`, whose
+interface and `revision:check --list` are unchanged. `ExportCommand` keeps its own lifetime filter (its `--class`
+bypasses the finder). Infection is not installed, not run.
+
 #### US 12.7 — Cheap shape lookup · S · depends 11.2
 
 - `Shapes::for()` on a cached class does one array read and at most one `unserialize`, and loads no descriptor class;
@@ -1824,7 +1833,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.3 | Class lifetime | M | 12.1 | M4 | done |
 | US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | done |
 | US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | done |
-| US 12.6 | Export as a public contract | S | 12.3 | M4 | todo |
+| US 12.6 | Export as a public contract | S | 12.3 | M4 | done |
 | US 12.7 | Cheap shape lookup | S | 11.2 | M4 | todo |
 | US 12.8 | Projection plan | L | 12.7 | M4 | todo |
 | US 12.9 | Macros on descriptors | M | 11.2 | M4 | todo |
