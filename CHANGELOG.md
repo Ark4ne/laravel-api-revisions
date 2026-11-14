@@ -252,3 +252,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   composite. The compiled-shapes cache format is now `2`: run `php artisan revision:cache` again after upgrading.
 - Check rule `schema-override` (warning, `Checking\Checks\SchemaOverride`, in `Checker::builtIn()`): a rule keyword
   overriding a keyword of its field's type.
+- Lock of the published revisions (model.md §9, D11, D69): `Checking\Lock` (one `<value>.json` per locked revision
+  under `lock_path`: the structure of every class and kind, documentation left out, keys sorted, and the revision
+  before it), `Checking\LockedRevision`, `Exceptions\LockException`. `php artisan revision:lock` writes the revisions
+  but the head that have no lock yet; `--revision=` (re)locks one, the head included. Check rules `lock-mismatch`
+  (per field, keyword, class or kind; a class or kind added only when it has fields there) and `lock-order-changed` (`Checking\Checks\LockMismatch`,
+  `LockOrderChanged`), added by the Laravel binding of the `Checker` over the configured `lock_path`.
+- `Checking\CheckContext::$classes` (every class of the run), `revision()` (a case by its backed value) and `export()`
+  (the JSON Schema of the checked class from the shapes of the run).

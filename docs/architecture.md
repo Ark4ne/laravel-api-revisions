@@ -470,7 +470,15 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   concerns the whole class or every revision.
 - `ClassFinder` is a contract; the Laravel layer implements it over `discovery.paths` (classes implementing
   `Revisioned`) plus `discovery.classes`.
-- `Lock` writes and compares normalized snapshots (sorted keys) and the recorded `order()`.
+- `Lock` writes and compares normalized snapshots (sorted keys) and the recorded `order()`. Since US 9.4 (`model.md`
+  D69): `Lock::capture()` exports every kind of every class through a `JsonSchemaExporter` and keeps its structure
+  (`Lock::normalize()`: documentation keywords and the root `$comment` dropped, keys sorted, lists in order); a
+  `LockedRevision` (value, `previous`, schemas by class and kind) is one `<value>.json`. The checks `LockMismatch`
+  and `LockOrderChanged` take the `Lock`, so they are not in `Checker::builtIn()`: the Laravel binding of the `Checker`
+  adds them over `lock_path` (a missing directory locks nothing). They read the shapes of the run through
+  `CheckContext::export()`; the enum target sees the discovered classes (`CheckContext::$classes`). An unreadable lock
+  file is one `lock-mismatch` on the enum, never thrown. `revision:lock` compiles anew (never the compiled shapes) and
+  captures every snapshot before writing any.
 
 ## 13. Extension points
 

@@ -19,6 +19,10 @@ final readonly class NameCollision implements Check
 
     public function run(CheckContext $context): void
     {
+        if ($context->class === null) {
+            // the enum: its order() may be invalid, reported by the order checks
+            return;
+        }
         $kinds = $context->kinds();
         foreach ($context->order() as $revision) {
             foreach ($kinds as $kind) {

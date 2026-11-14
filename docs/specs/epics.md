@@ -1315,6 +1315,23 @@ of D28 stays in US 10.4.
 Tests: `test_a_field_leaking_into_a_locked_revision_fails_the_check`, `test_moving_a_locked_revision_fails_the_check`,
 `test_the_head_is_never_locked_by_default`.
 
+**Done** (2026-11-14): `Checking\Lock` (`locked()`, `has()`, `read()`, `write()`, `capture()`, `normalize()`: the
+exported JSON Schema without its documentation keywords, keys sorted), `Checking\LockedRevision` (one
+`lock_path/<value>.json`: `previous` and the schemas by class and kind), `Exceptions\LockException`, checks
+`Checking\Checks\LockMismatch` (per top-level field under its head key, per other keyword, per class or kind added —
+when it has fields there — or removed; on the enum: unreadable files, classes no longer discovered; snapshots read
+once per run) and `LockOrderChanged` (the recorded `previous`, a case gone), `Laravel\Console\LockCommand`
+(`revision:lock {--revision=}`), `CheckContext::$classes` / `revision()` / `export()`. Decision D69. Tests:
+`test_a_field_leaking_into_a_locked_revision_fails_the_check` (`LockMismatchTest`),
+`test_moving_a_locked_revision_fails_the_check` (`LockOrderChangedTest`), `test_the_head_is_never_locked_by_default`
+(`RevisionLockTest`). Coverage 99.64 %; Infection not installed. Review: an invalid `order()` no longer makes
+`lock-order-changed`, `name-collision` or `required-since-without-default` throw on the enum (the last two predate
+this story), a nested resource that does not build is left to its own diagnostic, an empty schema is written as
+`{}`, `scandir()` instead of `glob()`, `revision:lock` reports any exception, a class or kind without field is not
+"new" in a lock (D69 refined). Deviations: the lock checks take the `Lock`, so they are added by the Laravel binding
+of the `Checker` rather than `Checker::builtIn()`; `LockMismatch` keeps the snapshots of a run in its instance (read
+on the enum, which every run checks first).
+
 ---
 
 ### E10 — Export and tooling
@@ -1582,7 +1599,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 9.1 | Diagnostics and checker | S | 5.2 | M3 | done |
 | US 9.2 | Check rules | M | 9.1 | M3 | done |
 | US 9.3 | `revision:check` and assertion | S | 9.2, 8.1 | M3 | done |
-| US 9.4 | Lock | M | 10.1, 9.3 | M3 | todo |
+| US 9.4 | Lock | M | 10.1, 9.3 | M3 | done |
 | US 10.1 | JSON Schema export | M | 5.2 | M3 | done |
 | US 10.2 | `$ref` components | M | 10.1 | M4 | todo |
 | US 10.3 | Changelog | M | 10.1 | M4 | todo |

@@ -20,6 +20,10 @@ final readonly class RequiredSinceWithoutDefault implements Check
 
     public function run(CheckContext $context): void
     {
+        if ($context->class === null) {
+            // the enum: its order() may be invalid, reported by the order checks
+            return;
+        }
         $order = $context->order();
         $reported = [];
         foreach ($context->kinds() as $kind) {

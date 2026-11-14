@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Compilation\Shape;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
@@ -34,6 +35,7 @@ final class CheckContext
     /**
      * @param class-string<Revision> $revisions
      * @param class-string<Revisioned>|null $class
+     * @param list<class-string<Revisioned>> $classes every class the run checks (the targets after the enum)
      */
     public function __construct(
         public readonly string $revisions,
@@ -41,6 +43,7 @@ final class CheckContext
         private readonly Compiler $compiler,
         private readonly Shapes $shapes,
         private readonly Diagnostics $diagnostics,
+        public readonly array $classes = [],
     ) {}
 
     /**
@@ -89,6 +92,31 @@ final class CheckContext
         }
 
         return $this->shapes->for($this->class, $kind, $revision);
+    }
+
+    /**
+     * The case of the enum whose backed value is `$value` as a string, `null` when none is.
+     */
+    public function revision(string $value): ?Revision
+    {
+        foreach ($this->revisions::cases() as $case) {
+            if ((string) $case->value === $value) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The JSON Schema of the declaration `$kind` of the checked class at `$revision`, exported from the shapes of the
+     * run (US 10.1); `DefinitionException::noShapeForRevisions()` when the target is the enum.
+     *
+     * @return array<string, mixed>
+     */
+    public function export(DeclarationKind $kind, Revision $revision): array
+    {
+        return (new JsonSchemaExporter($this->shapes))->visit($this->shape($kind, $revision));
     }
 
     /**

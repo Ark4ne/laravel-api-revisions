@@ -85,6 +85,23 @@ final class CheckerTest extends TestCase
         self::assertSame(2 * $built, CountingDeclaration::$described);
     }
 
+    public function test_every_target_sees_the_classes_of_the_run(): void
+    {
+        $seeing = new class implements Check {
+            public function run(CheckContext $context): void
+            {
+                $context->warning('classes', implode(',', array_map(static fn(string $class): string => basename(str_replace('\\', '/', $class)), $context->classes)));
+            }
+        };
+
+        $diagnostics = (new Checker(ApiRevision::class, self::finder([CountingDeclaration::class, CustomerDeclaration::class]), [$seeing]))->run();
+
+        self::assertSame(
+            ['CountingDeclaration,CustomerDeclaration', 'CountingDeclaration,CustomerDeclaration', 'CountingDeclaration,CustomerDeclaration'],
+            array_map(static fn(Diagnostic $diagnostic): string => $diagnostic->message, $diagnostics->all()),
+        );
+    }
+
     public function test_without_class_only_the_enum_is_checked(): void
     {
         $diagnostics = (new Checker(ApiRevision::class, self::finder([]), [self::recording('only')]))->run();

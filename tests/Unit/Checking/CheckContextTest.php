@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Support\Diagnostic;
 use Ark4ne\ApiRevisions\Support\Diagnostics;
@@ -109,5 +110,32 @@ final class CheckContextTest extends TestCase
 
         $this->expectException(DefinitionException::class);
         $context->descriptors(DeclarationKind::Response);
+    }
+
+    public function test_a_revision_is_found_by_its_backed_value_as_a_string(): void
+    {
+        $context = new CheckContext(IntRevision::class, null, new Compiler(), new Shapes(), new Diagnostics());
+
+        self::assertSame(IntRevision::cases()[1], $context->revision((string) IntRevision::cases()[1]->value));
+        self::assertNull($context->revision('unknown'));
+    }
+
+    public function test_the_export_is_the_one_of_the_checked_class_from_the_shapes_of_the_run(): void
+    {
+        $shapes = new Shapes();
+        $context = new CheckContext(ApiRevision::class, CountingDeclaration::class, new Compiler(), $shapes, new Diagnostics());
+
+        self::assertSame(
+            (new JsonSchemaExporter($shapes))->export(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis),
+            $context->export(DeclarationKind::Response, ApiRevision::Genesis),
+        );
+    }
+
+    public function test_the_enum_has_no_export(): void
+    {
+        $context = new CheckContext(ApiRevision::class, null, new Compiler(), new Shapes(), new Diagnostics());
+
+        $this->expectException(DefinitionException::class);
+        $context->export(DeclarationKind::Response, ApiRevision::Genesis);
     }
 }

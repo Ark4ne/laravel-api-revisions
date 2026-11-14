@@ -80,12 +80,13 @@ final readonly class Checker
     {
         $diagnostics = new Diagnostics();
         $shapes = new Shapes($this->compiler);
-        $this->runChecks(new CheckContext($this->revisions, null, $this->compiler, $shapes, $diagnostics));
+        $classes = $this->finder->find();
+        $this->runChecks(new CheckContext($this->revisions, null, $this->compiler, $shapes, $diagnostics, $classes));
         if (!$this->orderIsValid($diagnostics)) {
             return $diagnostics;
         }
-        foreach ($this->finder->find() as $class) {
-            $context = new CheckContext($this->revisions, $class, $this->compiler, $shapes, $diagnostics);
+        foreach ($classes as $class) {
+            $context = new CheckContext($this->revisions, $class, $this->compiler, $shapes, $diagnostics, $classes);
             if ($this->builds($context, $diagnostics)) {
                 $this->runChecks($context);
             }
