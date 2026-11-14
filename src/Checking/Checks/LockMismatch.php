@@ -11,11 +11,13 @@ use Ark4ne\ApiRevisions\Checking\LockedRevision;
 use Ark4ne\ApiRevisions\Exceptions\LockException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Schema\HasLifetime;
 use Throwable;
 
 /**
  * `lock-mismatch` (model.md §9, D69): the structure of a class at a locked revision differs from its lock — per
- * top-level field added, removed or changed, per other keyword, per class or kind added or removed. On the enum: the
+ * top-level field added, removed or changed, per other keyword, per class or kind added or removed (a class absent at
+ * a revision by its lifetime, model.md D81, is compared only when the snapshot holds it). On the enum: the
  * locked classes no longer discovered, and the lock files that cannot be read. The snapshots are read once per run,
  * on the enum (checked first by every run).
  */
@@ -38,9 +40,17 @@ final class LockMismatch implements Check
 
             return;
         }
+        $order = $context->order();
         foreach ($this->snapshots as $snapshot) {
             $revision = $context->revision($snapshot->revision);
             if ($revision === null) {
+                continue;
+            }
+            if (!in_array($revision, $order, true)) {
+                if (isset($snapshot->classes[$context->class])) {
+                    $context->error(self::CODE, "The class is gone from the locked revision {$snapshot->revision}: " . self::relock($snapshot->revision), revision: $revision);
+                }
+
                 continue;
             }
             try {
@@ -94,7 +104,8 @@ final class LockMismatch implements Check
                 $this->compare($context, $kind, $revision, $kinds[$kind->value]);
             } elseif ($context->shape($kind, $revision)->fields !== []) {
                 $what = $kinds === null ? 'class' : $kind->value;
-                $context->error(self::CODE, "The {$what} is new in the locked revision {$value}: declare the since() of its fields, or lock {$value} again.", revision: $revision);
+                $bound = $kinds === null && is_subclass_of((string) $context->class, HasLifetime::class) ? 'its revisionedLifetime()' : 'the since() of its fields';
+                $context->error(self::CODE, "The {$what} is new in the locked revision {$value}: declare {$bound}, or lock {$value} again.", revision: $revision);
                 if ($kinds === null) {
                     return;
                 }

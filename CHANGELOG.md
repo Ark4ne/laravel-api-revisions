@@ -17,6 +17,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `revision:changelog` has no change to list (as for any one-case enum without `--from` / `--to`), `revision:lock`
   locks nothing, a job captured earlier runs in the head. A `default` other than `latest` / `oldest` without enum is
   refused; `Route::revisioned()` and `withRevision()` throw, naming the missing enum.
+- Class lifetime: a `Revisioned` class implementing `Schema\HasLifetime` (`static revisionedLifetime(): Lifetime`,
+  with the new `Lifetime::since(R)` / `Lifetime::until(R)`) exists only in those revisions; `Schema\ClassLifetime::exists()`
+  tells whether it exists at a revision. Compiling it elsewhere throws `DefinitionException::classAbsent()`. The
+  check, `revision:cache`, `revision:export`, the lock and `assertRendersAtEveryRevision()` skip the revisions it does
+  not exist in (a lock file lists the classes existing at its revision); the changelog lists the class added and
+  removed. New check code `resource-absent`: a visible `Schema::resource()` field nesting a class absent at its
+  revision. A locked revision holding a class now absent there is a `lock-mismatch`.
 - A class implementing `Schema\Revisioned` itself, without the Laravel traits, is a supported path (compiled, cached,
   checked, locked, exported); `Revisioned::describeRevisioned()` is no longer `@internal`, and may build the
   declaration on the implementer's own stand-in instead of the `Probe`.

@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Fixtures\Declarations;
 
+use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Schema\HasLifetime;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Closure;
 
 /**
- * A declaration the check tests set: its kinds and a closure giving its descriptors per kind (reset by the tests).
+ * A declaration the check tests set: its kinds, a closure giving its descriptors per kind and its lifetime (reset by the
+ * tests).
  */
-final class CheckedDeclaration implements Revisioned
+final class CheckedDeclaration implements Revisioned, HasLifetime
 {
     /**
      * @var non-empty-list<DeclarationKind>
@@ -23,10 +26,18 @@ final class CheckedDeclaration implements Revisioned
      */
     public static ?Closure $describe = null;
 
+    public static ?Lifetime $lifetime = null;
+
     public static function reset(): void
     {
         self::$kinds = [DeclarationKind::Response];
         self::$describe = null;
+        self::$lifetime = null;
+    }
+
+    public static function revisionedLifetime(): Lifetime
+    {
+        return self::$lifetime ?? Lifetime::always();
     }
 
     public static function declarationKinds(): array

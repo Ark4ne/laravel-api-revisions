@@ -103,6 +103,29 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
+     * A class compiled at a revision its lifetime (`HasLifetime`, model.md D81) does not cover: it has no shape there.
+     */
+    public static function classAbsent(string $class, BackedEnum $revision): self
+    {
+        return new self(sprintf('%s does not exist at %s::%s: its lifetime (HasLifetime) does not cover it.', $class, $revision::class, $revision->name));
+    }
+
+    /**
+     * A visible `Schema::resource()` field of `$class` nesting `$nested` at a revision `$nested` does not exist in
+     * (model.md D81).
+     */
+    public static function nestedAbsent(string $class, string $nested, BackedEnum $revision): self
+    {
+        return new self(sprintf(
+            '%s nests %s, which does not exist at %s::%s: bound the field like the class (since(), until()).',
+            $class,
+            $nested,
+            $revision::class,
+            $revision->name,
+        ), checkCode: 'resource-absent');
+    }
+
+    /**
      * A field whose `since` is newer than its `until`: it would exist in no revision.
      */
     public static function invertedLifetime(BackedEnum $since, BackedEnum $until): self

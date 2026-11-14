@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Unit\Export;
 
 use Ark4ne\ApiRevisions\Compilation\Shapes;
+use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Export\Change;
 use Ark4ne\ApiRevisions\Export\ChangeKind;
 use Ark4ne\ApiRevisions\Export\Changelog;
@@ -15,6 +16,7 @@ use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
+use Test\Fixtures\Declarations\PodcastDeclaration;
 use Test\TestCase;
 
 final class ChangelogTest extends TestCase
@@ -49,6 +51,25 @@ final class ChangelogTest extends TestCase
             [new Change(ChangeKind::Renamed, 'name', 'full_name'), new Change(ChangeKind::Added, 'orders')],
             $changelog->changes(CustomerDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26),
         );
+    }
+
+    public function test_a_class_is_added_in_its_first_revision_and_removed_after_its_last(): void
+    {
+        $changelog = new Changelog(new Shapes());
+        CheckedDeclaration::$describe = static fn(): array => ['title' => Schema::string()];
+        CheckedDeclaration::$lifetime = Lifetime::until(ApiRevision::Winter25);
+
+        try {
+            self::assertEquals([new Change(ChangeKind::Added, '')], $changelog->changes(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26));
+            self::assertEquals([new Change(ChangeKind::Renamed, 'minutes', 'duration')], $changelog->changes(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas));
+            self::assertSame([], $changelog->changes(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25));
+            self::assertEquals([new Change(ChangeKind::Removed, '')], $changelog->changes(CheckedDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26));
+            self::assertSame([], $changelog->changes(CheckedDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas));
+            self::assertStringContainsString("### Test\\Fixtures\\Declarations\\PodcastDeclaration (response)\n\n- The class is added.", $changelog->markdown([PodcastDeclaration::class], ApiRevision::Genesis, ApiRevision::Atlas));
+            self::assertStringContainsString("- The class is removed.", $changelog->markdown([CheckedDeclaration::class], ApiRevision::Genesis, ApiRevision::Atlas));
+        } finally {
+            CheckedDeclaration::reset();
+        }
     }
 
     public function test_the_oldest_revision_changes_nothing(): void

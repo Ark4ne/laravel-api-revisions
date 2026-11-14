@@ -7,6 +7,7 @@ namespace Ark4ne\ApiRevisions\Checking;
 use Ark4ne\ApiRevisions\Exceptions\LockException;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
@@ -68,8 +69,8 @@ final readonly class Lock
     }
 
     /**
-     * The snapshot of `$revision`: the structure of every declaration kind of every class in `$classes`, exported by
-     * `$exporter`, and the revision before it.
+     * The snapshot of `$revision`: the structure of every declaration kind of every class in `$classes` existing at
+     * `$revision` (model.md D81), exported by `$exporter`, and the revision before it.
      *
      * @param list<class-string<Revisioned>> $classes
      */
@@ -77,6 +78,9 @@ final readonly class Lock
     {
         $snapshot = [];
         foreach ($classes as $class) {
+            if (!ClassLifetime::exists($class, $revision)) {
+                continue;
+            }
             foreach ($class::declarationKinds() as $kind) {
                 $snapshot[$class][$kind->value] = self::normalize($exporter->export($class, $kind, $revision));
             }

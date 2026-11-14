@@ -54,7 +54,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context), `Unrevisioned` (the implicit revision without configured enum) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `EagerSchema` (a plain value wrapped by a bridge) |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `HasLifetime`, `ClassLifetime` (its one reader, `model.md` D81), `EagerSchema` (a plain value wrapped by a bridge) |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
@@ -155,6 +155,12 @@ types).
   their own class; the Laravel traits implement it (`model.md` D48, D50, D79). `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
   and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
+- `HasLifetime` (static `revisionedLifetime(): Lifetime`) is the optional contract of a `Revisioned` class that does
+  not exist at every revision; `ClassLifetime::exists($class, $revision)` is the one place that reads it (any class
+  without it: always). The compiler refuses an absent class (`DefinitionException::classAbsent()`) and a visible
+  `Schema::resource()` field nesting one (`nestedAbsent()`, check code `resource-absent`); every tool iterating
+  revisions (`CheckContext::order()`, `Lock::capture()`, `revision:cache`, `revision:export`, the changelog,
+  `assertRendersAtEveryRevision()`) skips the revisions a class does not exist in (`model.md` D81).
 - `Descriptor::inGroup()` is a public `@internal` entry point: it sets the lifetime and default a group resolved
   without counting as a second call (`model.md` §4.4 rule 5). Only `Schema\Groups` calls it (disallowed calls).
 - Conditions are **declared, never run** by the Schema layer: `when()` keeps the closure, `whenHas()` a `Presence`
@@ -519,6 +525,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 | Resolver | `Laravel\Http\RevisionResolver` (+ `VariesOn` when it reads headers) | `config/revisions.php` |
 | Rule mapping | `Laravel\Validation\RuleMapper` | `RuleCompiler` |
 | Consumer | implements `Schema\Revisioned` itself (no Laravel trait), reads `Shape` + calls `Projector` / `Upgrader` | `discovery` (like any `Revisioned` class) |
+| Class lifetime | `Schema\HasLifetime` on a `Revisioned` class | read by `Schema\ClassLifetime` |
 | Value errors | `Projection\ValueErrorHandler` | `Configuration` (Laravel: reporter = `report()`) |
 
 **A consumer's own `Revisioned` class** (model.md D75, US 12.1) is a supported path: a library such as

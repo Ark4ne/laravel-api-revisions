@@ -14,6 +14,7 @@ use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\QueryResolver;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Illuminate\Contracts\Foundation\Application;
@@ -82,8 +83,8 @@ trait InteractsWithRevisions
     }
 
     /**
-     * Projects the response of `$class` on `$subject` at each revision (every one by default) and fails unless each
-     * projection matches the schema of its revision, objects closed (model.md D72).
+     * Projects the response of `$class` on `$subject` at each revision (every one it exists in by default, model.md
+     * D81) and fails unless each projection matches the schema of its revision, objects closed (model.md D72).
      *
      * @param class-string<Revisioned> $class
      * @param list<Revision>|null $revisions
@@ -94,7 +95,8 @@ trait InteractsWithRevisions
         $config = $app->make(RevisionsConfig::class);
         $shapes = $app->make(Shapes::class);
         $schema = new RevisionSchema(new JsonSchemaExporter($shapes, closed: true));
-        foreach ($revisions ?? $config->enum::order() as $revision) {
+        $revisions ??= array_values(array_filter($config->enum::order(), static fn(Revision $revision): bool => ClassLifetime::exists($class, $revision)));
+        foreach ($revisions as $revision) {
             $rendered = $revision::using($revision, static fn(): mixed => is_subclass_of($class, JsonResource::class)
                 ? (new $class($subject))->resolve()
                 : $app->make(Projector::class)->project($shapes->for($class, DeclarationKind::Response, $revision), $class::describeRevisioned(DeclarationKind::Response, $subject), $subject));

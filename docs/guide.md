@@ -235,6 +235,31 @@ $data = (new Projector(shapes: $shapes))->project(
 );
 ```
 
+### A class added or retired
+
+A resource type that exists only in some revisions implements `HasLifetime`. Its fields keep their own history inside
+that lifetime.
+
+```php
+final class PodcastResource extends JsonResource implements Revisioned, HasLifetime
+{
+    use RevisionedResource;
+
+    public static function revisionedLifetime(): Lifetime
+    {
+        return Lifetime::since(ApiRevision::Spring26); // or Lifetime::until(R), or Lifetime::since(A)->withUntil(B)
+    }
+}
+```
+
+- Outside its lifetime the class has no shape: rendering or validating it there throws `DefinitionException`. Answer
+  404 to those clients from `ClassLifetime::exists(PodcastResource::class, ApiRevision::current())`.
+- The check, `revision:cache`, `revision:export`, the lock and `assertRendersAtEveryRevision()` skip the revisions it
+  does not exist in. A lock file lists the classes existing at its revision. The changelog says "The class is added." in
+  its first revision and "The class is removed." in the one after its last.
+- A `Schema::resource(PodcastResource::class)` field carries the same bounds (`->since(ApiRevision::Spring26)`):
+  visible where the class does not exist, it is the error `resource-absent`.
+
 ## Requests
 
 ```php
@@ -372,6 +397,7 @@ every revision and reports a diagnostic per problem, with its class, field and r
 | `schema-override` | warning: a rule's JSON Schema overrides the field's type |
 | `native-condition`, `eager-value` | a native condition (warning) or a plain value in a resource |
 | `unknown-resource` | `Schema::resource()` on a class that cannot be nested |
+| `resource-absent` | a visible `Schema::resource()` field nesting a class absent at its revision ([class lifetime](#a-class-added-or-retired)) |
 | `component-conflict` | one component name, two bodies |
 | `definition-error` | a declaration that throws |
 | `lock-mismatch`, `lock-order-changed` | a locked revision changed or moved |
@@ -416,7 +442,8 @@ When the oldest revision `P` has no client left:
 
 1. `php artisan revision:prune` lists what retiring it makes dead, with file and line: each `until(P)` (delete the
    field), `was(P)` (delete that `was()`) and `since(P)` (delete the bound, already a no-op). It is informative and
-   always succeeds.
+   always succeeds. It does not read class lifetimes: delete a class whose `revisionedLifetime()` ends at `P`, and
+   the `since(P)` bound of one starting there.
 2. Delete the case from the enum and from `order()`. PHPStan reports any reference left.
 3. Delete `revisions.lock/<P>.json`, then re-lock the new oldest revision, whose recorded predecessor is gone:
    `php artisan revision:lock --revision=<new oldest>`.

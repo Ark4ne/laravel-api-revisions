@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
@@ -35,21 +36,27 @@ final readonly class Compiler
      * The shape of the declaration `$kind` of `$class` at `$revision`, naming its class and kind.
      * `DefinitionException::notRevisioned()` for a class not implementing `Revisioned`, `undeclaredKind()` for a kind
      * it does not declare, `invalidDeclaration()` for an entry that is not a descriptor under a string key,
-     * `subjectReadAtCompilation()` when the declaration reads its subject.
+     * `subjectReadAtCompilation()` when the declaration reads its subject, `classAbsent()` at a revision the lifetime
+     * of the class (`HasLifetime`, model.md D81) does not cover, `nestedAbsent()` for a visible field nesting a class
+     * absent at `$revision`.
      *
      * @param class-string $class
      */
     public function compile(string $class, DeclarationKind $kind, Revision $revision): Shape
     {
+        $descriptors = $this->describe($class, $kind);
+        if (!ClassLifetime::exists($class, $revision)) {
+            throw DefinitionException::classAbsent($class, $revision);
+        }
         $shape = ShapeSelector::at(
-            $this->describe($class, $kind),
+            $descriptors,
             $revision,
             $kind->direction(),
             $this->converters(),
             $this->configuration,
         )->of($class, $kind);
         foreach ([...$shape->fields, ...$shape->added] as $field) {
-            self::checkNested($field->type, $kind);
+            self::checkNested($class, $field->type, $kind, $revision);
         }
 
         return $shape;
@@ -93,11 +100,13 @@ final readonly class Compiler
 
     /**
      * Every resource nested in `$type` (its items and children included) declares `$kind`: its shape is the one of the
-     * same declaration kind (model.md D49); a type of a custom descriptor may reference any class, so it is `Revisioned`
-     * too. Checked on the reference only: the nested class is not compiled here, so
-     * cycles compile.
+     * same declaration kind (model.md D49) and exists at `$revision` (model.md D81); a type of a custom descriptor may
+     * reference any class, so it is `Revisioned` too. Checked on the reference only: the nested class is not compiled
+     * here, so cycles compile.
+     *
+     * @param class-string $owner
      */
-    private static function checkNested(TypeDefinition $type, DeclarationKind $kind): void
+    private static function checkNested(string $owner, TypeDefinition $type, DeclarationKind $kind, Revision $revision): void
     {
         $class = $type->resource;
         if ($class !== null) {
@@ -107,10 +116,13 @@ final readonly class Compiler
             if (!in_array($kind, $class::declarationKinds(), true)) {
                 throw DefinitionException::undeclaredKind($class, $kind->value);
             }
+            if (!ClassLifetime::exists($class, $revision)) {
+                throw DefinitionException::nestedAbsent($owner, $class, $revision);
+            }
         }
         foreach ([$type->items, ...$type->children] as $nested) {
             if ($nested !== null) {
-                self::checkNested($nested, $kind);
+                self::checkNested($owner, $nested, $kind, $revision);
             }
         }
     }

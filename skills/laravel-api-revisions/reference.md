@@ -104,6 +104,11 @@ A `JsonResource` implements `Ark4ne\ApiRevisions\Schema\Revisioned` and uses
   wrapping work as usual.
 - `static declarationKinds()`: `[DeclarationKind::Response]`.
 - Without Laravel, a class implementing `Revisioned` is projected by the core (below).
+- A class added or retired implements `Ark4ne\ApiRevisions\Schema\HasLifetime`:
+  `static revisionedLifetime(): Lifetime` returns `Lifetime::since(R)`, `Lifetime::until(R)` or `Lifetime::since(A)->withUntil(B)` (inclusive).
+  It has no shape outside it (compiling there throws `DefinitionException`): answer 404 when
+  `Ark4ne\ApiRevisions\Schema\ClassLifetime::exists($class, $revision)` is false. A `Schema::resource()` field
+  nesting it carries the same bounds.
 
 ## Requests
 
@@ -173,6 +178,7 @@ Errors fail `revision:check`; warnings do not.
 | `native-condition` | warning | `$this->when()`, `mergeWhen()`… in a resource |
 | `eager-value` | error | a plain value in a resource |
 | `unknown-resource` | error | `Schema::resource()` on a class that cannot be nested |
+| `resource-absent` | error | a visible `Schema::resource()` field nesting a class absent at its revision |
 | `component-conflict` | error | one component name, two bodies |
 | `definition-error` | error | a declaration that throws |
 | `lock-mismatch`, `lock-order-changed` | error | a locked revision changed or moved |

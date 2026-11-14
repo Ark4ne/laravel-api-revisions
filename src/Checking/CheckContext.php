@@ -12,6 +12,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
@@ -47,13 +48,18 @@ final class CheckContext
     ) {}
 
     /**
-     * The revisions of the enum, oldest first.
+     * The revisions of the enum, oldest first; for a class, those it exists in (`HasLifetime`, model.md D81).
      *
      * @return list<Revision>
      */
     public function order(): array
     {
-        return RevisionOrder::between(RevisionOrder::oldest($this->revisions), RevisionOrder::latest($this->revisions));
+        $order = RevisionOrder::between(RevisionOrder::oldest($this->revisions), RevisionOrder::latest($this->revisions));
+        $class = $this->class;
+
+        return $class === null
+            ? $order
+            : array_values(array_filter($order, static fn(Revision $revision): bool => ClassLifetime::exists($class, $revision)));
     }
 
     /**

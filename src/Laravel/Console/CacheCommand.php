@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Illuminate\Console\Command;
 
 /**
@@ -36,6 +37,9 @@ final class CacheCommand extends Command
         foreach ($classes as $class) {
             foreach ($class::declarationKinds() as $kind) {
                 foreach ($config->enum::order() as $revision) {
+                    if (!ClassLifetime::exists($class, $revision)) {
+                        continue;
+                    }
                     $shapes[] = $compiler->compile($class, $kind, $revision);
                 }
             }

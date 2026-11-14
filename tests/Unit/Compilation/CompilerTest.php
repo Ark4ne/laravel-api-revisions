@@ -16,16 +16,20 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
+use Ark4ne\ApiRevisions\Schema\Schema;
 use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Ark4ne\ApiRevisions\Support\Undefined;
 use stdClass;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\EagerDeclaration;
 use Test\Fixtures\Declarations\ForeignResourceDeclaration;
 use Test\Fixtures\Declarations\InvalidDeclaration;
 use Test\Fixtures\Declarations\MisnestedDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
+use Test\Fixtures\Declarations\PodcastDeclaration;
+use Test\Fixtures\Declarations\ShowDeclaration;
 use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Declarations\ThrowingDeclaration;
 use Test\Fixtures\MoneySchema;
@@ -33,6 +37,39 @@ use Test\TestCase;
 
 final class CompilerTest extends TestCase
 {
+    public function test_a_class_absent_at_a_revision_has_no_shape_there(): void
+    {
+        self::assertSame(['title', 'duration'], (new Compiler())->compile(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26)->names());
+
+        $this->expectException(DefinitionException::class);
+        $this->expectExceptionMessage('Test\\Fixtures\\Declarations\\PodcastDeclaration does not exist at Test\\Fixtures\\ApiRevision::Winter25: its lifetime (HasLifetime) does not cover it.');
+
+        (new Compiler())->compile(PodcastDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25);
+    }
+
+    public function test_a_resource_field_bound_like_its_class_compiles_at_every_revision(): void
+    {
+        $compiler = new Compiler();
+
+        self::assertSame(['name'], $compiler->compile(ShowDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25)->names());
+        self::assertSame(['name', 'podcast'], $compiler->compile(ShowDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas)->names());
+    }
+
+    public function test_a_visible_resource_field_nesting_a_class_absent_at_its_revision_throws(): void
+    {
+        CheckedDeclaration::$describe = static fn(): array => ['podcast' => Schema::resource(PodcastDeclaration::class)];
+
+        try {
+            (new Compiler())->compile(CheckedDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25);
+            self::fail('The nested class is absent at winter-25.');
+        } catch (DefinitionException $error) {
+            self::assertSame('resource-absent', $error->checkCode);
+            self::assertSame('Test\\Fixtures\\Declarations\\CheckedDeclaration nests Test\\Fixtures\\Declarations\\PodcastDeclaration, which does not exist at Test\\Fixtures\\ApiRevision::Winter25: bound the field like the class (since(), until()).', $error->getMessage());
+        } finally {
+            CheckedDeclaration::reset();
+        }
+    }
+
     public function test_compiling_a_class_runs_no_source(): void
     {
         $shape = (new Compiler())->compile(ThrowingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis);

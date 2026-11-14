@@ -1556,6 +1556,21 @@ job, `lock --revision`, the vacuous lock assertion, the changelog output asserte
   export, the lock (an absent class is left out of its revision's file), the changelog (class added / removed) and the
   check (a `Schema::resource()` to a class absent from a revision is an error) (R2).
 
+**Done.** `Schema\HasLifetime` (static `revisionedLifetime(): Lifetime`, D81) and `Lifetime::since()` / `until()`;
+`Schema\ClassLifetime::of()` / `exists()` is the one reader. `Compiler::compile()` throws
+`DefinitionException::classAbsent()` outside the lifetime, and `nestedAbsent()` (check code `resource-absent`) for a
+visible `Schema::resource()` field nesting an absent class; `Shapes` honours it through the compiler.
+`CheckContext::order()` keeps a class's revisions only, so every check skips the others; `Lock::capture()` leaves an
+absent class out of its file; `LockMismatch` reports a class absent from a locked revision whose file holds it;
+`Changelog::changes()` gives one `Added` / `Removed` change of path `''` ("The class is added." / "removed.");
+`revision:cache`, `revision:export` (one class at one revision it does not exist in fails, naming it) and
+`assertRendersAtEveryRevision()` (default revisions) skip the absent revisions. Fixtures `PodcastDeclaration`
+(since `spring-26`) and `ShowDeclaration` (nesting it, bounded alike), in the projection invariant test;
+`CheckedDeclaration` takes a lifetime. Tests: `ClassLifetimeTest` (unit and feature). Deviations: none; `resource-absent`, thrown by the compiler, is
+reported like every thrown code (D66): on the class, without field nor revision, the first one only. Follow-up:
+`revision:prune` does not read class lifetimes (a class ending at the oldest revision is not listed; documented in the
+guide). Infection is not installed: not run.
+
 #### US 12.4 — Custom types with identity conversion · S · depends 11.2
 
 - A custom type whose `was(schema:)` is another instance of the same custom type (another fragment) plans no
@@ -1789,7 +1804,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |
 | US 12.1 | `Revisioned` without the Laravel traits | S | 11.2 | M4 | done |
 | US 12.2 | Inert without configuration | S | 11.2 | M4 | done |
-| US 12.3 | Class lifetime | M | 12.1 | M4 | todo |
+| US 12.3 | Class lifetime | M | 12.1 | M4 | done |
 | US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | todo |
 | US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | todo |
 | US 12.6 | Export as a public contract | S | 12.3 | M4 | todo |

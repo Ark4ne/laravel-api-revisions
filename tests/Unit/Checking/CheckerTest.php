@@ -32,6 +32,8 @@ use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
+use Test\Fixtures\Declarations\PodcastDeclaration;
+use Test\Fixtures\Declarations\ShowDeclaration;
 use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Order;
 use Test\Fixtures\Revisions\ForeignCaseRevision;
@@ -68,6 +70,26 @@ final class CheckerTest extends TestCase
             ],
             array_map(static fn($diagnostic): array => [$diagnostic->code, $diagnostic->class], $diagnostics->all()),
         );
+    }
+
+    public function test_a_class_is_built_only_at_the_revisions_it_exists_in(): void
+    {
+        $diagnostics = (new Checker(ApiRevision::class, self::finder([PodcastDeclaration::class, ShowDeclaration::class]), Checker::builtIn()))->run();
+
+        self::assertSame([], $diagnostics->all());
+    }
+
+    public function test_a_resource_field_nesting_a_class_absent_at_its_revision_is_reported(): void
+    {
+        CheckedDeclaration::$describe = static fn(): array => ['podcast' => Schema::resource(PodcastDeclaration::class)];
+
+        try {
+            $diagnostics = (new Checker(ApiRevision::class, self::finder([CheckedDeclaration::class]), []))->run();
+        } finally {
+            CheckedDeclaration::reset();
+        }
+
+        self::assertSame([['resource-absent', CheckedDeclaration::class]], array_map(static fn($diagnostic): array => [$diagnostic->code, $diagnostic->class], $diagnostics->all()));
     }
 
     public function test_the_checks_of_a_run_share_its_shapes(): void

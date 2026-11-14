@@ -14,6 +14,8 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
+use Test\Fixtures\Declarations\CustomerDeclaration;
+use Test\Fixtures\Declarations\PodcastDeclaration;
 use Test\TemporaryDirectory;
 use Test\TestCase;
 
@@ -47,6 +49,14 @@ final class LockTest extends TestCase
         self::assertEquals($snapshot, $lock->read('winter-25'));
         self::assertTrue($lock->has(ApiRevision::Winter25));
         self::assertFalse($lock->has(ApiRevision::Genesis));
+    }
+
+    public function test_a_snapshot_leaves_out_a_class_absent_at_its_revision(): void
+    {
+        $exporter = new JsonSchemaExporter(new Shapes());
+
+        self::assertSame([CustomerDeclaration::class], array_keys(Lock::capture(ApiRevision::Winter25, [PodcastDeclaration::class, CustomerDeclaration::class], $exporter)->classes));
+        self::assertSame([PodcastDeclaration::class, CustomerDeclaration::class], array_keys(Lock::capture(ApiRevision::Atlas, [PodcastDeclaration::class, CustomerDeclaration::class], $exporter)->classes));
     }
 
     public function test_the_locked_revisions_are_the_values_of_the_lock_files_sorted(): void

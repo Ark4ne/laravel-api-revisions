@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Compilation\Shape;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
@@ -28,7 +29,8 @@ final readonly class Changelog
 
     /**
      * What `$revision` changes on the declaration `$kind` of `$class` against the revision before it; none for the
-     * oldest.
+     * oldest. A class whose lifetime (`HasLifetime`, model.md D81) starts at `$revision` is one change `Added` of path
+     * `''`, one ending at the revision before is one change `Removed` of path `''`; none where it exists on neither side.
      *
      * @param class-string<Revisioned> $class
      *
@@ -39,6 +41,15 @@ final readonly class Changelog
         $previous = $revision->previous();
         if ($previous === null) {
             return [];
+        }
+        $before = ClassLifetime::exists($class, $previous);
+        $after = ClassLifetime::exists($class, $revision);
+        if (!$before || !$after) {
+            return match (true) {
+                $after => [new Change(ChangeKind::Added, '')],
+                $before => [new Change(ChangeKind::Removed, '')],
+                default => [],
+            };
         }
         $changes = [];
         $this->level(

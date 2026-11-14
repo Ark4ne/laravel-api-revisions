@@ -10,6 +10,7 @@ use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use DateTimeImmutable;
@@ -28,7 +29,9 @@ use Test\Fixtures\Declarations\EagerDeclaration;
 use Test\Fixtures\Declarations\ForeignResourceDeclaration;
 use Test\Fixtures\Declarations\InvalidDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
+use Test\Fixtures\Declarations\PodcastDeclaration;
 use Test\Fixtures\Declarations\ShippingDeclaration;
+use Test\Fixtures\Declarations\ShowDeclaration;
 use Test\Fixtures\Declarations\ThrowingDeclaration;
 use Test\Fixtures\Declarations\WarehouseDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
@@ -62,6 +65,9 @@ final class ProjectionInvariantTest extends TestCase
     {
         foreach (self::subjects() as $class => $subject) {
             foreach (ApiRevision::cases() as $revision) {
+                if (!ClassLifetime::exists($class, $revision)) {
+                    continue;
+                }
                 yield "{$class} at {$revision->name}" => [$class, $subject, $revision];
             }
         }
@@ -182,6 +188,8 @@ final class ProjectionInvariantTest extends TestCase
             CustomerDeclaration::class => ['name' => 'Ada Lovelace', 'orders' => [self::order([])]],
             BoundDeclaration::class => ['label' => 'ada'],
             CountingDeclaration::class => ['title' => 'Book'],
+            PodcastDeclaration::class => ['title' => 'Tides', 'minutes' => 42],
+            ShowDeclaration::class => ['name' => 'Ebb', 'podcast' => ['title' => 'Tides', 'minutes' => 42]],
             ArticleDeclaration::class => ['title' => 'Tides', 'views' => 12, 'body' => null, 'published' => true, 'author' => ['name' => 'Ada']],
             WarehouseDeclaration::class => ['address' => self::ADDRESS, 'docks' => [self::ADDRESS]],
             ShippingDeclaration::class => [

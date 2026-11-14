@@ -6,12 +6,14 @@ namespace Test\Unit\Checking\Checks;
 
 use Ark4ne\ApiRevisions\Checking\Checks\LockMismatch;
 use Ark4ne\ApiRevisions\Checking\LockedRevision;
+use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Exceptions\LockException;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Schema;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
+use Test\Fixtures\Declarations\PodcastDeclaration;
 use Test\TestCase;
 
 final class LockMismatchTest extends TestCase
@@ -115,6 +117,38 @@ final class LockMismatchTest extends TestCase
             ],
             self::runCheck(new LockMismatch($this->lock()), [CountingDeclaration::class, self::CHECKED]),
         );
+    }
+
+    public function test_a_class_absent_from_a_locked_revision_it_was_locked_in_is_reported(): void
+    {
+        CheckedDeclaration::$describe = static fn(): array => ['title' => Schema::string()];
+        $this->lockRevisions([self::CHECKED], ApiRevision::Genesis, ApiRevision::Winter25);
+        CheckedDeclaration::$lifetime = Lifetime::since(ApiRevision::Winter25);
+
+        self::assertSame(
+            [['lock-mismatch', self::CHECKED, null, 'genesis', 'The class is gone from the locked revision genesis: lock genesis again if it is intended.']],
+            self::runCheck(new LockMismatch($this->lock()), [self::CHECKED]),
+        );
+    }
+
+    public function test_a_lifetime_moved_into_a_locked_revision_names_the_lifetime(): void
+    {
+        CheckedDeclaration::$describe = static fn(): array => ['title' => Schema::string()];
+        CheckedDeclaration::$lifetime = Lifetime::since(ApiRevision::Winter25);
+        $this->lockRevisions([self::CHECKED], ApiRevision::Genesis);
+        CheckedDeclaration::$lifetime = null;
+
+        self::assertSame(
+            [['lock-mismatch', self::CHECKED, null, 'genesis', 'The class is new in the locked revision genesis: declare its revisionedLifetime(), or lock genesis again.']],
+            self::runCheck(new LockMismatch($this->lock()), [self::CHECKED]),
+        );
+    }
+
+    public function test_a_class_absent_from_a_locked_revision_that_never_held_it_passes(): void
+    {
+        $this->lockRevisions([self::CHECKED, PodcastDeclaration::class], ApiRevision::Genesis, ApiRevision::Winter25, ApiRevision::Spring26);
+
+        self::assertSame([], self::runCheck(new LockMismatch($this->lock()), [self::CHECKED, PodcastDeclaration::class]));
     }
 
     public function test_a_locked_class_no_longer_discovered_is_reported_on_the_enum(): void

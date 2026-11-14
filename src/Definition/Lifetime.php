@@ -27,6 +27,22 @@ final readonly class Lifetime
     }
 
     /**
+     * From `$since` included, unbounded after.
+     */
+    public static function since(Revision $since): self
+    {
+        return new self($since, null);
+    }
+
+    /**
+     * Up to `$until` included, unbounded before.
+     */
+    public static function until(Revision $until): self
+    {
+        return new self(null, $until);
+    }
+
+    /**
      * From `$since` included; `DefinitionException::invertedLifetime()` when newer than `until`,
      * `DefinitionException::mixedRevisions()` when of another enum.
      */

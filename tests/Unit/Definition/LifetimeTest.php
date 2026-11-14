@@ -43,6 +43,13 @@ final class LifetimeTest extends TestCase
         self::assertFalse($lifetime->covers(ApiRevision::Spring26));
     }
 
+    public function test_since_and_until_write_one_bound(): void
+    {
+        self::assertEquals(Lifetime::always()->withSince(ApiRevision::Winter25), Lifetime::since(ApiRevision::Winter25));
+        self::assertEquals(Lifetime::always()->withUntil(ApiRevision::Winter25), Lifetime::until(ApiRevision::Winter25));
+        self::assertEquals(Lifetime::always()->withSince(ApiRevision::Genesis)->withUntil(ApiRevision::Spring26), Lifetime::since(ApiRevision::Genesis)->withUntil(ApiRevision::Spring26));
+    }
+
     public function test_a_lifetime_of_one_revision_covers_only_it(): void
     {
         $lifetime = Lifetime::always()->withSince(ApiRevision::Winter25)->withUntil(ApiRevision::Winter25);

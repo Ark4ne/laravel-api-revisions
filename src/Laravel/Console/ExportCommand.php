@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Illuminate\Console\Command;
 use ReflectionClass;
@@ -57,6 +58,11 @@ final class ExportCommand extends Command
             $classes = $finder->find();
         }
 
+        if (count($classes) === 1 && count($revisions) === 1 && !ClassLifetime::exists($classes[0], $revisions[0])) {
+            $this->components->error(DefinitionException::classAbsent($classes[0], $revisions[0])->getMessage());
+
+            return self::FAILURE;
+        }
         try {
             return $this->print($exporter, $revisions, $classes);
         } catch (DefinitionException $error) {
@@ -68,6 +74,9 @@ final class ExportCommand extends Command
     }
 
     /**
+     * One document for one revision, class and kind; else every class at every revision it exists in (model.md D81),
+     * by revision, class and kind (one class asked at one revision it does not exist in fails earlier).
+     *
      * @param list<Revision> $revisions
      * @param list<class-string<Revisioned>> $classes
      */
@@ -81,6 +90,9 @@ final class ExportCommand extends Command
         $export = [];
         foreach ($revisions as $case) {
             foreach ($classes as $declaring) {
+                if (!ClassLifetime::exists($declaring, $case)) {
+                    continue;
+                }
                 foreach ($declaring::declarationKinds() as $kind) {
                     $export[(string) $case->value][$declaring][$kind->value] = JsonSchemaExporter::objects($exporter->export($declaring, $kind, $case));
                 }
