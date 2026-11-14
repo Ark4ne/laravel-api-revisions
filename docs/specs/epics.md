@@ -1593,6 +1593,12 @@ Infection is not installed: not run.
 - A package registers `Checking\Check`s (a container tag or a configuration key) run by `revision:check` and
   `assertRevisionsAreConsistent()` (R6).
 
+**Done.** Container tag `Laravel\RevisionsServiceProvider::CHECKS` (`'revisions.checks'`, D83, decided with the
+maintainer: no configuration key): the `Checker` bound by the provider resolves the tagged checks through the container
+and runs them after the built-in and lock checks; a tagged service that is not a `Check` throws
+`ConfigurationException::notACheck()`. Fixtures `tests/Fixtures/Checks/{ReservedNameCheck,ReservedNames,SecondCheck}` (an injected
+dependency). Tests: `tests/Feature/ContributedChecksTest.php`. Deviations: none. Infection is not installed: not run.
+
 #### US 12.6 — Export as a public contract · S · depends 12.3
 
 - `JsonSchemaExporter::export()`, the structure of `revision:export`, `Changelog::changes()` / `markdown()` and a
@@ -1817,7 +1823,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.2 | Inert without configuration | S | 11.2 | M4 | done |
 | US 12.3 | Class lifetime | M | 12.1 | M4 | done |
 | US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | done |
-| US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | todo |
+| US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | done |
 | US 12.6 | Export as a public contract | S | 12.3 | M4 | todo |
 | US 12.7 | Cheap shape lookup | S | 11.2 | M4 | todo |
 | US 12.8 | Projection plan | L | 12.7 | M4 | todo |

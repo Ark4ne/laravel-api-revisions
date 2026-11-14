@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Laravel;
 
+use Ark4ne\ApiRevisions\Checking\Check;
 use Ark4ne\ApiRevisions\Checking\Checker;
 use Ark4ne\ApiRevisions\Checking\Checks\LockMismatch;
 use Ark4ne\ApiRevisions\Checking\Checks\LockOrderChanged;
@@ -13,6 +14,7 @@ use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Ark4ne\ApiRevisions\Laravel\Checking\NativeCondition;
 use Ark4ne\ApiRevisions\Laravel\Console\CacheCommand;
@@ -62,6 +64,12 @@ use Illuminate\Support\ServiceProvider;
  */
 final class RevisionsServiceProvider extends ServiceProvider
 {
+    /**
+     * The container tag of the `Checking\Check`s a package or an application contributes (model.md D83): resolved
+     * through the container, run after the built-in checks by `revision:check` and `assertRevisionsAreConsistent()`.
+     */
+    public const string CHECKS = 'revisions.checks';
+
     private const string CONFIG = __DIR__ . '/../../config/revisions.php';
 
     public function register(): void
@@ -88,7 +96,7 @@ final class RevisionsServiceProvider extends ServiceProvider
         $this->app->bind(Checker::class, static fn(Container $app): Checker => new Checker(
             $app->make(RevisionsConfig::class)->enum,
             $app->make(ClassFinder::class),
-            [...Checker::builtIn(), new NativeCondition(), new LockMismatch($app->make(Lock::class)), new LockOrderChanged($app->make(Lock::class))],
+            [...Checker::builtIn(), new NativeCondition(), new LockMismatch($app->make(Lock::class)), new LockOrderChanged($app->make(Lock::class)), ...self::contributedChecks($app)],
             new Compiler($app->make(Configuration::class)),
         ));
         $this->app->scoped(RevisionScope::class, static function (Container $app): RevisionScope {
@@ -176,5 +184,24 @@ final class RevisionsServiceProvider extends ServiceProvider
             $this->commands([CacheCommand::class, ChangelogCommand::class, CheckCommand::class, ClearCommand::class, ExportCommand::class, LockCommand::class, PruneCommand::class]);
             $this->optimizes(optimize: 'revision:cache', clear: 'revision:clear', key: 'revisions');
         }
+    }
+
+    /**
+     * The checks tagged `CHECKS` (model.md D83), built by the container in tag order; `ConfigurationException::notACheck()`
+     * for a tagged service that is not one.
+     *
+     * @return list<Check>
+     */
+    private static function contributedChecks(Container $app): array
+    {
+        $checks = [];
+        foreach ($app->tagged(self::CHECKS) as $check) {
+            if (!$check instanceof Check) {
+                throw ConfigurationException::notACheck(get_debug_type($check));
+            }
+            $checks[] = $check;
+        }
+
+        return $checks;
     }
 }

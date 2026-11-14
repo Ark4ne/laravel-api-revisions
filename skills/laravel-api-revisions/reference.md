@@ -278,7 +278,9 @@ Every exception implements `Ark4ne\ApiRevisions\Exceptions\RevisionsException`.
 
 Implemented by the package; an application rarely needs them.
 
-- `Ark4ne\ApiRevisions\Checking\Check`: one rule of the check.
+- `Ark4ne\ApiRevisions\Checking\Check`: one rule of the check, `run(CheckContext $context)` adding diagnostics
+  (`$context->error()` / `warning()`); a package contributes its own by tagging them
+  `Ark4ne\ApiRevisions\Laravel\RevisionsServiceProvider::CHECKS` (built by the container, run after the built-in ones).
 - `Ark4ne\ApiRevisions\Checking\ClassFinder`: finds the classes the commands run on.
 - `Ark4ne\ApiRevisions\Export\SchemaVisitor`: turns a shape into a format (JSON Schema).
 - `Ark4ne\ApiRevisions\Laravel\Validation\RuleMapper`: the Laravel rules a type implies.

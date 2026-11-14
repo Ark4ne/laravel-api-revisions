@@ -404,6 +404,33 @@ every revision and reports a diagnostic per problem, with its class, field and r
 
 In PHPUnit, `assertRevisionsAreConsistent()` (on `InteractsWithRevisions`) fails with every diagnostic.
 
+A package (or an application) adds its own rules: a class implementing `Checking\Check`, tagged in a service
+provider. The container builds it (constructor injection), and both `revision:check` and
+`assertRevisionsAreConsistent()` run it after the built-in rules, once on the enum (`$context->class` is `null`) and
+once per class (`kinds()` is empty on the enum, so the loop below skips it).
+
+```php
+$this->app->tag([ReservedNameCheck::class], RevisionsServiceProvider::CHECKS);
+```
+
+```php
+final readonly class ReservedNameCheck implements Check
+{
+    public function run(CheckContext $context): void
+    {
+        foreach ($context->kinds() as $kind) {
+            foreach ($context->order() as $revision) {
+                foreach ($context->shape($kind, $revision)->fields as $field) {
+                    if (in_array($field->name, ['type', 'id'], true)) {
+                        $context->error('reserved-name', "'{$field->name}' is reserved.", $field->headKey, $revision);
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
 ## Lock
 
 The real risk is a **forgotten** `since()`: a new field leaking into the revisions already published. Rather than

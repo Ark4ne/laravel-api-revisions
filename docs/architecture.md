@@ -490,7 +490,8 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   (`NativeCondition`, reading `RevisionedResource::revisionedNativeConditions()`), added by the Laravel binding of the
   `Checker`.
 - Since US 9.3: the container binds `ClassFinder` (`PathClassFinder` over `discovery.paths` / `discovery.classes`) and
-  `Checker` (the enum, that finder, `Checker::builtIn()` plus `NativeCondition`, a `Compiler` with the application's
+  `Checker` (the enum, that finder, `Checker::builtIn()` plus `NativeCondition`, the lock checks, then the checks
+  tagged `RevisionsServiceProvider::CHECKS`, built by the container in tag order, `model.md` D83; a `Compiler` with the application's
   `Configuration`; custom types through `TypeRegistry::converters()`), each built anew (never the compiled shapes).
   `revision:check` (`--format=table|json`, `--list`) and `Testing\InteractsWithRevisions::assertRevisionsAreConsistent()`
   resolve the `Checker`: errors fail, warnings alone pass.
@@ -526,7 +527,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 | Custom type | `extends Schema\Descriptor` (+ its converters) | `TypeRegistry` (macro on `Schema`) |
 | Conversion | `Conversion\Converter` | `Converters` |
 | Export format | `Export\SchemaVisitor` | used directly |
-| Check rule | `Checking\Check` | `Checker` |
+| Check rule | `Checking\Check` | `Checker::builtIn()`; from a package or an application: the container tag `RevisionsServiceProvider::CHECKS` (`model.md` D83) |
 | Resolver | `Laravel\Http\RevisionResolver` (+ `VariesOn` when it reads headers) | `config/revisions.php` |
 | Rule mapping | `Laravel\Validation\RuleMapper` | `RuleCompiler` |
 | Consumer | implements `Schema\Revisioned` itself (no Laravel trait), reads `Shape` + calls `Projector` / `Upgrader` | `discovery` (like any `Revisioned` class) |
@@ -623,7 +624,8 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 ### Add a check rule
 
 1. `src/Checking/Checks/<Rule>.php` implementing `Check`, its `CODE` constant; list it in `Checker::builtIn()` (a rule
-   reading Laravel: `src/Laravel/Checking/`). A rule already enforced when declared is a `DefinitionException` named
+   reading Laravel: `src/Laravel/Checking/`; a package or an application tags its own rule
+   `RevisionsServiceProvider::CHECKS` instead, D83). A rule already enforced when declared is a `DefinitionException` named
    constructor carrying the code (`checkCode:`), not a class.
 2. Add the code to `specs/model.md` §9.
 3. Unit test: one passing and one failing declaration; the diagnostic names class, field, revision.

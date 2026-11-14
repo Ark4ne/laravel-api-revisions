@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `revision:changelog` has no change to list (as for any one-case enum without `--from` / `--to`), `revision:lock`
   locks nothing, a job captured earlier runs in the head. A `default` other than `latest` / `oldest` without enum is
   refused; `Route::revisioned()` and `withRevision()` throw, naming the missing enum.
+- Checks contributed by a package or an application: a `Checking\Check` tagged
+  `Laravel\RevisionsServiceProvider::CHECKS` (`'revisions.checks'`) is built by the container and run after the built-in
+  checks by `revision:check` and `assertRevisionsAreConsistent()`; a tagged service that is not a `Check` throws
+  `ConfigurationException::notACheck()`.
 - `Conversion\Converters::identity(string $name)` (and `isIdentity()`): a custom type declares, in its
   `DeclaresConversions::conversions()`, that its values do not depend on its fragment. A `was(schema:)` changing only
   its fragment then plans no conversion step (no `conversion-missing`), still shown in the export, the lock and the

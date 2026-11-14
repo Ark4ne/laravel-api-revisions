@@ -24,6 +24,14 @@ final class ConfigurationExceptionTest extends TestCase
         );
     }
 
+    public function test_not_a_check_names_the_contract_and_the_type(): void
+    {
+        self::assertSame(
+            'A service tagged revisions.checks must implement Ark4ne\\ApiRevisions\\Checking\\Check, got stdClass.',
+            ConfigurationException::notACheck('stdClass')->getMessage(),
+        );
+    }
+
     public function test_path_mode_without_path_resolver_says_what_to_add(): void
     {
         self::assertSame(

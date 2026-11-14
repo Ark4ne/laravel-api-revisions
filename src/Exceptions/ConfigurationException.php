@@ -39,6 +39,14 @@ final class ConfigurationException extends InvalidArgumentException implements R
     }
 
     /**
+     * A service tagged `revisions.checks` (model.md D83) that does not implement `Checking\Check`.
+     */
+    public static function notACheck(string $type): self
+    {
+        return new self("A service tagged revisions.checks must implement Ark4ne\\ApiRevisions\\Checking\\Check, got {$type}.");
+    }
+
+    /**
      * `Route::revisioned()` declared while no revision enum is configured (model.md D80): there is no revision to read.
      */
     public static function pathModeWithoutEnum(): self
