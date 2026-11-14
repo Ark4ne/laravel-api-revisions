@@ -59,7 +59,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Projection | `src/Projection/` | `Projector`, `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
-| Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `ClassFinder` contract |
+| Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (US 9.3: `assertRevisionsAreConsistent()`, reading the application's `$app`; US 10.4: `withRevision()`, `assertRendersAtEveryRevision()`, `setUpInteractsWithRevisions()` registering the macro), `TestResponseMacros` (`assertMatchesRevisionSchema()`), `RevisionSchema` (validation against the closed export, opis) — model.md D72 |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`), the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`) and the `TestResponse` macro (`RevisionSchemaAssertionExtension`, reading `Testing\TestResponseMacros::assert()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes`, `TestResponseMacros` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
@@ -494,6 +494,13 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   `CheckContext::export()`; the enum target sees the discovered classes (`CheckContext::$classes`). An unreadable lock
   file is one `lock-mismatch` on the enum, never thrown. `revision:lock` compiles anew (never the compiled shapes) and
   captures every snapshot before writing any.
+- `Prune` (US 10.5, `model.md` D73) walks the head descriptors (`Compiler::describe()`, through `Fields::descriptors()`)
+  for the `until` / `was` / `since` naming the oldest revision, never the shapes: a bound is a declaration, not a shape.
+  It catches what a class throws (`PruneReport::$failures`) and goes on. `DeclarationLocator` reads the source by
+  reflection and `PhpToken` only, never running a declaration: the methods it searches are given (the core knows only
+  `describeRevisioned()`; `PruneCommand::METHODS` adds the Laravel ones), a method written in another file (a trait, a
+  parent) is skipped; each key is searched at its own level of the path; the tokens of a file are memoized
+  (`Support\Memo`, they depend only on the code).
 
 ## 13. Extension points
 

@@ -281,6 +281,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   assertions). The PHPStan extension declares the macro (`PHPStan\RevisionSchemaAssertionExtension`).
 - `HeaderResolver::DEFAULT_NAME` (`Api-Revision`) and `QueryResolver::DEFAULT_NAME` (`revision`): the names they read
   when the `name` option is not set.
+- Prune (model.md D73): `Checking\Prune` (`run($classes)`: a `Checking\PruneReport` of the `Checking\PruneCandidate`s
+  — `until(P)`, `was(P)`, `since(P)` of the oldest revision `P`, `Checking\PrunedDeclaration` — and the classes that
+  did not build), `Checking\DeclarationLocator` (the file and line of a field key, by reflection). `php artisan
+  revision:prune` lists them, relative to the application, and always succeeds.
 - `Export\JsonSchemaExporter::objects()`: a document ready for `json_encode()`. Fixed: `revision:export` wrote an
   `any` field as `[]` instead of `{}`.
 - `Checking\CheckContext::$classes` (every class of the run), `revision()` (a case by its backed value) and `export()`

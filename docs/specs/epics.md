@@ -1441,6 +1441,21 @@ tested (the package is a dev dependency); `TestResponseMacros` is covered by the
 
 Tests: `test_prune_lists_the_declarations_serving_only_the_oldest_revision`.
 
+**Done** (2026-11-14): `Checking\Prune` (`run()`: per class and kind, the head descriptors walked through children and
+items for an `until(P)` — its children and history then left out —, a `was(P)`, a `since(P)` of the oldest revision
+`P`; a class that throws is kept in `PruneReport::$failures`), `Checking\PruneReport`, `Checking\PruneCandidate`
+(`describe(?$base)`), `Checking\PrunedDeclaration` (`advice()`), `Checking\DeclarationLocator` (by reflection and
+`PhpToken`: the line of the field key in the declaring methods written in the class's file, each key searched at its
+own level, the match naming `::P` preferred, else the method's first line, else the file; tokens memoized),
+`Laravel\Console\PruneCommand` (`revision:prune`, always 0, `Nothing to prune.`, a class that does not build skipped
+with a warning, paths relative to the application). Decision D73. Tests
+`test_prune_lists_the_declarations_serving_only_the_oldest_revision` (`PruneTest`), `DeclarationLocatorTest`,
+`PruneCandidateTest`, `PrunedDeclarationTest`, `RevisionPruneTest`. Coverage 99.5 %; Infection not installed. Review:
+a nested key of the same name no longer gives the line of a top-level one; the methods of a request are tested; the
+revision is printed by its case name everywhere. Deviations: the logic sits in the core (`Checking`), the command only
+prints it (the outcome table of `model.md` §11 now says "core / Laravel"); `PruneReport` is a value object without its
+own test class, as the other ones.
+
 ---
 
 ### E11 — Documentation and release
@@ -1649,7 +1664,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 10.2 | `$ref` components | M | 10.1 | M4 | done |
 | US 10.3 | Changelog | M | 10.1 | M4 | done |
 | US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | done |
-| US 10.5 | `revision:prune` | S | 9.2 | M4 | todo |
+| US 10.5 | `revision:prune` | S | 9.2 | M4 | done |
 | US 11.1 | README and guide | S | M3 | M4 | todo |
 | US 11.2 | Agent skill | M | 11.1 | M4 | todo |
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |
