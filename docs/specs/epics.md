@@ -1516,6 +1516,19 @@ before 1.0.0. The library stays unaware of JSON:API and OpenAPI.
   checked, locked and exported like a class using `RevisionedResource` (R1). A fixture, an invariant test, the path
   documented in `architecture.md` §13.
 
+**Done.** No production behaviour had to change: nothing in the compiler, the checks, the commands, the cache or the
+testing helpers assumed the traits (the only Laravel check, `NativeCondition`, is guarded by `method_exists()`). The
+story makes the path a tested contract: `Revisioned::describeRevisioned()` is public (no longer `@internal`) and may
+build the declaration on the implementer's own stand-in (D79, amending D48 and D50, with D61 as precedent: an eager read
+is then no longer caught at compilation). Fixture `tests/Fixtures/Declarations/ArticleDeclaration.php` (one response,
+one `Schema::object()` per hook, a closure capturing the instance, built on the recording `StandIn`), in the projection
+invariant test; `tests/Feature/ConsumerDeclarationTest.php` covers the check (the stand-in read nothing), the lock and a
+`lock-mismatch`, the export, the changelog, the cache, the projection through the container and
+`assertRendersAtEveryRevision()`. Review fixes: D79 and the stale passages of model.md §6.1, D48, D50 and
+architecture.md; the closure capturing the instance, so the stand-in assertion proves something. Deviation:
+`revision:prune` locates a field declared in a consumer's own hook at `describeRevisioned()` only (recorded in D79).
+Infection is not installed: not run.
+
 #### US 12.2 — Inert without configuration · S · depends 11.2
 
 - With `revisions.enum` left `null`, the provider registers, `optimize` succeeds (`revision:cache` writes nothing), and
@@ -1758,7 +1771,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 11.1 | README and guide | S | M3 | M4 | done |
 | US 11.2 | Agent skill | M | 11.1 | M4 | done |
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |
-| US 12.1 | `Revisioned` without the Laravel traits | S | 11.2 | M4 | todo |
+| US 12.1 | `Revisioned` without the Laravel traits | S | 11.2 | M4 | done |
 | US 12.2 | Inert without configuration | S | 11.2 | M4 | todo |
 | US 12.3 | Class lifetime | M | 12.1 | M4 | todo |
 | US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | todo |

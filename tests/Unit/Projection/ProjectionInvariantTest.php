@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Customer;
+use Test\Fixtures\Declarations\ArticleDeclaration;
 use Test\Fixtures\Declarations\BoundDeclaration;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
@@ -181,6 +182,7 @@ final class ProjectionInvariantTest extends TestCase
             CustomerDeclaration::class => ['name' => 'Ada Lovelace', 'orders' => [self::order([])]],
             BoundDeclaration::class => ['label' => 'ada'],
             CountingDeclaration::class => ['title' => 'Book'],
+            ArticleDeclaration::class => ['title' => 'Tides', 'views' => 12, 'body' => null, 'published' => true, 'author' => ['name' => 'Ada']],
             WarehouseDeclaration::class => ['address' => self::ADDRESS, 'docks' => [self::ADDRESS]],
             ShippingDeclaration::class => [
                 'from' => ['address' => null, 'docks' => [self::ADDRESS]],

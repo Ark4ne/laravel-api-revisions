@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Documentation: the README (install, the enum, a resource, a request, resolution, check and lock in CI, retiring a
   revision, outside HTTP, testing) and the guide `docs/guide.md`, covering every feature.
+- A class implementing `Schema\Revisioned` itself, without the Laravel traits, is a supported path (compiled, cached,
+  checked, locked, exported); `Revisioned::describeRevisioned()` is no longer `@internal`, and may build the
+  declaration on the implementer's own stand-in instead of the `Probe`.
 - Agent skill `skills/laravel-api-revisions/`, shipped with the package: `SKILL.md` (the rules that prevent most
   mistakes, such as the writing rule of the bounds and the value a `down:` closure receives), `reference.md` (every
   public entry point) and `recipes.md` (tested examples of the common tasks).

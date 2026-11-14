@@ -149,9 +149,10 @@ types).
 - `DescribesSchema` (implemented by a rule object) and `Revisioned` (implemented by a declaring class) are the two
   contracts of this layer an application implements. `Revisioned` is static and per `DeclarationKind` (`Response`,
   `RequestBody`, `RequestQuery`; `direction()`: down for a response, up for a request): `declarationKinds()` and the
-  `@internal` bridge `describeRevisioned($kind, $subject)`, in which the class builds itself on its subject: the probe
-  at compilation (`mixed`: the `Probe` lives in `Compilation`), the value of a nested resource at projection; called by
-  the compiler, the projector and the upgrader only; the Laravel traits implement it (`model.md` D48, D50). `Descriptor::toType()` merges the keywords of every declared
+  bridge `describeRevisioned($kind, $subject)`, in which the class builds itself on its subject: the probe at
+  compilation (`mixed`: the `Probe` lives in `Compilation`; a class may build on its own stand-in instead), the value
+  of a nested resource at projection; called by the compiler, the projector, the upgrader and the consumers projecting
+  their own class; the Laravel traits implement it (`model.md` D48, D50, D79). `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
   and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
 - `Descriptor::inGroup()` is a public `@internal` entry point: it sets the lifetime and default a group resolved
@@ -512,8 +513,18 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 | Check rule | `Checking\Check` | `Checker` |
 | Resolver | `Laravel\Http\RevisionResolver` (+ `VariesOn` when it reads headers) | `config/revisions.php` |
 | Rule mapping | `Laravel\Validation\RuleMapper` | `RuleCompiler` |
-| Consumer | reads `Shape` + calls `Projector` / `Upgrader` | — |
+| Consumer | implements `Schema\Revisioned` itself (no Laravel trait), reads `Shape` + calls `Projector` / `Upgrader` | `discovery` (like any `Revisioned` class) |
 | Value errors | `Projection\ValueErrorHandler` | `Configuration` (Laravel: reporter = `report()`) |
+
+**A consumer's own `Revisioned` class** (model.md D75, US 12.1) is a supported path: a library such as
+`laravel-json-api` implements `declarationKinds()` and `describeRevisioned()` itself, without `RevisionedResource`, and
+gets the compilation, the cache, the check, the lock, the export, the changelog and the testing helpers like any class.
+It may build its declaration on its own stand-in instead of the `Probe` it receives (it then loses the probe's
+detection of an eager read), but must run no source, closure or condition while declaring. A JSON:API resource is one
+response whose top level holds one `Schema::object()` per hook. `revision:prune` locates fields in the declaring
+methods only (`describeRevisioned`, `toArray`, `body`, `queryParameters`): a field of a consumer's own hook points at
+`describeRevisioned()` (D79). Fixture: `tests/Fixtures/Declarations/ArticleDeclaration.php`
+(in the projection invariant test); Laravel tooling: `tests/Feature/ConsumerDeclarationTest.php`.
 
 ## 14. Errors
 
