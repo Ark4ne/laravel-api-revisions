@@ -1505,6 +1505,63 @@ not run. F13 addressed.
 
 - `CHANGELOG.md` `[1.0.0]`; benchmark reference; the tag is the maintainer's.
 
+### E12 — Consumers
+
+What `laravel-json-api` 3.0 and `laravel-openapi-generator` need (`docs/specs/consumers.md`, `model.md` D75–D78),
+before 1.0.0. The library stays unaware of JSON:API and OpenAPI.
+
+#### US 12.1 — `Revisioned` without the Laravel traits · S · depends 11.2
+
+- A class implementing `Revisioned` itself (its own recording probe, ignoring the `Probe` given) is compiled, cached,
+  checked, locked and exported like a class using `RevisionedResource` (R1). A fixture, an invariant test, the path
+  documented in `architecture.md` §13.
+
+#### US 12.2 — Inert without configuration · S · depends 11.2
+
+- With `revisions.enum` left `null`, the provider registers, `optimize` succeeds (`revision:cache` writes nothing), and
+  no command or binding throws until a revision is actually used (R5).
+
+#### US 12.3 — Class lifetime · M · depends 12.1
+
+- An optional interface on a `Revisioned` class gives its `Lifetime` (D76). Honoured by `Shapes`, `revision:cache`, the
+  export, the lock (an absent class is left out of its revision's file), the changelog (class added / removed) and the
+  check (a `Schema::resource()` to a class absent from a revision is an error) (R2).
+
+#### US 12.4 — Custom types with identity conversion · S · depends 11.2
+
+- A custom type whose `was(schema:)` is another instance of the same custom type (another fragment) plans no
+  conversion step when the type declares it (`DeclaresConversions`) and gets no `conversion-missing`; the fragment
+  change still shows in the lock, the export and the changelog (R4).
+
+#### US 12.5 — Checks contributed by a consumer · S · depends 11.2
+
+- A package registers `Checking\Check`s (a container tag or a configuration key) run by `revision:check` and
+  `assertRevisionsAreConsistent()` (R6).
+
+#### US 12.6 — Export as a public contract · S · depends 12.3
+
+- `JsonSchemaExporter::export()`, the structure of `revision:export`, `Changelog::changes()` / `markdown()` and a
+  programmatic listing of the discovered classes with their kinds are named public contract in `architecture.md`
+  (semver from 1.0) (R7).
+
+#### US 12.7 — Cheap shape lookup · S · depends 11.2
+
+- `Shapes::for()` on a cached class does one array read and at most one `unserialize`, and loads no descriptor class;
+  a benchmark scenario of shape lookups only asserts it (R8).
+
+#### US 12.8 — Projection plan · L · depends 12.7
+
+- The projection compiled once per class, kind, revision and set of fields into a plan, run per subject; public entry
+  point: a plan from a `Shape`, descriptors and an optional subset of head keys (R9, D77). `RevisionedResource` runs
+  `toArray()` once per render on a template instance; classes with plain values or native conditions keep the
+  per-subject path (D78). Outputs identical to the current `Projector` on every fixture; the benchmark reference
+  lowered. Starting point: the spike of the `laravel-json-api` study (`spike/projection-plan`, untested).
+
+#### US 12.9 — Macros on descriptors · M · depends 11.2
+
+- A consumer registers fluent methods on `Descriptor` (as `TypeRegistry` does on `Schema`), typed for PHPStan through
+  the extension; a macro returns a descriptor built with the public modifiers (R10).
+
 ---
 
 ## 3. Order and milestones
@@ -1521,7 +1578,8 @@ E6 ─────────────────────────�
 E7 ───────────────────────────────────────────── 7.1 ─ 7.2 ─ 7.3
 E9 ───────────────────────────────────────────── 9.1 ─ 9.2 ─ 9.3 ─ 9.4 (after 10.1)
 E10 ──────────────────────────────────────────── 10.1 ─ 10.2 ─ 10.3 ─ 10.4 ─ 10.5
-E11 ── last
+E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 · 12.9
+E11 ── last (11.3 after E12)
 ```
 
 | Milestone | Content | Exit criterion |
@@ -1530,7 +1588,7 @@ E11 ── last
 | **M1 — Core** | E0, E1, E2, E3, E4, US 5.1–5.2 | `Shapes::for()` correct for every fixture at every revision |
 | **M2 — Runtime** | E6, E7, E8 | Feature scenario green at every revision, both directions |
 | **M3 — Safety** | E9, US 10.1, US 5.3, US 5.4, US 5.5 | every diagnostic code covered; lock in CI; benchmark gate |
-| **M4 — Release** | US 10.2–10.5, E11 | 1.0.0 ready to tag; X1 and X2 unblocked |
+| **M4 — Release** | US 10.2–10.5, E11, E12 | 1.0.0 ready to tag; X1 and X2 unblocked |
 
 Estimate (S = 1 d, M = 2.5 d, L = 4.5 d): E0 4 · E1 4.5 · E2 9.5 · E3 10 · E4 7 · E5 8.5 · E6 6 · E7 6 · E8 21 ·
 E9 7 · E10 11 · E11 4.5, plus US 2.6, 6.4 and 5.5 (4.5) → about **104.5 days** of nominal work.
@@ -1618,7 +1676,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q17 | A `was()` newer than the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | **Decided** (2026-11-11): D43 |
 | Q18 | Exceptions thrown by a user `up:` closure (US 4.2). Today only a `ConversionException` (raised by the library's converters) becomes a validation error on the client's key (US 8.7); any other exception from a closure bubbles up as a 500. Leaning towards letting a closure reject an input for its revision, either with a public `ConversionException::invalid($message)` or with an exception **contract** (an interface the Laravel layer catches) that an application exception may implement: compare both when US 8.7 starts | US 4.2 | **Decided** (2026-11-12): `ConversionException::invalid($message)`; the upgrader wraps a rejected value in `InvalidInputException`, a validation error on the client's key; `missing()` and any other exception stay 500 (D63) |
 | Q19 | `Vary` of custom resolvers (US 8.3). The middleware varies on the headers of the `HeaderResolver`s only; a custom resolver reading another header (an account pinned by `Authorization`, a tenant header) leaves its `Vary` to the application (a request with `Authorization` is not stored by a shared cache unless allowed, RFC 9111 §3.5). Proposed: an optional contract (`VariesOn::headers(): list<string>`) a resolver implements and the chain collects | US 8.3 | **Decided** (2026-11-12): as proposed (D59) |
-| Q20 | Scalar pairs without automatic conversion (US 11.1 review). `model.md` §5 says a change between scalars converts automatically "in both directions", but `Converters` registers no float ↔ bool, so such a `was()` gets `conversion-missing`: propose — amend §5 to list the automatic pairs exactly (float ↔ bool needs a closure), or register them (lossy-capable) | US 11.1 review | Open |
+| Q20 | Scalar pairs without automatic conversion (US 11.1 review). `model.md` §5 says a change between scalars converts automatically "in both directions", but `Converters` registers no float ↔ bool, so such a `was()` gets `conversion-missing`: propose — amend §5 to list the automatic pairs exactly (float ↔ bool needs a closure), or register them (lossy-capable) | US 11.1 review | **Decided** (2026-11-14): amend §5 (D74) |
 
 ---
 
@@ -1700,3 +1758,12 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 11.1 | README and guide | S | M3 | M4 | done |
 | US 11.2 | Agent skill | M | 11.1 | M4 | done |
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |
+| US 12.1 | `Revisioned` without the Laravel traits | S | 11.2 | M4 | todo |
+| US 12.2 | Inert without configuration | S | 11.2 | M4 | todo |
+| US 12.3 | Class lifetime | M | 12.1 | M4 | todo |
+| US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | todo |
+| US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | todo |
+| US 12.6 | Export as a public contract | S | 12.3 | M4 | todo |
+| US 12.7 | Cheap shape lookup | S | 11.2 | M4 | todo |
+| US 12.8 | Projection plan | L | 12.7 | M4 | todo |
+| US 12.9 | Macros on descriptors | M | 11.2 | M4 | todo |

@@ -221,8 +221,9 @@ the export all read its result. **The response, the validation, the export and t
 
 ## 5. Conversions
 
-A type change between **scalars** (string, int, float, bool) needs no closure: the library converts automatically, in
-both directions, with PHP cast semantics. The author gives `down:` / `up:` whenever the cast is not what the clients
+A type change between the **scalar pairs of the table below** needs no closure: the library converts automatically,
+with PHP cast semantics. Any other pair (float ↔ bool, for instance) needs `down:` / `up:` (`conversion-missing`
+otherwise, D74). The author gives `down:` / `up:` whenever the cast is not what the clients
 need: **it is the author's call** (D25). Pairs that may lose information without a closure get a non-blocking
 `conversion-lossy` **warning** from the check, so the risk is visible.
 
@@ -624,16 +625,20 @@ returns the declared type.
 
 ## 12. Integrations and migration
 
-- **`laravel-json-api` 3.0** replaces its describer with `Schema` descriptors and keeps everything JSON:API-specific:
-  relationships with history (`include`, `included`), type renames, attribute ↔ relationship changes, `fields` /
-  `include` / `sort` / `filter` upgraded per revision, `Fields` / `Includes` rules computed from the shape of the
-  client's revision. Its 2.1 declarations map 1:1 (same inclusive bounds).
-- **`laravel-openapi-generator`** reads the JSON Schema export of each revision and writes one document per revision
-  (`--revision=spring-26` or all). It never knows `since` or `was`.
-- **Migration path:** publish the library with an adapter accepting the old describer → migrate resources one by one
-  (no annotation = every revision) → `revision:lock` the first revision → remove the old describer in a major.
+The library knows neither JSON:API nor OpenAPI; two libraries build on it (`docs/specs/consumers.md`, D75).
 
-## 13. Differences with `laravel-json-api` 2.1
+- **`laravel-json-api` 3.0** requires it and drops its own revision model, value descriptors and value rendering: its
+  hooks return `Schema` descriptors and this library renders them. A JSON:API resource is **one `Revisioned`
+  response** whose top level holds one object per hook (`attributes`, `relationships`, `meta`, `documentMeta`); no
+  new `DeclarationKind`. It keeps what is JSON:API: the document, relationships (a `Descriptor` of its own), `include`,
+  sparse fieldsets, loading, links. Its 2.1 revision model was never tagged: no adapter.
+- **`laravel-openapi-generator`** has an optional integration reading the JSON Schema export and the changelog of
+  each revision (one document per revision). It never knows `since` or `was`.
+- What they need from this library is epic E12, delivered before 1.0.0 (D75).
+
+## 13. Differences with the `laravel-json-api` 2.1 model
+
+The revision model of `laravel-json-api` 2.1 was never tagged (D75); the table records why this one differs.
 
 | Topic | json-api 2.1 | api-revisions v1 | Why |
 | --- | --- | --- | --- |
@@ -673,7 +678,7 @@ returns the declared type.
 | D22 | In the query parameters (`queryParameters()`, D63), renames apply to **keys** only (`filter[state]` → `filter[status]`); a change of the values (`sort=-state`, enum values) is declared like any other change, with `was()` and its conversions | **Decided** (2026-11-11) |
 | D23 | A default of a field added later is written in the shape of its `since` revision, then travels through the later steps (renamed, converted) like sent input | **Decided** (2026-11-11) |
 | D24 | Group `until()` vs a member's own: the member's earlier `until()` wins, a later one throws (mirror of `since`) | **Decided** (2026-11-11) |
-| D25 | Every scalar pair converts automatically in both directions (PHP casts); `down:` / `up:` when the author wants otherwise; lossy-capable pairs without closure get a `conversion-lossy` **warning** | **Decided** (2026-11-11) |
+| D25 | Every scalar pair of §5's table converts automatically in both directions (PHP casts; the exact list is D74); `down:` / `up:` when the author wants otherwise; lossy-capable pairs without closure get a `conversion-lossy` **warning** | **Decided** (2026-11-11) |
 | D26 | Upgrade: values normalized to the type of the shape of `X` before each up conversion (`up:` receives typed values and a snapshot of the step); `validated()` serialized back to raw values | **Decided** (2026-11-11) |
 | D27 | One direction per declaration kind: responses plan / check `down`, requests `up` | **Decided** (2026-11-11) |
 | D28 | Application test helpers: trait `Testing\InteractsWithRevisions` (`withRevision()`, `assertRevisionsAreConsistent()`) for the application's `TestCase`; `assertMatchesRevisionSchema()` is a `TestResponse` macro | **Decided** (2026-11-11) |
@@ -722,5 +727,10 @@ returns the declared type.
 | D71 | Changelog (US 10.3), decided with the maintainer: for each revision `R` after the base, what `R` changes against the revision before it, per class and declaration kind: a field is matched across both shapes by its **head key path** (so a `was(name:)` is a rename, never a removal plus an addition), walked through object children and list items (`customer.name`, `lines.*.sku`, the names at `R`); a nested resource is not entered (its class has its own section). Changes: added, removed, renamed, **type changed** when the keywords its type gives (`JsonSchemaExporter::typeKeywords()`: kind, constraints, format, enum, nullability; never documentation) differ — shown as compact JSON before → after; for a composite whose children or items are walked on both sides, only its own keywords —. The "now required / now optional" line first proposed is left out: the presence of a field comes from its head (D46), so it never changes between two revisions; the children typed only under a `was()` schema are compared by their type, never walked. Markdown, newest revision first, each section headed by its `meta()` (description, published / deprecated / sunset days); a revision without change says so. `revision:changelog {--from=} {--to=}`: `--from` is the base, excluded (the oldest by default), `--to` included (the head by default) | **Decided** (2026-11-14) |
 | D72 | Test helpers (US 10.4, D28), decided with the maintainer: the test assertions validate against the export of the revision with **closed objects** (`JsonSchemaExporter` built `closed: true` adds `additionalProperties: false` to every declared object — the root, children, nested resources and object components, never a custom fragment): a field leaking into a revision fails a test, the published export stays open (D67). `TestResponse::assertMatchesRevisionSchema(string $class, ?Revision $revision = null)` (registered by the trait's `setUpInteractsWithRevisions()`): the revision defaults to the response header (`response_header`), the document is `data` when the body holds it (a `JsonResource` wrap), else the body; a list validates each item. `withRevision(Revision)` uses the first resolver of the chain that can carry it: `HeaderResolver` → a default header, `PathResolver` → `URL::defaults()` of its parameter (for `route()`), `QueryResolver` → its parameter added to every request of the test (the trait overrides `prepareUrlForRequest()`); a custom resolver alone throws a `LogicException`. `assertRendersAtEveryRevision(string $class, mixed $subject, ?list<Revision> $revisions = null)` projects the response of `$class` on `$subject` at each revision through the application's `Projector` and validates it the same way. `opis/json-schema` stays a dev dependency of the package and is suggested: without it the assertions throw a `LogicException` naming it | **Decided** (2026-11-14) |
 | D73 | Prune (US 10.5), decided with the maintainer: `revision:prune` lists what retiring the oldest revision `P` makes dead, for every discovered class and declaration kind, walked through object children and list items (head key paths): an `until(P)` — delete the field (its children, items and `was()` are not listed again) —, a `was(P)` — delete that `was()` —, a `since(P)` — delete the `since()`, already a no-op (a group's bound is listed on each member). A `since(P->next())`, a no-op once `P` is gone, is not listed. Each entry gives a location when reflection can tell: the file of the class and the line of the field key (`'key' =>`, a nested path matched key after key) among the tokens of its declaring methods (`describeRevisioned()`, and in Laravel `toArray()`, `body()`, `queryParameters()`) declared in the class's own file, preferring the match whose expression names the bound (`::P`), else the first line of the first declaring method, else the file alone. Informative: the command always exits 0 (`Nothing to prune.` when nothing is), a class that fails to build is reported as a warning line and skipped (`revision:check` stays the gate) | **Decided** (2026-11-14) |
+| D74 | Q20, decided with the maintainer: the automatic conversions are exactly the scalar pairs of §5's table; any other pair (float ↔ bool) needs `down:` / `up:` and is reported `conversion-missing` without them. D25 is read with this list | **Decided** (2026-11-14) |
+| D75 | Consumers (`docs/specs/consumers.md`), decided with the maintainer: `laravel-json-api` 3.0 requires this library and delegates the rendering of its values to it (one `Revisioned` response per resource, one object per hook, no new `DeclarationKind`); `laravel-openapi-generator` integrates optionally through the export and the changelog. Every requirement R1, R2, R4–R10 of that document is epic E12, delivered **before 1.0.0** (CQ1); R3 was dropped | **Decided** (2026-11-14) |
+| D76 | Class lifetime (R2, CQ2, CQ3), decided with the maintainer: an optional interface on a `Revisioned` class gives its `Lifetime` (no attribute read by reflection; a consumer maps its own attributes to it); a class absent from a revision is left out of that revision's lock and export, and its appearance and disappearance show in the changelog; the details (what `Shapes` and the check do with an absent class) are decided in US 12.3 | **Decided** (2026-11-14) |
+| D77 | Projection plan (R9), decided with the maintainer: the projection of a class, kind, revision and set of fields is compiled once into a plan cached per process (sources, presences, conditions, bound chains, configured serializers); the **declaration** (`toArray()`) is run once **per render**, not per subject: a collection runs it once on a template instance whose `resource` is set to each subject, so a closure capturing the request always sees the request being served (Octane included). The declaration is never cached across renders | **Decided** (2026-11-14) |
+| D78 | Plain values under the plan (CQ5), decided with the maintainer: a resource whose `toArray()` holds a plain value (`EagerSchema`, D61) or a native condition keeps the per-subject path (one `toArray()` per subject, as before D77): slower, compatible, and already reported by the check (`eager-value`, `native-condition`) | **Decided** (2026-11-14) |
 
 "Proposed" decisions are applied by default until decided.
