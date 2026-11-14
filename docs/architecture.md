@@ -275,8 +275,11 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
   an array of strings OPcache keeps in shared memory, each shape unserialized on its first `for()`, stamped with
   `CompiledShapes::FORMAT` (bump it whenever `Shape` or a class it holds changes: a file of another format is
   refused, never unserialized into a stale shape); written to a
-  temporary file then renamed (a reader never sees half a file). `Shapes` reads it before compiling; `flush()` keeps
-  it. The Laravel layer registers `revision:cache` / `revision:clear` with `ServiceProvider::optimizes()`, so
+  temporary file then renamed (a reader never sees half a file). Since US 12.7 (`model.md` D85): `load()` checks the
+  array and its format only, each entry is checked when `get()` reads it, so a request pays the `require` and, per
+  shape asked, one array read and one `unserialize()` that loads the shape model only, never the declaring class nor
+  a descriptor (asserted in a fresh process by `CompiledShapesTest`, with `tests/Fixtures/Scripts/lookup-shape.php`).
+  `Shapes` reads it before compiling; `flush()` keeps it. The Laravel layer registers `revision:cache` / `revision:clear` with `ServiceProvider::optimizes()`, so
   `artisan optimize` / `optimize:clear` handle it. A stale file is the application's responsibility, as for
   `route:cache`.
 - Declaration errors that are programming errors (mixed enums, `since` newer than `until` on one descriptor) throw
@@ -657,4 +660,4 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
 | Coverage ≥ 90 % (`bin/coverage-check.php`) | Tested lines |
 | Infection (MSI ≥ 80 %) | Test quality; a change generating no mutant is not measured (`ignoreMsiWithNoMutations`) |
-| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of 1 000 orders at the head and the oldest revision (a `RevisionedResource` resolved per order in a bare container holding the services the provider binds, shapes compiled once; since US 8.5) as **ratios** to a plain `JsonResource`: scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |
+| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of 1 000 orders at the head and the oldest revision (a `RevisionedResource` resolved per order in a bare container holding the services the provider binds, shapes compiled once; since US 8.5) as **ratios** to a plain `JsonResource`; since US 12.7, the `lookup` scenario (a compiled file of the reference declarations loaded, then every shape read twice through a fresh `Shapes`) as a ratio to the `require` and `unserialize()` of the same entries (class loading is guarded by the fresh-process test of `CompiledShapesTest`, not by the benchmark): scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |

@@ -1619,6 +1619,16 @@ bypasses the finder). Infection is not installed, not run.
 - `Shapes::for()` on a cached class does one array read and at most one `unserialize`, and loads no descriptor class;
   a benchmark scenario of shape lookups only asserts it (R8).
 
+**Done** (US 12.7): R8 already held in `Shapes::for()` (a memo read, then one array read and one `unserialize()` of a
+cached shape, loading the shape model only). `CompiledShapes::load()` no longer walks the file: each entry is checked
+when `get()` first reads it (`null` included), decided in `model.md` D85 (amends D56). Tests: a fresh-process lookup
+(`tests/Fixtures/Scripts/lookup-shape.php`) loads no descriptor nor declaring class (`CompiledShapesTest`); a second
+`for()` returns the same instance (`ShapesTest`). Benchmark: scenario `lookup` (load + every shape read twice through
+a fresh `Shapes`) against the `require` + `unserialize()` of the same entries, reference ×1.05; `head` / `oldest`
+references unchanged. Deviation: the benchmark guards the load and the `unserialize` count; the class loading is
+asserted by the fresh-process test (the benchmark process has loaded every descriptor). Infection is not installed,
+not run.
+
 #### US 12.8 — Projection plan · L · depends 12.7
 
 - The projection compiled once per class, kind, revision and set of fields into a plan, run per subject; public entry
@@ -1834,6 +1844,6 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | done |
 | US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | done |
 | US 12.6 | Export as a public contract | S | 12.3 | M4 | done |
-| US 12.7 | Cheap shape lookup | S | 11.2 | M4 | todo |
+| US 12.7 | Cheap shape lookup | S | 11.2 | M4 | done |
 | US 12.8 | Projection plan | L | 12.7 | M4 | todo |
 | US 12.9 | Macros on descriptors | M | 11.2 | M4 | todo |

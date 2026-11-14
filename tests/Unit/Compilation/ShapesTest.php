@@ -143,6 +143,8 @@ final class ShapesTest extends TestCase
         }
 
         self::assertEquals($compiled, $shape);
+        // read from the file once, then from memory: the same instance, never unserialized again
+        self::assertSame($again, $shapes->for(CountingDeclaration::class, DeclarationKind::RequestBody, ApiRevision::Genesis));
         self::assertEquals($compiled, $again);
         self::assertSame(['title'], $other->names());
         self::assertSame(1, CountingDeclaration::$described);

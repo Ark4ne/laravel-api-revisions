@@ -8,6 +8,10 @@
         "oldest": {
             "time": 21.066,
             "memory": 1.033
+        },
+        "lookup": {
+            "time": 1.05,
+            "memory": 1.001
         }
     }
 }

@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Benchmark: a `lookup` scenario keeps `Shapes::for()` on a cached class at one array read and one `unserialize()`
+  (against the bare `unserialize()` of the same entries).
 - `Checking\Declarations`: the discovered classes with their declaration kinds (`declarations()`), or those existing at
   one revision (`at()`), resolvable from the container.
 - Public contract under semver from 1.0, named in `docs/architecture.md` §4: the definition model, `Shape`,
@@ -324,3 +326,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `any` field as `[]` instead of `{}`.
 - `Checking\CheckContext::$classes` (every class of the run), `revision()` (a case by its backed value) and `export()`
   (the JSON Schema of the checked class from the shapes of the run).
+
+### Changed
+
+- `CompiledShapes::load()` no longer walks the compiled file: an entry is checked when first read, and an invalid one
+  (`null` included) throws `CacheException::invalidFile()` then; a cached shape loads neither its declaring class nor
+  a descriptor.

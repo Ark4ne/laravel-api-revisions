@@ -24,7 +24,7 @@ final readonly class CompiledShapes
     public const int FORMAT = 3;
 
     /**
-     * @param array<string, string> $shapes the serialized shapes, by key
+     * @param array<array-key, mixed> $shapes the serialized shapes, by key (checked by `get()`)
      */
     private function __construct(
         private array $shapes,
@@ -41,7 +41,8 @@ final readonly class CompiledShapes
 
     /**
      * The shapes of the file at `$path`; none when there is no file. `CacheException::invalidFile()` when the file
-     * holds something else, or was written in another format (another release of the library).
+     * holds something else, or was written in another format (another release of the library); an entry is checked
+     * when first read, so loading costs the `require` alone (OPcache keeps the array in shared memory).
      */
     public static function load(string $path): self
     {
@@ -53,15 +54,9 @@ final readonly class CompiledShapes
             throw CacheException::invalidFile($path);
         }
         unset($shapes[self::FORMAT_KEY]);
-        $serialized = [];
-        foreach ($shapes as $key => $shape) {
-            if (!is_string($key) || !is_string($shape)) {
-                throw CacheException::invalidFile($path);
-            }
-            $serialized[$key] = $shape;
-        }
 
-        return new self($serialized, $path);
+        // the entries are checked when read (`get()`): loading never walks the file (model.md D85)
+        return new self($shapes, $path);
     }
 
     /**
@@ -107,15 +102,20 @@ final readonly class CompiledShapes
 
     /**
      * The compiled shape of the declaration `$kind` of `$class` at `$revision`, `null` when not in the file;
-     * `CacheException::invalidFile()` when its entry is not a serialized shape.
+     * `CacheException::invalidFile()` when its entry is not a serialized shape. One array read and one `unserialize()`,
+     * which loads the classes of the shape model only, never the declaring class nor a descriptor (model.md D85).
      *
      * @param class-string $class
      */
     public function get(string $class, DeclarationKind $kind, Revision $revision): ?Shape
     {
-        $serialized = $this->shapes[self::key($class, $kind, $revision)] ?? null;
-        if ($serialized === null) {
+        $key = self::key($class, $kind, $revision);
+        if (!array_key_exists($key, $this->shapes)) {
             return null;
+        }
+        $serialized = $this->shapes[$key];
+        if (!is_string($serialized)) {
+            throw CacheException::invalidFile($this->path);
         }
         // a corrupted entry emits a warning, which Laravel would turn into an exception: refused as invalid instead
         $shape = @unserialize($serialized);
@@ -124,7 +124,7 @@ final readonly class CompiledShapes
     }
 
     /**
-     * The number of compiled shapes.
+     * The number of entries of the file, each counted as a compiled shape (an entry is checked when read, D85).
      */
     public function count(): int
     {

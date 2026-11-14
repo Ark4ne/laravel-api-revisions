@@ -7,13 +7,20 @@ declare(strict_types=1);
  * the oldest revision through a `RevisionedResource` (US 8.5; a bare container holds the services the provider binds),
  * and with a plain `JsonResource` as baseline. Each projection is
  * compared with the baseline as a ratio (time and peak memory), so the gate holds on any machine; a ratio beyond the
- * reference by more than its tolerance fails. The scenarios are interleaved in each run and the gate reads the median of
+ * reference by more than its tolerance fails. The `lookup` scenario (US 12.7, model.md D85) loads a compiled file of
+ * the reference declarations and reads every shape twice through a fresh `Shapes`, against the `require` and the
+ * `unserialize()` of the same entries: its gate keeps the load at the `require` and `Shapes::for()` on a cached class
+ * at one array read and one `unserialize()`. That a lookup loads no descriptor nor declaring class is asserted in a
+ * fresh process by `CompiledShapesTest`, not here (this process has loaded them all). The scenarios are interleaved in each run and the gate reads the median of
  * the per-run ratios, so a drift of the machine hits both sides of a ratio. Refuses to run under Xdebug, which slows the
  * projection far more than the baseline: the reference is measured as CI runs it (PHP 8.4, no Xdebug).
  *
  * Usage: php bin/benchmark.php [--update]   (--update writes bin/benchmark/reference.json: review the diff)
  */
 
+use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
+use Ark4ne\ApiRevisions\Compilation\Compiler;
+use Ark4ne\ApiRevisions\Compilation\Shape;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Laravel\Resources\EloquentSourceReader;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
@@ -25,6 +32,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Customer;
+use Test\Fixtures\Declarations\CustomerDeclaration;
+use Test\Fixtures\Declarations\OrderDeclaration;
+use Test\Fixtures\Declarations\StoreOrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Order;
 use Test\Fixtures\Resources\PlainOrderResource;
@@ -41,6 +51,7 @@ const REPEAT = 10;
 const RUNS = 9;
 const REFERENCE = __DIR__ . '/benchmark/reference.json';
 const TOLERANCE = 0.10;
+const LOOKUPS = 200;
 
 $orders = [];
 for ($i = 0; $i < ORDERS; ++$i) {
@@ -119,6 +130,58 @@ $scenarios = [
     'oldest' => $project($orders, ApiRevision::Genesis),
 ];
 
+// the compiled file of the reference declarations, loaded once as a request does
+$compiler = new Compiler();
+$lookups = [];
+foreach ([OrderDeclaration::class, CustomerDeclaration::class, StoreOrderDeclaration::class] as $class) {
+    foreach ($class::declarationKinds() as $kind) {
+        foreach (ApiRevision::order() as $revision) {
+            $lookups[] = [$class, $kind, $revision];
+        }
+    }
+}
+$cache = tempnam(sys_get_temp_dir(), 'api-revisions-benchmark-');
+if ($cache === false) {
+    fwrite(STDERR, 'Cannot create the compiled shapes file.' . PHP_EOL);
+    exit(1);
+}
+register_shutdown_function(static fn(): bool => @unlink($cache));
+CompiledShapes::write($cache, array_map(static fn(array $lookup): Shape => $compiler->compile(...$lookup), $lookups));
+
+// one iteration is one request: the file loaded, then every shape asked twice
+$scenarios['unserialize'] = static function () use ($lookups, $cache): array {
+    $outputs = [];
+    for ($i = 0; $i < LOOKUPS; ++$i) {
+        /** @var array<string, string> $entries */
+        $entries = require $cache;
+        $memory = [];
+        foreach ([1, 2] as $_) {
+            foreach ($lookups as [$class, $kind, $revision]) {
+                $key = CompiledShapes::key($class, $kind, $revision);
+                $outputs[$key] = $memory[$key] ??= unserialize($entries[$key]);
+            }
+        }
+    }
+
+    return $outputs;
+};
+$scenarios['lookup'] = static function () use ($lookups, $cache): array {
+    $outputs = [];
+    for ($i = 0; $i < LOOKUPS; ++$i) {
+        $shapes = new Shapes(compiled: CompiledShapes::load($cache));
+        foreach ([1, 2] as $_) {
+            foreach ($lookups as [$class, $kind, $revision]) {
+                $outputs[CompiledShapes::key($class, $kind, $revision)] = $shapes->for($class, $kind, $revision);
+            }
+        }
+    }
+
+    return $outputs;
+};
+
+// each measured scenario against its baseline
+$baselines = ['head' => 'baseline', 'oldest' => 'baseline', 'lookup' => 'unserialize'];
+
 // warm up: autoloading, compiled shapes
 foreach ($scenarios as $scenario) {
     $scenario();
@@ -162,30 +225,30 @@ function median(array $values): float
 
 // interleaved: each run measures every scenario, its ratios read against the baseline of the same run
 $times = array_fill_keys(array_keys($scenarios), []);
-$timeRatios = ['head' => [], 'oldest' => []];
+$timeRatios = array_fill_keys(array_keys($baselines), []);
 for ($run = 0; $run < RUNS; ++$run) {
     $measured = array_map($time, $scenarios);
     foreach ($measured as $name => $seconds) {
         $times[$name][] = $seconds;
     }
     foreach (array_keys($timeRatios) as $name) {
-        $timeRatios[$name][] = $measured[$name] / $measured['baseline'];
+        $timeRatios[$name][] = $measured[$name] / $measured[$baselines[$name]];
     }
 }
 $memories = array_map($memory, $scenarios);
 $ratios = [];
 foreach ($timeRatios as $name => $values) {
-    $ratios[$name] = ['time' => round(median($values), 3), 'memory' => round($memories[$name] / $memories['baseline'], 3)];
+    $ratios[$name] = ['time' => round(median($values), 3), 'memory' => round($memories[$name] / $memories[$baselines[$name]], 3)];
 }
 $results = [];
 foreach ($scenarios as $name => $scenario) {
     $results[$name] = [median($times[$name]) / REPEAT, $memories[$name]];
 }
 
-printf("%-9s %12s %12s %10s %10s\n", 'scenario', 'time (ms)', 'memory (KB)', 'time ×', 'memory ×');
+printf("%-11s %12s %12s %10s %10s\n", 'scenario', 'time (ms)', 'memory (KB)', 'time ×', 'memory ×');
 foreach ($results as $name => [$time, $memory]) {
     printf(
-        "%-9s %12.2f %12.1f %10s %10s\n",
+        "%-11s %12.2f %12.1f %10s %10s\n",
         $name,
         $time * 1000,
         $memory / 1024,

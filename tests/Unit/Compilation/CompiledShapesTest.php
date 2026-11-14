@@ -12,6 +12,8 @@ use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Exceptions\CacheException;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Schema\Descriptor;
+use Ark4ne\ApiRevisions\Schema\Revisioned;
 use DateTimeImmutable;
 use stdClass;
 use Test\Fixtures\ApiRevision;
@@ -79,6 +81,24 @@ final class CompiledShapesTest extends TestCase
             self::assertNotNull($shape->class);
             self::assertNotNull($shape->kind);
             self::assertEquals($shape, $compiled->get($shape->class, $shape->kind, $shape->revision));
+        }
+    }
+
+    public function test_a_cached_lookup_loads_neither_the_declaring_class_nor_any_descriptor(): void
+    {
+        $compiler = new Compiler();
+        CompiledShapes::write($this->path(), [$compiler->compile(OrderDeclaration::class, DeclarationKind::Response, ApiRevision::Winter25)]);
+
+        $output = shell_exec(sprintf('%s %s %s', escapeshellarg(PHP_BINARY), escapeshellarg(dirname(__DIR__, 2) . '/Fixtures/Scripts/lookup-shape.php'), escapeshellarg($this->path())));
+        self::assertIsString($output);
+        $loaded = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($loaded);
+
+        self::assertContains(Shape::class, $loaded);
+        foreach ($loaded as $class) {
+            self::assertIsString($class);
+            self::assertFalse(is_subclass_of($class, Descriptor::class) || $class === Descriptor::class, "{$class} is a descriptor");
+            self::assertFalse(is_subclass_of($class, Revisioned::class), "{$class} is a declaring class");
         }
     }
 
@@ -206,8 +226,6 @@ final class CompiledShapesTest extends TestCase
         yield 'not an array' => ['<?php return 1;'];
         yield 'without format' => ['<?php return [];'];
         yield 'of another format' => ["<?php return ['@format' => '0'];"];
-        yield 'not a string' => ["<?php return ['@format' => '2', 'a' => 1];"];
-        yield 'an integer key' => ["<?php return ['@format' => '2', 'a'];"];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidFiles')]
@@ -222,25 +240,37 @@ final class CompiledShapesTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string}>
+     * @return iterable<string, array{mixed}>
      */
     public static function invalidEntries(): iterable
     {
         yield 'not a shape' => [serialize(new stdClass())];
         yield 'corrupted' => ['O:3:"Foo'];
+        yield 'not a string' => [1];
+        yield 'null' => [null];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidEntries')]
-    public function test_an_entry_that_is_not_a_shape_is_refused(string $entry): void
+    public function test_an_entry_that_is_not_a_shape_is_refused_when_first_read(mixed $entry): void
     {
         $key = CompiledShapes::key(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis);
         file_put_contents($this->path(), '<?php return ' . var_export(['@format' => (string) CompiledShapes::FORMAT, $key => $entry], true) . ';');
         $compiled = CompiledShapes::load($this->path());
+        self::assertNull($compiled->get(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas));
 
         $this->expectException(CacheException::class);
         $this->expectExceptionMessage("The compiled shapes file {$this->path()} is invalid: run revision:cache again.");
 
         $compiled->get(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis);
+    }
+
+    public function test_an_entry_under_an_integer_key_is_never_read(): void
+    {
+        file_put_contents($this->path(), '<?php return ' . var_export(['@format' => (string) CompiledShapes::FORMAT, 'not a key'], true) . ';');
+        $compiled = CompiledShapes::load($this->path());
+
+        self::assertSame(1, $compiled->count());
+        self::assertNull($compiled->get(CountingDeclaration::class, DeclarationKind::Response, ApiRevision::Genesis));
     }
 
     private function path(): string
