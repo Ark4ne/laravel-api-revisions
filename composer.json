@@ -43,7 +43,8 @@
     },
     "suggest": {
         "phpstan/extension-installer": "Registers extension.neon, which types the custom types of Schema (README).",
-        "phpunit/phpunit": "Required by the Testing assertions (assertRevisionsAreConsistent, assertMatchesRevisionSchema)."
+        "phpunit/phpunit": "Required by the Testing assertions (assertRevisionsAreConsistent, assertMatchesRevisionSchema).",
+        "opis/json-schema": "Required by the schema assertions of the Testing helpers (assertMatchesRevisionSchema, assertRendersAtEveryRevision)."
     },
     "autoload": {
         "psr-4": {

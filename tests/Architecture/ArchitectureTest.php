@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Architecture;
 
 use Ark4ne\ApiRevisions\Laravel\Routing\RevisionedRoutes;
+use Ark4ne\ApiRevisions\Testing\TestResponseMacros;
 use PHPat\Selector\Classname;
 use PHPat\Selector\ClassNamespace;
 use PHPat\Selector\Selector;
@@ -109,8 +110,8 @@ final class ArchitectureTest
             ->classes(self::layer('PHPStan'))
             ->shouldNotDependOn()
             ->classes(...self::layers(...array_values(array_diff(self::LAYERS, ['Schema']))))
-            ->excluding(Selector::classname(RevisionedRoutes::class))
-            ->because('the extension only reads the custom types, which are descriptors, and the signature of the route macro.');
+            ->excluding(Selector::classname(RevisionedRoutes::class), Selector::classname(TestResponseMacros::class))
+            ->because('the extension only reads the custom types, which are descriptors, and the signatures of the macros.');
     }
 
     public function test_the_core_never_depends_on_illuminate(): ArchitectureRule

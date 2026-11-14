@@ -7,9 +7,11 @@ namespace Test\Feature;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
+use Ark4ne\ApiRevisions\Schema\Schema;
 use Illuminate\Testing\PendingCommand;
 use Test\FeatureTestCase;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\EagerDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
@@ -61,6 +63,19 @@ final class RevisionExportTest extends FeatureTestCase
         $this->command('revision:export', ['--revision' => 'atlas', '--class' => OrderDeclaration::class])
             ->expectsOutput(json_encode($schema, self::FLAGS))
             ->assertSuccessful();
+    }
+
+    public function test_an_any_field_is_exported_as_an_empty_schema_object(): void
+    {
+        CheckedDeclaration::$describe = static fn(): array => ['any' => Schema::rule([])];
+
+        try {
+            $this->command('revision:export', ['--revision' => 'atlas', '--class' => CheckedDeclaration::class])
+                ->expectsOutputToContain('"any": {}')
+                ->assertSuccessful();
+        } finally {
+            CheckedDeclaration::reset();
+        }
     }
 
     public function test_no_class_exports_an_empty_object(): void

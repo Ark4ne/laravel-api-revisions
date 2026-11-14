@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Checking;
 
 use Ark4ne\ApiRevisions\Exceptions\LockException;
+use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 
 /**
  * The snapshot of one revision (model.md §9, D69): its backed value, the backed value of the revision before it in
@@ -59,38 +60,12 @@ final readonly class LockedRevision
         $classes = array_map(static function (array $kinds): object {
             ksort($kinds);
 
-            return (object) array_map(static fn(array $schema): object => self::objects($schema), $kinds);
+            return (object) array_map(static fn(array $schema): object => JsonSchemaExporter::objects($schema), $kinds);
         }, $classes);
 
         return json_encode(
             ['previous' => $this->previous, 'classes' => (object) $classes],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR,
         ) . "\n";
-    }
-
-    /**
-     * The keywords whose value is a list, never an object.
-     */
-    private const array LISTS = ['required', 'enum', 'examples', 'anyOf', 'oneOf', 'allOf', 'prefixItems', 'type'];
-
-    /**
-     * `$schema` with its maps as objects, so an empty schema stays `{}`: an empty array is an object but under a list
-     * keyword, an array is an object unless it is a non-empty list.
-     *
-     * @param array<array-key, mixed> $schema
-     */
-    private static function objects(array $schema): object
-    {
-        $object = [];
-        foreach ($schema as $key => $value) {
-            $object[$key] = match (true) {
-                !is_array($value) => $value,
-                in_array($key, self::LISTS, true) && array_is_list($value) => array_map(static fn(mixed $item): mixed => is_array($item) && !(array_is_list($item) && $item !== []) ? self::objects($item) : $item, $value),
-                $value === [] || !array_is_list($value) => self::objects($value),
-                default => $value,
-            };
-        }
-
-        return (object) $object;
     }
 }

@@ -30,7 +30,16 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
      */
     public const array DOCUMENTATION = ['title', 'description', 'examples', 'deprecated'];
 
-    public function __construct(private Shapes $shapes = new Shapes()) {}
+    /**
+     * The keywords whose value is a list, never an object.
+     */
+    private const array LISTS = ['required', 'enum', 'examples', 'anyOf', 'oneOf', 'allOf', 'prefixItems', 'type'];
+
+    /**
+     * @param bool $closed whether every declared object refuses other properties (`additionalProperties: false`): the
+     *                     test assertions validate so (model.md D72), the published export stays open (D67)
+     */
+    public function __construct(private Shapes $shapes = new Shapes(), private bool $closed = false) {}
 
     /**
      * The document of the declaration `$kind` of `$class` at `$revision`.
@@ -64,6 +73,27 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
         }
 
         return $document;
+    }
+
+    /**
+     * `$schema` ready for `json_encode()`: its maps as objects, so an empty schema (`any`, D67) is written `{}`, never
+     * `[]`; the value of a list keyword (`required`, `enum`, `anyOf`…) stays a list.
+     *
+     * @param array<array-key, mixed> $schema
+     */
+    public static function objects(array $schema): object
+    {
+        $object = [];
+        foreach ($schema as $key => $value) {
+            $object[$key] = match (true) {
+                !is_array($value) => $value,
+                in_array($key, self::LISTS, true) && array_is_list($value) => array_map(static fn(mixed $item): mixed => is_array($item) && !(array_is_list($item) && $item !== []) ? self::objects($item) : $item, $value),
+                $value === [] || !array_is_list($value) => self::objects($value),
+                default => $value,
+            };
+        }
+
+        return (object) $object;
     }
 
     /**
@@ -102,6 +132,9 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
         }
         if ($required !== []) {
             $object['required'] = $required;
+        }
+        if ($this->closed) {
+            $object['additionalProperties'] = false;
         }
 
         return $object;
@@ -186,7 +219,12 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
             $properties[$name] = self::finish($this->keywords($child, $root, $components, self::path($path, $name)), $child, $child->nullable);
         }
 
-        return $properties === [] ? ['type' => 'object'] : ['type' => 'object', 'properties' => $properties];
+        $object = $properties === [] ? ['type' => 'object'] : ['type' => 'object', 'properties' => $properties];
+        if ($this->closed) {
+            $object['additionalProperties'] = false;
+        }
+
+        return $object;
     }
 
     /**

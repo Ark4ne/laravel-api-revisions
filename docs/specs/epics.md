@@ -1416,6 +1416,24 @@ paragraph and a `$comment`).
 
 Tests: `test_with_revision_sends_the_configured_header`, `test_assert_matches_revision_schema_fails_on_an_extra_field`.
 
+**Done** (2026-11-14): on `Testing\InteractsWithRevisions`, `withRevision()` (the first resolver of the chain that can
+carry the revision: a header, the route parameter of path mode through `URL::defaults()`, or the query appended in
+`prepareUrlForRequest()` unless the request names it, its fragment kept; a `LogicException` with a custom resolver
+alone; an invalid `name` option throws `ConfigurationException::invalidValue()`) and `assertRendersAtEveryRevision()` (a
+`JsonResource` resolved under `Revision::using()`, any other class projected by the application's `Projector`, an
+empty rendering validated as an object); `Testing\TestResponseMacros` (the macro `assertMatchesRevisionSchema()`,
+registered by `setUpInteractsWithRevisions()`: the revision of the response header by default, a missing or unknown one
+and a non-JSON body failing the test, the `data` of a wrapped body), `Testing\RevisionSchema` (validation through
+`opis/json-schema`, suggested, a list item by item), `JsonSchemaExporter(closed: true)`, `HeaderResolver::DEFAULT_NAME`,
+`QueryResolver::DEFAULT_NAME`. Decision D72. Tests `test_with_revision_sends_the_configured_header`,
+`test_assert_matches_revision_schema_fails_on_an_extra_field` (`TestingHelpersTest`), `RevisionSchemaTest`. Coverage
+99.6 %; Infection not installed. Deviations: `withRevision()` also covers the query mode, and the contract test is a
+helper of the trait (`assertRendersAtEveryRevision()`); `JsonSchemaExporter::objects()` moved from `LockedRevision`
+fixes `revision:export`, which wrote an `any` field as `[]` instead of `{}`; a PHPStan extension
+(`PHPStan\RevisionSchemaAssertionExtension`, in `extension.neon`) declares the macro; `TestResponseMacros` is excluded
+from the phpat rule on `Testing` (it reads `TestResponse`); the branch throwing without `opis/json-schema` is not
+tested (the package is a dev dependency); `TestResponseMacros` is covered by the feature tests only.
+
 #### US 10.5 — `revision:prune` · S · depends US 9.2
 
 - Lists the declarations made dead by the oldest revision (`was(oldest)`, `until(oldest)`, `since(oldest)`), with
@@ -1630,7 +1648,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 10.1 | JSON Schema export | M | 5.2 | M3 | done |
 | US 10.2 | `$ref` components | M | 10.1 | M4 | done |
 | US 10.3 | Changelog | M | 10.1 | M4 | done |
-| US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | todo |
+| US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | done |
 | US 10.5 | `revision:prune` | S | 9.2 | M4 | todo |
 | US 11.1 | README and guide | S | M3 | M4 | todo |
 | US 11.2 | Agent skill | M | 11.1 | M4 | todo |

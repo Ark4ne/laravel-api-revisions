@@ -16,9 +16,14 @@ use Illuminate\Http\Request;
  */
 final readonly class HeaderResolver implements RevisionResolver, VariesOn
 {
+    /**
+     * The header read when the `name` option is not set.
+     */
+    public const string DEFAULT_NAME = 'Api-Revision';
+
     public function __construct(
         private RevisionsConfig $config,
-        private string $name = 'Api-Revision',
+        private string $name = self::DEFAULT_NAME,
     ) {}
 
     /**

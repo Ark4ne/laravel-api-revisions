@@ -74,7 +74,7 @@ final class ExportCommand extends Command
     private function print(JsonSchemaExporter $exporter, array $revisions, array $classes): int
     {
         if (count($revisions) === 1 && count($classes) === 1 && count($classes[0]::declarationKinds()) === 1) {
-            $this->line(json_encode($exporter->export($classes[0], $classes[0]::declarationKinds()[0], $revisions[0]), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            $this->line(json_encode(JsonSchemaExporter::objects($exporter->export($classes[0], $classes[0]::declarationKinds()[0], $revisions[0])), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
             return self::SUCCESS;
         }
@@ -82,7 +82,7 @@ final class ExportCommand extends Command
         foreach ($revisions as $case) {
             foreach ($classes as $declaring) {
                 foreach ($declaring::declarationKinds() as $kind) {
-                    $export[(string) $case->value][$declaring][$kind->value] = $exporter->export($declaring, $kind, $case);
+                    $export[(string) $case->value][$declaring][$kind->value] = JsonSchemaExporter::objects($exporter->export($declaring, $kind, $case));
                 }
             }
         }

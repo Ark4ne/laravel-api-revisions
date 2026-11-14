@@ -271,5 +271,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `markdown($classes, $from, $to)`: newest first, each revision headed by its `meta()`), `Export\Change`,
   `Export\ChangeKind` (added, removed, renamed, type changed). `php artisan revision:changelog {--from=} {--to=}`
   prints it.
+- Test helpers (model.md D28, D72): on `Testing\InteractsWithRevisions`, `withRevision(Revision)` (a header, the route
+  parameter of path mode or the query, as the first resolver of the chain reads it) and
+  `assertRendersAtEveryRevision($class, $subject, ?$revisions)` (a head fixture projected at each revision and validated);
+  the `TestResponse` macro `assertMatchesRevisionSchema($class, ?Revision $revision)` (registered by the trait's
+  `setUpInteractsWithRevisions()`; the revision of the response header by default, the `data` of a wrapped body, a
+  list item by item) — `Testing\TestResponseMacros`, `Testing\RevisionSchema`. They validate against the export with
+  closed objects: `JsonSchemaExporter` takes `closed: true`. `opis/json-schema` is suggested (needed by these
+  assertions). The PHPStan extension declares the macro (`PHPStan\RevisionSchemaAssertionExtension`).
+- `HeaderResolver::DEFAULT_NAME` (`Api-Revision`) and `QueryResolver::DEFAULT_NAME` (`revision`): the names they read
+  when the `name` option is not set.
+- `Export\JsonSchemaExporter::objects()`: a document ready for `json_encode()`. Fixed: `revision:export` wrote an
+  `any` field as `[]` instead of `{}`.
 - `Checking\CheckContext::$classes` (every class of the run), `revision()` (a case by its backed value) and `export()`
   (the JSON Schema of the checked class from the shapes of the run).

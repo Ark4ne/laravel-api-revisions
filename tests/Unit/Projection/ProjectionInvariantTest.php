@@ -111,7 +111,7 @@ final class ProjectionInvariantTest extends TestCase
         $schema = (new JsonSchemaExporter($shapes))->export($class, DeclarationKind::Response, $revision);
         $result = (new Validator())->validate(
             json_decode(json_encode($projected, JSON_THROW_ON_ERROR)),
-            json_encode($schema, JSON_THROW_ON_ERROR),
+            json_encode(JsonSchemaExporter::objects($schema), JSON_THROW_ON_ERROR),
         );
 
         $error = $result->error();

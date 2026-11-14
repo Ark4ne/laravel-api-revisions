@@ -15,9 +15,14 @@ use Illuminate\Http\Request;
  */
 final readonly class QueryResolver implements RevisionResolver
 {
+    /**
+     * The query parameter read when the `name` option is not set.
+     */
+    public const string DEFAULT_NAME = 'revision';
+
     public function __construct(
         private RevisionsConfig $config,
-        private string $name = 'revision',
+        private string $name = self::DEFAULT_NAME,
     ) {}
 
     public function resolve(Request $request): ?Revision

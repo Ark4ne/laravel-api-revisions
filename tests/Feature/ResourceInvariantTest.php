@@ -24,6 +24,7 @@ use Test\Fixtures\Resources\BrokenResource;
 use Test\Fixtures\Resources\CustomerResource;
 use Test\Fixtures\Resources\InvertedResource;
 use Test\Fixtures\Resources\NativeResource;
+use Test\Fixtures\Resources\NoteResource;
 use Test\Fixtures\Resources\OrderResource;
 use Test\Fixtures\Resources\PlainOrderResource;
 use Test\Fixtures\Resources\ReachingResource;
@@ -38,7 +39,7 @@ final class ResourceInvariantTest extends FeatureTestCase
 {
     /**
      * Native conditions and plain values render keys out of the shape by design (model.md D61); a broken declaration
-     * does not compile.
+     * does not compile; an empty rendering misses its shape on purpose (the contract test rejects it).
      */
     private const array EXCLUDED = [
         NativeResource::class,
@@ -46,6 +47,7 @@ final class ResourceInvariantTest extends FeatureTestCase
         WrapperResource::class,
         BrokenResource::class,
         InvertedResource::class,
+        NoteResource::class,
     ];
 
     protected function setUp(): void

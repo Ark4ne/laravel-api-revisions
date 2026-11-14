@@ -415,4 +415,41 @@ final class JsonSchemaExporterTest extends TestCase
             'from' => Schema::string()->was(ApiRevision::Winter25, schema: $street()),
         ], ApiRevision::Winter25);
     }
+
+    public function test_a_closed_export_refuses_other_properties_of_every_declared_object(): void
+    {
+        CheckedDeclaration::$describe = static fn(): array => [
+            'to' => Address::schema(),
+            'box' => Schema::object([])->nullable(),
+            'money' => new MoneySchema(),
+            'customer' => Schema::resource(CustomerDeclaration::class),
+            'was' => Schema::object(['a' => Schema::object([])])->was(ApiRevision::Spring26, schema: Schema::object(['b' => Schema::object([])])),
+        ];
+        $closed = (new JsonSchemaExporter(new Shapes(), closed: true))->export(CheckedDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26);
+        $open = (new JsonSchemaExporter(new Shapes()))->export(CheckedDeclaration::class, DeclarationKind::Response, ApiRevision::Spring26);
+
+        self::assertFalse(self::dig($closed, 'additionalProperties'));
+        self::assertSame(['type' => ['object', 'null'], 'additionalProperties' => false], self::dig($closed, 'properties', 'box'));
+        self::assertFalse(self::dig($closed, '$defs', 'Address', 'additionalProperties'));
+        self::assertFalse(self::dig($closed, '$defs', 'Test.Fixtures.Declarations.CustomerDeclaration', 'additionalProperties'));
+        self::assertSame(['type' => 'object', 'additionalProperties' => false], self::dig($closed, 'properties', 'was', 'properties', 'b'));
+        self::assertFalse(self::dig($closed, 'properties', 'was', 'additionalProperties'));
+        $money = self::dig($closed, '$defs', 'money');
+        self::assertIsArray($money);
+        self::assertArrayNotHasKey('additionalProperties', $money);
+        self::assertStringNotContainsString('additionalProperties', json_encode($open, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_an_empty_schema_is_encoded_as_an_object_and_a_list_keyword_as_a_list(): void
+    {
+        self::assertSame(
+            '{"type":"object","properties":{"any":{},"tags":{"type":"array","items":{}},"code":{"enum":[]}},"required":["any"],"anyOf":[{},{"type":"null"}]}',
+            json_encode(JsonSchemaExporter::objects([
+                'type' => 'object',
+                'properties' => ['any' => [], 'tags' => ['type' => 'array', 'items' => []], 'code' => ['enum' => []]],
+                'required' => ['any'],
+                'anyOf' => [[], ['type' => 'null']],
+            ]), JSON_THROW_ON_ERROR),
+        );
+    }
 }
