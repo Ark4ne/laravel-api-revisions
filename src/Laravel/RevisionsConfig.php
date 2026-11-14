@@ -12,6 +12,7 @@ use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\PathResolver;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
+use Ark4ne\ApiRevisions\Revisions\Unrevisioned;
 use ReflectionClass;
 
 /**
@@ -31,6 +32,8 @@ final readonly class RevisionsConfig
      * @param list<string> $discoveryClasses
      * @param non-empty-string $cachePath
      * @param non-empty-string $lockPath
+     * @param bool $revisioned whether the application configured its enum: `false` for the implicit `Unrevisioned`
+     *                         (model.md D80), invisible to clients
      */
     private function __construct(
         public string $enum,
@@ -42,18 +45,21 @@ final readonly class RevisionsConfig
         public array $discoveryClasses,
         public string $cachePath,
         public string $lockPath,
+        public bool $revisioned = true,
     ) {}
 
     /**
      * The configuration, every key checked: a missing key takes the default of `config/revisions.php` (relative paths,
-     * no discovery path), but `enum`; a wrong one throws `ConfigurationException`.
+     * no discovery path); a wrong one throws `ConfigurationException`. Without `enum`, the implicit `Unrevisioned`
+     * and no resolver (model.md D80).
      *
      * @param array<array-key, mixed> $config the `revisions` configuration
      * @param bool $debug `app.debug`: the value errors are strict when `strict_values` is `null`
      */
     public static function fromArray(array $config, bool $debug = false): self
     {
-        $enum = self::enum($config['enum'] ?? null);
+        $revisioned = ($config['enum'] ?? null) !== null;
+        $enum = $revisioned ? self::enum($config['enum']) : Unrevisioned::class;
         $strict = $config['strict_values'] ?? null;
         if ($strict !== null && !is_bool($strict)) {
             throw ConfigurationException::invalidValue('strict_values', 'a bool or null', get_debug_type($strict));
@@ -74,8 +80,8 @@ final readonly class RevisionsConfig
 
         return new self(
             $enum,
-            self::resolvers($resolvers),
-            self::default($enum, $config['default'] ?? 'latest'),
+            $revisioned ? self::resolvers($resolvers) : [],
+            $revisioned ? self::default($enum, $config['default'] ?? 'latest') : self::unrevisionedDefault($config['default'] ?? 'latest'),
             self::header(self::string($config, 'response_header', 'Api-Revision')),
             new Configuration(
                 self::string($config, 'date_format', 'Y-m-d'),
@@ -87,6 +93,7 @@ final readonly class RevisionsConfig
             self::strings($discovery, 'classes'),
             self::string($config, 'cache_path', 'bootstrap/cache/revisions.php'),
             self::string($config, 'lock_path', 'revisions.lock'),
+            $revisioned,
         );
     }
 
@@ -106,6 +113,9 @@ final readonly class RevisionsConfig
      */
     public function pathParameter(): string
     {
+        if (!$this->revisioned) {
+            throw ConfigurationException::pathModeWithoutEnum();
+        }
         foreach ($this->resolvers as [$class, $options]) {
             if ($class === PathResolver::class) {
                 $parameter = $options['parameter'] ?? 'revision';
@@ -164,6 +174,18 @@ final readonly class RevisionsConfig
         }
 
         throw ConfigurationException::invalidValue('default', "'latest', 'oldest', a backed value of {$enum} or a resolver class", is_string($default) ? $default : get_debug_type($default));
+    }
+
+    /**
+     * The default without configured enum (model.md D80): `latest` or `oldest`, the one implicit revision either way.
+     */
+    private static function unrevisionedDefault(mixed $default): Revision
+    {
+        if ($default !== 'latest' && $default !== 'oldest') {
+            throw ConfigurationException::invalidValue('default', "'latest' or 'oldest' (no revision enum configured)", is_string($default) ? $default : get_debug_type($default));
+        }
+
+        return Unrevisioned::Head;
     }
 
     /**

@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Documentation: the README (install, the enum, a resource, a request, resolution, check and lock in CI, retiring a
   revision, outside HTTP, testing) and the guide `docs/guide.md`, covering every feature.
+- Without configured enum (`revisions.enum` left `null`), the library works on the implicit one-case
+  `Revisions\Unrevisioned` (`head`): resources render, requests validate and every command succeeds, with no history;
+  the `revision` middleware resolves nothing and adds no revision header, a queued job captures no revision,
+  `revision:changelog` has no change to list (as for any one-case enum without `--from` / `--to`), `revision:lock`
+  locks nothing, a job captured earlier runs in the head. A `default` other than `latest` / `oldest` without enum is
+  refused; `Route::revisioned()` and `withRevision()` throw, naming the missing enum.
 - A class implementing `Schema\Revisioned` itself, without the Laravel traits, is a supported path (compiled, cached,
   checked, locked, exported); `Revisioned::describeRevisioned()` is no longer `@internal`, and may build the
   declaration on the implementer's own stand-in instead of the `Probe`.

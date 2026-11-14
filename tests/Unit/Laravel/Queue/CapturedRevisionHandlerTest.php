@@ -25,6 +25,13 @@ final class CapturedRevisionHandlerTest extends TestCase
         );
     }
 
+    public function test_a_job_marked_without_revision_to_capture_adds_nothing(): void
+    {
+        $payload = ['job' => CallQueuedHandler::class . '@call', 'data' => ['command' => new CapturingJob()]];
+
+        self::assertSame([], CapturedRevisionHandler::capture($payload, static fn(): null => null));
+    }
+
     public function test_a_job_not_marked_adds_nothing(): void
     {
         $payload = ['job' => CallQueuedHandler::class . '@call', 'data' => ['command' => new PlainJob()]];

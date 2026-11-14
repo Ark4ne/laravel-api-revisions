@@ -56,6 +56,9 @@ trait InteractsWithRevisions
     {
         $app = $this->revisionsApplication('withRevision()');
         $config = $app->make(RevisionsConfig::class);
+        if (!$config->revisioned) {
+            throw new LogicException('withRevision() sends a revision the API reads: set revisions.enum to the revision enum of the API first.');
+        }
         $value = (string) $revision->value;
         foreach ($config->resolvers as [$class, $options]) {
             if ($class === HeaderResolver::class) {

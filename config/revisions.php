@@ -9,7 +9,8 @@ declare(strict_types=1);
 return [
     /*
      * The revision enum of the API: a backed enum implementing Ark4ne\ApiRevisions\Revisions\Revision (with the
-     * IsRevision trait), its cases ordered by its order() method. Required.
+     * IsRevision trait), its cases ordered by its order() method. Left null, the library works on one implicit revision
+     * (Ark4ne\ApiRevisions\Revisions\Unrevisioned): no history, no revision header, no resolver run.
      */
     'enum' => null,
 
@@ -27,7 +28,7 @@ return [
     /*
      * The revision when no resolver gives one: 'latest' (the head), 'oldest', a backed value of the enum, or a
      * resolver class. Outside a request (jobs, console), a fixed revision is the current one; a resolver class gives
-     * the head (model.md D31).
+     * the head (model.md D31). Without enum, only 'latest' or 'oldest' (both the implicit revision).
      */
     'default' => 'latest',
 

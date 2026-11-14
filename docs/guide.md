@@ -523,7 +523,7 @@ parameters:
 
 | Key | Default | Role |
 | --- | --- | --- |
-| `enum` | `null` | your revision enum (required) |
+| `enum` | `null` | your revision enum; left `null`, the library works on one implicit revision (`Revisions\Unrevisioned`, `head`): no history, no revision header, nothing locked |
 | `resolvers` | header `Api-Revision` | the chain resolving the revision of a request |
 | `default` | `'latest'` | the revision when no resolver answers: `latest`, `oldest`, a backed value, a resolver class |
 | `response_header` | `'Api-Revision'` | the header naming the revision of a response |

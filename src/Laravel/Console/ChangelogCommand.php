@@ -36,6 +36,12 @@ final class ChangelogCommand extends Command
     public function handle(RevisionsConfig $config, Configuration $configuration, ClassFinder $finder): int
     {
         $order = $config->enum::order();
+        if (count($order) === 1 && $this->option('from') === null && $this->option('to') === null) {
+            // one revision (an enum of one case, or none configured, D80): there is no change to list
+            $this->components->info('One revision only: no change to list.');
+
+            return self::SUCCESS;
+        }
         $from = $this->revision($order, 'from', RevisionOrder::oldest($config->enum));
         $to = $this->revision($order, 'to', RevisionOrder::latest($config->enum));
         if ($from === null || $to === null) {

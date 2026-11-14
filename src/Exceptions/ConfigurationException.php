@@ -39,6 +39,14 @@ final class ConfigurationException extends InvalidArgumentException implements R
     }
 
     /**
+     * `Route::revisioned()` declared while no revision enum is configured (model.md D80): there is no revision to read.
+     */
+    public static function pathModeWithoutEnum(): self
+    {
+        return new self('Route::revisioned() reads the revision from the path: set revisions.enum to the revision enum of the API first.');
+    }
+
+    /**
      * `Route::revisioned()` declared while `revisions.resolvers` holds no `PathResolver` (the path would never be read).
      */
     public static function pathModeWithoutResolver(): self

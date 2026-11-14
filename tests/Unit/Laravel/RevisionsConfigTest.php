@@ -9,6 +9,7 @@ use Ark4ne\ApiRevisions\Exceptions\ConfigurationException;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\HeaderResolver;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\PathResolver;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
+use Ark4ne\ApiRevisions\Revisions\Unrevisioned;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Test\Fixtures\ApiRevision;
@@ -25,7 +26,6 @@ final class RevisionsConfigTest extends TestCase
      */
     public static function notRevisionEnums(): iterable
     {
-        yield 'missing' => [null];
         yield 'not a string' => [12];
         yield 'not a class' => ['App\Missing'];
         yield 'a class' => [stdClass::class];
@@ -39,6 +39,41 @@ final class RevisionsConfigTest extends TestCase
         $this->expectExceptionMessage('revisions.enum must be a backed enum implementing Ark4ne\ApiRevisions\Revisions\Revision');
 
         RevisionsConfig::fromArray(['enum' => $enum]);
+    }
+
+    public function test_a_missing_enum_selects_the_implicit_revision(): void
+    {
+        $config = RevisionsConfig::fromArray(['resolvers' => [HeaderResolver::class => []]]);
+
+        self::assertSame(Unrevisioned::class, $config->enum);
+        self::assertFalse($config->revisioned);
+        self::assertSame([], $config->resolvers);
+        self::assertSame(Unrevisioned::Head, $config->default);
+        self::assertSame(Unrevisioned::Head, RevisionsConfig::fromArray(['enum' => null, 'default' => 'oldest'])->default);
+    }
+
+    public function test_a_configured_enum_is_revisioned(): void
+    {
+        self::assertTrue(RevisionsConfig::fromArray(['enum' => ApiRevision::class])->revisioned);
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function defaultsWithoutEnum(): iterable
+    {
+        yield 'the backed value of the implicit revision' => ['head'];
+        yield 'a resolver class' => [HeaderResolver::class];
+        yield 'not a string' => [3];
+    }
+
+    #[DataProvider('defaultsWithoutEnum')]
+    public function test_a_default_but_latest_or_oldest_without_enum_is_refused(mixed $default): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("revisions.default must be 'latest' or 'oldest' (no revision enum configured)");
+
+        RevisionsConfig::fromArray(['default' => $default]);
     }
 
     public function test_a_complete_configuration_is_read(): void

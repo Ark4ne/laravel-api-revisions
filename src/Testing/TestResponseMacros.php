@@ -10,6 +10,7 @@ use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Laravel\Http\Resolvers\RevisionValue;
 use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Testing\TestResponse;
@@ -45,6 +46,10 @@ final class TestResponseMacros
     public static function assert(Application $app, TestResponse $response, string $class, ?Revision $revision = null): void
     {
         $config = $app->make(RevisionsConfig::class);
+        if ($revision === null && !$config->revisioned) {
+            // no enum configured (D80): no revision header, the one implicit revision
+            $revision = RevisionOrder::latest($config->enum);
+        }
         if ($revision === null) {
             try {
                 $revision = RevisionValue::parse($config->enum, $response->headers->get($config->responseHeader));

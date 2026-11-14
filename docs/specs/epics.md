@@ -1532,7 +1532,23 @@ Infection is not installed: not run.
 #### US 12.2 — Inert without configuration · S · depends 11.2
 
 - With `revisions.enum` left `null`, the provider registers, `optimize` succeeds (`revision:cache` writes nothing), and
-  no command or binding throws until a revision is actually used (R5).
+  no command or binding throws until a revision is actually used (R5). Decided as an implicit one-case revision
+  (D80): `revision:cache` compiles its shapes.
+
+**Done.** `Revisions\Unrevisioned` (`Head = 'head'`, its `Revision` methods written out: the package uses no trait)
+is the enum of `RevisionsConfig` without `revisions.enum`; `RevisionsConfig::$revisioned` (`false` then) keeps the
+library invisible: no resolver, `ResolveRevision` passes through (no revision, `Vary`, `Deprecation` or `Sunset`
+header, a header sent ignored), the queue payload hook captures nothing (`CapturedRevisionHandler::capture()` takes a
+`?Revision` callback, still read for marked jobs only) and a job captured earlier runs in the head, `revision:lock`
+locks nothing, `revision:changelog` reports one revision; only `latest` / `oldest` as `default`; `Route::revisioned()`
+(`ConfigurationException::pathModeWithoutEnum()`) and `withRevision()` name the missing enum;
+`assertMatchesRevisionSchema()` uses the head. Fixtures `tests/Fixtures/Unrevisioned/` (`PostResource`,
+`StorePostRequest`, `PostJob`); `tests/Feature/UnrevisionedApplicationTest.php` (render, validate, testing helpers,
+queue through a database worker, a job captured before the enum was removed, `optimize`, every command). Review
+fixes: the restricted `default`, the cache deviation recorded in D80, the testing helpers and path mode, the captured
+job, `lock --revision`, the vacuous lock assertion, the changelog output asserted, the schema of the fixture checked,
+`Unrevisioned` in `SkillTest`. Deviation from the story text: `revision:cache` writes the shapes of the one revision
+(D80) rather than nothing. Infection is not installed: not run.
 
 #### US 12.3 — Class lifetime · M · depends 12.1
 
@@ -1772,7 +1788,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 11.2 | Agent skill | M | 11.1 | M4 | done |
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |
 | US 12.1 | `Revisioned` without the Laravel traits | S | 11.2 | M4 | done |
-| US 12.2 | Inert without configuration | S | 11.2 | M4 | todo |
+| US 12.2 | Inert without configuration | S | 11.2 | M4 | done |
 | US 12.3 | Class lifetime | M | 12.1 | M4 | todo |
 | US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | todo |
 | US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | todo |

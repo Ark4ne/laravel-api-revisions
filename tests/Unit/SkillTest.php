@@ -20,6 +20,7 @@ use Ark4ne\ApiRevisions\Laravel\RevisionsConfig;
 use Ark4ne\ApiRevisions\Projection\Projector;
 use Ark4ne\ApiRevisions\Revisions\IsRevision;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Revisions\Unrevisioned;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\DeclaresConversions;
 use Ark4ne\ApiRevisions\Schema\DescribesSchema;
@@ -79,6 +80,7 @@ final class SkillTest extends TestCase
         Shapes::class,
         Projector::class,
         ResolveRevision::class,
+        Unrevisioned::class,
         RevisionsConfig::class,
     ];
 

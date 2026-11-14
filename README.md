@@ -24,7 +24,8 @@ composer require ark4ne/laravel-api-revisions
 php artisan vendor:publish --tag=revisions-config
 ```
 
-The service provider is auto-discovered. Set `enum` in `config/revisions.php` to your revision enum (below).
+The service provider is auto-discovered. Set `enum` in `config/revisions.php` to your revision enum (below). Until
+you do, the library works on one implicit revision and stays invisible to clients (no revision header).
 
 ## The revision enum
 

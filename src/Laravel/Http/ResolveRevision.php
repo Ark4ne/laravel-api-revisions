@@ -43,6 +43,10 @@ final readonly class ResolveRevision
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (!$this->config->revisioned) {
+            // no enum configured (D80): the implicit revision, invisible to clients
+            return $next($request);
+        }
         try {
             $revision = $this->chain->resolve($request);
         } catch (UnknownRevisionException $unknown) {

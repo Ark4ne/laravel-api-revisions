@@ -162,10 +162,12 @@ final class RevisionsServiceProvider extends ServiceProvider
         // a payload hook is static, it outlives the application booting it: it reads the container of the dispatch
         Queue::createPayloadUsing(static fn(?string $connection, ?string $queue, array $payload): array => CapturedRevisionHandler::capture(
             $payload,
-            static function (): Revision {
+            static function (): ?Revision {
                 $app = ContainerInstance::getInstance();
+                $config = $app->make(RevisionsConfig::class);
 
-                return $app->make(RevisionScope::class)->current($app->make(RevisionsConfig::class)->enum);
+                // no enum configured (D80): there is no revision to capture
+                return $config->revisioned ? $app->make(RevisionScope::class)->current($config->enum) : null;
             },
         ));
         $this->publishes([self::CONFIG => $this->app->configPath('revisions.php')], 'revisions-config');

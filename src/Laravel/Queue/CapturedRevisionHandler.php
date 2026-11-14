@@ -39,10 +39,11 @@ final readonly class CapturedRevisionHandler
     /**
      * The entries a payload hook adds to the payload of `$payload['data']['command']`: none unless it is a job marked
      * `CapturesRevision` handled by Laravel's `CallQueuedHandler`; else the backed value of the revision `$current`
-     * gives (called only then: a job not marked never reads the configuration) and this handler.
+     * gives (called only then: a job not marked never reads the configuration) and this handler; none either when it
+     * gives `null` (no enum configured, model.md D80).
      *
      * @param array<array-key, mixed> $payload
-     * @param Closure(): Revision $current
+     * @param Closure(): ?Revision $current
      *
      * @return array<string, mixed>
      */
@@ -55,7 +56,9 @@ final readonly class CapturedRevisionHandler
             return [];
         }
 
-        return [self::KEY => $current()->value, 'job' => self::class . '@call'];
+        $revision = $current();
+
+        return $revision === null ? [] : [self::KEY => $revision->value, 'job' => self::class . '@call'];
     }
 
     /**
@@ -63,11 +66,13 @@ final readonly class CapturedRevisionHandler
      *
      * @param array<array-key, mixed> $data
      *
-     * @throws UnknownRevisionException when the stored revision is no longer a case of the enum
+     * @throws UnknownRevisionException when the stored revision is no longer a case of the enum (never without enum
+     *                                   configured: the job runs in the implicit revision, model.md D80)
      */
     public function call(Job $job, array $data): void
     {
-        $revision = RevisionValue::parse($this->config->enum, $job->payload()[self::KEY] ?? null);
+        // no enum configured any more (D80): a revision captured before runs in the one implicit revision
+        $revision = $this->config->revisioned ? RevisionValue::parse($this->config->enum, $job->payload()[self::KEY] ?? null) : null;
         if ($revision === null) {
             $this->handler->call($job, $data);
 

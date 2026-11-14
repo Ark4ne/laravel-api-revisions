@@ -183,7 +183,7 @@ Errors fail `revision:check`; warnings do not.
 
 | Key | Default | Role |
 | --- | --- | --- |
-| `enum` | `null` | the revision enum (required) |
+| `enum` | `null` | the revision enum; `null`: the implicit one-case `Ark4ne\ApiRevisions\Revisions\Unrevisioned` (`head`), no history, no revision header |
 | `resolvers` | `HeaderResolver` (`Api-Revision`) | the chain, `class => options` |
 | `default` | `'latest'` | no resolver answered: `latest`, `oldest`, a backed value, a resolver class |
 | `response_header` | `'Api-Revision'` | the header naming the revision of a response |

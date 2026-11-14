@@ -51,7 +51,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | --- | --- | --- |
 | Support | `src/Support/` | Building blocks without internal dependency: `Undefined`, `Memo`, `Invoke`, `Floats`, `Json`, `Diagnostics`, `Diagnostic`, `Severity` |
 | Configuration | `src/Configuration/` | `Configuration`: typed, validated, readonly options of the core (date formats, `missingDefault`, `strictValues`) |
-| Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context) |
+| Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context), `Unrevisioned` (the implicit revision without configured enum) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
 | Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `EagerSchema` (a plain value wrapped by a bridge) |
@@ -350,6 +350,11 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
 
 ## 10. Laravel bridge
 
+- **Without configured enum** (`model.md` D80): `RevisionsConfig` holds `Revisions\Unrevisioned` and
+  `$revisioned = false`; every component reading the request side of a revision checks that flag (the middleware passes
+  through, the payload hook captures nothing, the captured-job handler ignores a stored revision, `revision:lock`
+  locks nothing, path mode and `withRevision()` throw): the compilation, projection, upgrade and commands run unchanged
+  on the one revision.
 - `Laravel\RevisionsServiceProvider`: configuration, `RevisionScope` provider, `scoped` binding, commands, route
   macro, resolvers, middleware alias. Since US 8.1: `config/revisions.php` merged and publishable (tag
   `revisions-config`); `Laravel\RevisionsConfig::fromArray($config, $debug)` (`final readonly`) validates every key

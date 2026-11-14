@@ -36,6 +36,12 @@ final class LockCommand extends Command
 
     public function handle(RevisionsConfig $config, Configuration $configuration, ClassFinder $finder, Lock $lock): int
     {
+        if (!$config->revisioned) {
+            // no enum configured (D80): the one implicit revision is the head, never locked
+            $this->components->info('No revision enum configured: nothing to lock.');
+
+            return self::SUCCESS;
+        }
         $order = $config->enum::order();
         $revision = $this->option('revision');
         if (is_string($revision)) {
