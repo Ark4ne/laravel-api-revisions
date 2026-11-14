@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Documentation: the README (install, the enum, a resource, a request, resolution, check and lock in CI, retiring a
+  revision, outside HTTP, testing) and the guide `docs/guide.md`, covering every feature.
 - Package skeleton: `Ark4ne\ApiRevisions\Laravel\RevisionsServiceProvider`, auto-discovered by Laravel.
 - Revisions: the `Revisions\Revision` contract and the `Revisions\IsRevision` trait for an application's revision enum
   (`isBefore()`, `isAfter()`, `isAtLeast()`, `isAtMost()`, `previous()`, `next()`, `latest()`, `oldest()`), ordered by

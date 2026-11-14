@@ -1464,6 +1464,18 @@ own test class, as the other ones.
 
 - README: install, the enum, a resource, a request, resolution, check / lock in CI, retiring a revision, outside HTTP.
 
+**Done** (2026-11-14): `README.md` rewritten (install, the enum, a resource, a request — read the head from
+`validated()` / `safe()`, never `input()` —, resolution, check and lock in CI, retiring a revision, outside HTTP,
+testing, the PHPStan map of custom types, Octane `warm` and `optimize`) and `docs/guide.md` added (every feature: the
+vocabulary, sources and conditions, history, conversions, responses and the core projector, requests, resolution and
+path mode, outside HTTP, the check codes, the lock, export, components and changelog, retiring a revision, testing,
+custom types, performance and Octane, the configuration). Every snippet and claim reviewed against the code. Review:
+the webhook snippet missed `$account` in its `use`; the lock wording said the published head is locked (the head stays
+free); the README's resource example now gives `down:` on its string → float step, so it raises no `conversion-lossy`
+warning. Deviations: a guide beside the README, which stays a short tour linking to it; the snippets are not executed
+by a test (the tested recipes are US 11.2). Follow-up: Q20 (`model.md` §5 says every scalar pair converts
+automatically, the code registers no float ↔ bool).
+
 #### US 11.2 — Agent skill · M · depends US 11.1
 
 - `skills/laravel-api-revisions/` (`SKILL.md` with the rules that prevent most mistakes, `reference.md`, `recipes.md`
@@ -1587,6 +1599,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Q17 | A `was()` newer than the field's `until` (F10) is dead: the field no longer exists from `until->next()`, and a `was(until)` describes the last revision it exists in, so only a `was()` **newer than** the `until` is dead. Proposed: a check code `history-after-until` (error, mirror of `history-before-since`) in model.md §9 and §4.4 rule 3. Confirm | US 3.3 | **Decided** (2026-11-11): D43 |
 | Q18 | Exceptions thrown by a user `up:` closure (US 4.2). Today only a `ConversionException` (raised by the library's converters) becomes a validation error on the client's key (US 8.7); any other exception from a closure bubbles up as a 500. Leaning towards letting a closure reject an input for its revision, either with a public `ConversionException::invalid($message)` or with an exception **contract** (an interface the Laravel layer catches) that an application exception may implement: compare both when US 8.7 starts | US 4.2 | **Decided** (2026-11-12): `ConversionException::invalid($message)`; the upgrader wraps a rejected value in `InvalidInputException`, a validation error on the client's key; `missing()` and any other exception stay 500 (D63) |
 | Q19 | `Vary` of custom resolvers (US 8.3). The middleware varies on the headers of the `HeaderResolver`s only; a custom resolver reading another header (an account pinned by `Authorization`, a tenant header) leaves its `Vary` to the application (a request with `Authorization` is not stored by a shared cache unless allowed, RFC 9111 §3.5). Proposed: an optional contract (`VariesOn::headers(): list<string>`) a resolver implements and the chain collects | US 8.3 | **Decided** (2026-11-12): as proposed (D59) |
+| Q20 | Scalar pairs without automatic conversion (US 11.1 review). `model.md` §5 says a change between scalars converts automatically "in both directions", but `Converters` registers no float ↔ bool, so such a `was()` gets `conversion-missing`: propose — amend §5 to list the automatic pairs exactly (float ↔ bool needs a closure), or register them (lossy-capable) | US 11.1 review | Open |
 
 ---
 
@@ -1665,6 +1678,6 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 10.3 | Changelog | M | 10.1 | M4 | done |
 | US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | done |
 | US 10.5 | `revision:prune` | S | 9.2 | M4 | done |
-| US 11.1 | README and guide | S | M3 | M4 | todo |
+| US 11.1 | README and guide | S | M3 | M4 | done |
 | US 11.2 | Agent skill | M | 11.1 | M4 | todo |
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |
