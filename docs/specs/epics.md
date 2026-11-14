@@ -1482,6 +1482,25 @@ automatically, the code registers no float ↔ bool).
   with tested examples); `tests/Unit/SkillTest` checks that the reference names every public entry point.
 - Spike M0 findings to address: F13 (§3.1).
 
+**Done.** `skills/laravel-api-revisions/` (shipped with the package): `SKILL.md` (13 rules: the inclusive writing
+rule, appending and locking a revision, lazy sources, the closure signature, what `down:` / `up:` receive (F13), no
+source on a `was()`, reading `validated()`, `default:` on a late required field, descriptor conditions, rendering
+inside `using()`, the check and the lock; a workflow), `reference.md` (every entry point) and `recipes.md` (11 tasks).
+`tests/Unit/SkillTest.php` derives the entry points from the code (helpers of `Schema` / `Cast` / `TypeRegistry`,
+modifiers returning `static` or `self`, the methods of the contracts an application implements, of its traits and of
+`Converters`, each command option on its command's row, every configuration key, the contracts, exceptions and
+resolvers by full name; `@internal` methods exempt); every PHP snippet of the recipes is checked against the tested
+file it names. The recipes live in `tests/Fixtures/Recipes/` (an enum, models, resources, a request, a controller, a
+pinned-account resolver, a webhook service, a queued job, the config keys) and run in `tests/Feature/RecipesTest.php`
+(renders at each revision, upgrades, error keys, pinned revision, webhook now and queued through a real worker after
+`using()` returned, a clean check, the schema assertions). README "Coding agents" section; architecture.md §17, §19.
+Review fixes: dates keep their time, the lock is run after appending the case (before, it locks nothing), modifiers
+returning `self` derived, the custom-conversion API documented (`Converters`, `Direction`, `Converter`), the queued
+webhook asserted after the worker ran, the `withRevision()` and `upgrade()` wordings, `missing_default`, plain values
+typed `any`, the resolver recipe as config. Deviations: a snippet may be dedented (lines compared trimmed); method
+names are matched anywhere in the reference, not per owner (options are per command). Infection is not installed:
+not run. F13 addressed.
+
 #### US 11.3 — Release 1.0.0 · S · depends all
 
 - `CHANGELOG.md` `[1.0.0]`; benchmark reference; the tag is the maintainer's.
@@ -1547,7 +1566,7 @@ Findings carried into the stories (the stories cite them):
 | F10 | Model gaps: `until(X)` fields dropped after the hook of step `X → next` (not written in §7.1); a group `until()` widens a member's earlier `until()` silently; a `was()` newer than the field's `until` is not a rule; a `was(schema:)` carrying its own history or default is not refused | 3.2 (Q7), 3.3, 7.1, 9.2 |
 | F11 | Value errors: `normalize()` must report through the `ValueErrorHandler` with class, field, revision; a non-nullable `null` is not reported; `$subject->{$key} ?? null` calls `__isset()` and hides Eloquent strict-mode errors §6.2 wants visible | 6.1, 6.4 (addressed: US 6.1 reads without `isset()`, US 6.4 reports a non-nullable `null` with class, field, revision) |
 | F12 | Tests to add: round trip (down then up gives the head value back: 1250 → 12.5 → 1250), upgrades from every revision, an `until` field the hook does not consume, `mixedRevisions` / `invalidOrder` | 1.1, 7.1 (6.3: deferred to 7.1) |
-| F13 | Author trap: a `down:` closure receives the PHP value of the newer shape (`OrderStatus $s`, not `string`). Show it in the examples and the skill | 11.2 |
+| F13 | Author trap: a `down:` closure receives the PHP value of the newer shape (`OrderStatus $s`, not `string`). Show it in the examples and the skill | 11.2 (addressed: SKILL.md rule 6, a tested recipe) |
 
 ---
 
@@ -1679,5 +1698,5 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 10.4 | Testing helpers | M | 10.1, 8.3 | M4 | done |
 | US 10.5 | `revision:prune` | S | 9.2 | M4 | done |
 | US 11.1 | README and guide | S | M3 | M4 | done |
-| US 11.2 | Agent skill | M | 11.1 | M4 | todo |
+| US 11.2 | Agent skill | M | 11.1 | M4 | done |
 | US 11.3 | Release 1.0.0 | S | all | M4 | todo |

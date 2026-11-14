@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Documentation: the README (install, the enum, a resource, a request, resolution, check and lock in CI, retiring a
   revision, outside HTTP, testing) and the guide `docs/guide.md`, covering every feature.
+- Agent skill `skills/laravel-api-revisions/`, shipped with the package: `SKILL.md` (the rules that prevent most
+  mistakes, such as the writing rule of the bounds and the value a `down:` closure receives), `reference.md` (every
+  public entry point) and `recipes.md` (tested examples of the common tasks).
 - Package skeleton: `Ark4ne\ApiRevisions\Laravel\RevisionsServiceProvider`, auto-discovered by Laravel.
 - Revisions: the `Revisions\Revision` contract and the `Revisions\IsRevision` trait for an application's revision enum
   (`isBefore()`, `isAfter()`, `isAtLeast()`, `isAtMost()`, `previous()`, `next()`, `latest()`, `oldest()`), ordered by

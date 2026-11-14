@@ -231,6 +231,16 @@ parameters:
 Octane, add `Ark4ne\ApiRevisions\Laravel\RevisionsConfig` and `Ark4ne\ApiRevisions\Compilation\Shapes` to `warm`
 in `config/octane.php`, so they are built once per worker.
 
+## Coding agents
+
+The package ships an agent skill: the rules that prevent most mistakes, a reference of every entry point and tested
+recipes. Link it where your agent finds skills, for instance for Claude Code:
+
+```bash
+mkdir -p .claude/skills
+ln -s ../../vendor/ark4ne/laravel-api-revisions/skills/laravel-api-revisions .claude/skills/laravel-api-revisions
+```
+
 ## License
 
 MIT.

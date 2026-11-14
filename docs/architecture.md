@@ -566,6 +566,13 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 - `tests/Unit/Projection/ProjectionInvariantTest.php` tests the model, not one class: every response declaration of
   `tests/Fixtures/Declarations/` (found by scanning it, deliberately broken ones listed as excluded) projected at every
   revision gives the shape's names, recursively.
+- **Agent skill** (`skills/laravel-api-revisions/`, shipped with the package): `tests/Unit/SkillTest.php` derives the
+  public entry points from the code (the helpers of `Schema`, `Cast` and `TypeRegistry`, the modifiers returning
+  `static`, the methods of `Revision` and of the application traits, the commands and their options, the
+  configuration keys, the contracts, exceptions and resolvers by full name) and fails until `reference.md` names a new
+  one; `@internal` methods are exempt. Every PHP snippet of `recipes.md` is preceded by `<!-- tested: <path under
+  tests/> -->` and must appear in that file (namespace `Test\Fixtures\Recipes\` read as `App\`, indentation free);
+  the fixtures of `tests/Fixtures/Recipes/` run in `tests/Feature/RecipesTest.php`.
 - Arrange / Act / Assert; test names are sentences (`test_a_renamed_field_keeps_its_old_name_up_to_its_revision`).
 - **Workflow:** contract (signatures and PHPDoc, neutral bodies) → red tests → implementation. Never implement
   behaviour that has no test yet.
@@ -600,6 +607,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | PHPStan max + Larastan + strict rules + phpstan-phpunit | Types, dead code, comparisons, Laravel API |
 | `phpat` (`tests/Architecture/ArchitectureTest.php`) | Dependency rule, `Exceptions` on `Support` only, pure core (no `Illuminate` left of `Laravel`), `final` classes, abstract only for base classes, no package class using a trait, interface names |
 | `tests/Unit/Architecture/DeclaredTraitsTest.php` | Only the listed traits are declared in `src/` (phpat cannot see a trait declaration) |
+| `tests/Unit/SkillTest.php` | The agent skill names every public entry point; its recipes are taken from tested files |
 | `spaze/phpstan-disallowed-calls` | Facades, global helpers, `Illuminate\Support` helpers (`collect()`, `data_get()`, `value()`…) and `Container::getInstance()` outside `Laravel/` (phpat does not see functions); debug output everywhere |
 | PHP-CS-Fixer (PER-CS) | Style, `declare(strict_types=1)` |
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
