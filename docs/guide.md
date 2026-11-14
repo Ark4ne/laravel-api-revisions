@@ -512,6 +512,12 @@ final class MoneySchema extends Descriptor
 A type implementing `Schema\DeclaresConversions` registers its own conversions (to and from a float, for instance).
 It is exported once as a component.
 
+A type whose fragment varies by instance while its values stay the same (a relationship naming its related type, for
+instance) declares it with `$converters->identity('relation')` in `conversions()`. A `was(schema:)` that only changes
+its fragment then needs no conversion (no `conversion-missing`), and the change still shows in the export, the lock
+and the changelog. Such a type is exported in place, not as a component, so two instances in one revision never
+conflict.
+
 PHPStan does not know `Schema::money()` by itself. The package's `extension.neon` (included by
 `phpstan/extension-installer`, or by hand with `includes: [vendor/ark4ne/laravel-api-revisions/extension.neon]`) types
 it once each registered name is mapped to its class:

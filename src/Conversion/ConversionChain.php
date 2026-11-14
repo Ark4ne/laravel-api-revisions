@@ -36,9 +36,9 @@ final readonly class ConversionChain
      * Appends the step from `$from` to `$to`, the types of two consecutive shapes in the direction of the chain. With
      * an explicit converter (`$explicit`: the `was()` at `$change` declares `down:` / `up:` for this direction) the
      * step is explicit, whatever the types. Otherwise two types holding the same values add no step (same kind, enum
-     * class, custom name and fragment, items and children: constraints, formats and documentation never convert a
-     * value); else the
-     * registry's converter, or a missing step when it has none.
+     * class, custom name and fragment, or any fragment of a name `Converters::identity()` declares, D82, items and
+     * children: constraints, formats and documentation never convert a value); else the registry's converter, or a
+     * missing step when it has none.
      *
      * @param int $change the index of the `was()` in its history, newest first
      */
@@ -47,7 +47,7 @@ final readonly class ConversionChain
         $key = Converters::keyOf($from, $to, $this->direction);
         if ($explicit) {
             $step = new ConversionStep(StepKind::Explicit, $key, $from, $to, $change);
-        } elseif (self::holdSameValues($from, $to)) {
+        } elseif (self::holdSameValues($from, $to, $converters)) {
             return $this;
         } else {
             $kind = $converters->find($from, $to, $this->direction) === null ? StepKind::Missing : StepKind::Registered;
@@ -134,20 +134,21 @@ final readonly class ConversionChain
      * the same items and the same children (by key, in any order). Constraints, formats and documentation are left
      * out: they validate or serialize a value, never convert it (a date stays a `DateTimeImmutable`).
      */
-    private static function holdSameValues(TypeDefinition $a, TypeDefinition $b): bool
+    private static function holdSameValues(TypeDefinition $a, TypeDefinition $b, Converters $converters): bool
     {
-        if ($a->kind !== $b->kind || $a->enum !== $b->enum || $a->name !== $b->name || $a->fragment !== $b->fragment
+        $fragments = $a->fragment === $b->fragment || ($a->name !== null && $converters->isIdentity($a->name));
+        if ($a->kind !== $b->kind || $a->enum !== $b->enum || $a->name !== $b->name || !$fragments
             || $a->resource !== $b->resource) {
             return false;
         }
         if ($a->items !== null || $b->items !== null) {
-            return $a->items !== null && $b->items !== null && self::holdSameValues($a->items, $b->items);
+            return $a->items !== null && $b->items !== null && self::holdSameValues($a->items, $b->items, $converters);
         }
         if (count($a->children) !== count($b->children)) {
             return false;
         }
         foreach ($a->children as $key => $child) {
-            if (!isset($b->children[$key]) || !self::holdSameValues($child, $b->children[$key])) {
+            if (!isset($b->children[$key]) || !self::holdSameValues($child, $b->children[$key], $converters)) {
                 return false;
             }
         }

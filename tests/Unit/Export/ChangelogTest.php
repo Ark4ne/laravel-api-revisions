@@ -11,12 +11,14 @@ use Ark4ne\ApiRevisions\Export\ChangeKind;
 use Ark4ne\ApiRevisions\Export\Changelog;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Closure;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Declarations\PodcastDeclaration;
+use Test\Fixtures\RelationSchema;
 use Test\TestCase;
 
 final class ChangelogTest extends TestCase
@@ -70,6 +72,15 @@ final class ChangelogTest extends TestCase
         } finally {
             CheckedDeclaration::reset();
         }
+    }
+
+    public function test_another_fragment_of_a_custom_type_declaring_its_identity_is_a_type_change(): void
+    {
+        TypeRegistry::register('relation', RelationSchema::class);
+
+        self::assertSame([ChangeKind::TypeChanged], array_map(static fn(Change $change): ChangeKind => $change->kind, self::changes(static fn(): array => [
+            'buyer' => (new RelationSchema('customers'))->was(ApiRevision::Winter25, schema: new RelationSchema('buyers')),
+        ], ApiRevision::Spring26)));
     }
 
     public function test_the_oldest_revision_changes_nothing(): void

@@ -36,6 +36,11 @@ final class Converters
     private array $factories = [];
 
     /**
+     * @var array<string, true> the custom types whose values do not depend on their fragment, by name
+     */
+    private array $identities = [];
+
+    /**
      * The built-in conversions of model.md §5 (D25, D40, D41), in both directions.
      */
     public static function builtIn(): self
@@ -85,6 +90,30 @@ final class Converters
         $clone->factories[self::key($from, $to, $direction)] = $factory;
 
         return $clone;
+    }
+
+    /**
+     * Declares that the values of the custom type `$name` do not depend on its fragment (model.md D82): two types of
+     * that name differing only by their fragment plan no conversion step, in both directions. An empty name throws
+     * `DefinitionException::invalidConversionSide()`.
+     */
+    public function identity(string $name): self
+    {
+        if ($name === '') {
+            throw DefinitionException::invalidConversionSide('');
+        }
+        $clone = clone $this;
+        $clone->identities[$name] = true;
+
+        return $clone;
+    }
+
+    /**
+     * Whether `identity($name)` was declared.
+     */
+    public function isIdentity(string $name): bool
+    {
+        return isset($this->identities[$name]);
     }
 
     /**

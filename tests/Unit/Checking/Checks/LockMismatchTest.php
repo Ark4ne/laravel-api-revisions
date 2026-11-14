@@ -10,10 +10,12 @@ use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Exceptions\LockException;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 use Test\Fixtures\Declarations\CountingDeclaration;
 use Test\Fixtures\Declarations\PodcastDeclaration;
+use Test\Fixtures\RelationSchema;
 use Test\TestCase;
 
 final class LockMismatchTest extends TestCase
@@ -149,6 +151,19 @@ final class LockMismatchTest extends TestCase
         $this->lockRevisions([self::CHECKED, PodcastDeclaration::class], ApiRevision::Genesis, ApiRevision::Winter25, ApiRevision::Spring26);
 
         self::assertSame([], self::runCheck(new LockMismatch($this->lock()), [self::CHECKED, PodcastDeclaration::class]));
+    }
+
+    public function test_another_fragment_of_a_custom_type_declaring_its_identity_changes_the_lock(): void
+    {
+        TypeRegistry::register('relation', RelationSchema::class);
+        CheckedDeclaration::$describe = static fn(): array => ['buyer' => new RelationSchema('customers')];
+        $this->lockRevisions([self::CHECKED], ApiRevision::Genesis);
+        CheckedDeclaration::$describe = static fn(): array => ['buyer' => (new RelationSchema('customers'))->was(ApiRevision::Spring26, schema: new RelationSchema('buyers'))];
+
+        self::assertSame(
+            [['lock-mismatch', self::CHECKED, 'buyer', 'genesis', "'buyer' (response) differs from the locked revision genesis: lock genesis again if it is intended."]],
+            self::runCheck(new LockMismatch($this->lock()), [self::CHECKED]),
+        );
     }
 
     public function test_a_locked_class_no_longer_discovered_is_reported_on_the_enum(): void

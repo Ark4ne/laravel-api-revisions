@@ -21,6 +21,7 @@ use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Enums\Priority;
 use Test\Fixtures\MoneySchema;
+use Test\Fixtures\RelationSchema;
 use Test\TestCase;
 
 final class ConversionChainTest extends TestCase
@@ -231,6 +232,27 @@ final class ConversionChainTest extends TestCase
         self::assertSame($kind, $chain->steps[0]->kind);
         self::assertSame($from, $chain->steps[0]->from);
         self::assertSame($to, $chain->steps[0]->to);
+    }
+
+    public function test_another_fragment_of_a_custom_type_declaring_its_identity_adds_no_step(): void
+    {
+        $converters = RelationSchema::conversions(Converters::builtIn());
+        $customer = (new RelationSchema('customers'))->toType();
+        $buyer = (new RelationSchema('buyers'))->toType();
+
+        foreach (Direction::cases() as $direction) {
+            self::assertTrue(ConversionChain::empty($direction)->withStep($customer, $buyer, 0, false, $converters)->isEmpty());
+        }
+        self::assertSame(StepKind::Missing, ConversionChain::empty(Direction::Down)->withStep($customer, $buyer, 0, false, Converters::builtIn())->steps[0]->kind);
+        self::assertSame(StepKind::Explicit, ConversionChain::empty(Direction::Down)->withStep($customer, $buyer, 0, true, $converters)->steps[0]->kind);
+        self::assertSame(StepKind::Missing, ConversionChain::empty(Direction::Down)->withStep($customer, TypeDefinition::custom('money'), 0, false, $converters)->steps[0]->kind);
+    }
+
+    public function test_the_identity_of_fragments_holds_inside_lists(): void
+    {
+        $converters = RelationSchema::conversions(Converters::builtIn());
+
+        self::assertTrue(ConversionChain::empty(Direction::Up)->withStep(Schema::list(new RelationSchema('customers'))->toType(), Schema::list(new RelationSchema('buyers'))->toType(), 0, false, $converters)->isEmpty());
     }
 
     public function test_a_bound_chain_serializes_as_its_planned_form(): void

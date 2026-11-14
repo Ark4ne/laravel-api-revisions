@@ -1577,6 +1577,17 @@ guide). Infection is not installed: not run.
   conversion step when the type declares it (`DeclaresConversions`) and gets no `conversion-missing`; the fragment
   change still shows in the lock, the export and the changelog (R4).
 
+**Done.** `Conversion\Converters::identity($name)` / `isIdentity()` (D82, decided with the maintainer): declared in a
+type's `DeclaresConversions::conversions()`, it makes `ConversionChain::withStep()` plan no step between two fragments
+of that name (through items and children too; an explicit `down:` / `up:` still a step), so no `conversion-missing`;
+the change stays in the export, the lock and the changelog. Added with the maintainer (amends D70): such a type is
+exported in place, not as a `$defs` component, so two fragments in one revision make no `component-conflict`; the
+exporter asks `Compilation\Shapes::converters()` (new). Fixture `tests/Fixtures/RelationSchema.php`. Tests in
+`ConvertersTest`, `ConversionChainTest`, `ConversionMissingTest`, `ComponentConflictTest`, `ProjectorTest`,
+`ChangelogTest`, `JsonSchemaExporterTest`, `LockMismatchTest`, `ShapesTest`; `RunsChecks::check()` now resets
+`CheckedDeclaration` (a leaked `$kinds` broke a later test). Deviation: the in-place export, beyond the story text.
+Infection is not installed: not run.
+
 #### US 12.5 — Checks contributed by a consumer · S · depends 11.2
 
 - A package registers `Checking\Check`s (a container tag or a configuration key) run by `revision:check` and
@@ -1805,7 +1816,7 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.1 | `Revisioned` without the Laravel traits | S | 11.2 | M4 | done |
 | US 12.2 | Inert without configuration | S | 11.2 | M4 | done |
 | US 12.3 | Class lifetime | M | 12.1 | M4 | done |
-| US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | todo |
+| US 12.4 | Custom types with identity conversion | S | 11.2 | M4 | done |
 | US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | todo |
 | US 12.6 | Export as a public contract | S | 12.3 | M4 | todo |
 | US 12.7 | Cheap shape lookup | S | 11.2 | M4 | todo |

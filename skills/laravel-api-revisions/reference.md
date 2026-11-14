@@ -235,7 +235,10 @@ The schema assertions need `opis/json-schema` (dev).
   MoneyToFloat())` (one call per pair and direction).
 - `Ark4ne\ApiRevisions\Conversion\Converters`, the immutable registry: `register(Kind|string $from, Kind|string $to,
   Direction $direction, Closure $factory)` returns a copy with the factory of the pair (a side is a `Kind` or the name
-  of a custom type; the factory may return `null` to decline); `static builtIn()` (the built-in pairs),
+  of a custom type; the factory may return `null` to decline); `identity(string $name)` returns a copy declaring that
+  the values of the custom type `$name` do not depend on its fragment (a `was(schema:)` of another fragment plans no
+  conversion, and the type is exported in place, not as a component), `isIdentity(string $name)` reads it;
+  `static builtIn()` (the built-in pairs),
   `find(TypeDefinition $from, TypeDefinition $to, Direction $direction)`, `static key()` and `static keyOf()` (the
   serializable key of a pair) are used by the compiler.
 - `Ark4ne\ApiRevisions\Definition\Direction`: `Down` (responses), `Up` (requests).

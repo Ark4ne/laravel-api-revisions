@@ -17,6 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `revision:changelog` has no change to list (as for any one-case enum without `--from` / `--to`), `revision:lock`
   locks nothing, a job captured earlier runs in the head. A `default` other than `latest` / `oldest` without enum is
   refused; `Route::revisioned()` and `withRevision()` throw, naming the missing enum.
+- `Conversion\Converters::identity(string $name)` (and `isIdentity()`): a custom type declares, in its
+  `DeclaresConversions::conversions()`, that its values do not depend on its fragment. A `was(schema:)` changing only
+  its fragment then plans no conversion step (no `conversion-missing`), still shown in the export, the lock and the
+  changelog; such a type is exported in place rather than as a `$defs` component, so two of its fragments in one
+  revision never conflict. `Compilation\Shapes::converters()` gives the registry the shapes are planned against.
 - Class lifetime: a `Revisioned` class implementing `Schema\HasLifetime` (`static revisionedLifetime(): Lifetime`,
   with the new `Lifetime::since(R)` / `Lifetime::until(R)`) exists only in those revisions; `Schema\ClassLifetime::exists()`
   tells whether it exists at a revision. Compiling it elsewhere throws `DefinitionException::classAbsent()`. The

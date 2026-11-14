@@ -8,6 +8,7 @@ use Ark4ne\ApiRevisions\Compilation\CompiledShapes;
 use Ark4ne\ApiRevisions\Compilation\Compiler;
 use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Configuration\Configuration;
+use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use RuntimeException;
 use Test\Fixtures\ApiRevision;
@@ -92,6 +93,13 @@ final class ShapesTest extends TestCase
 
         self::assertSame('Y-m-d H:i', $shape->fields['placed_at']->type->format);
         self::assertEquals((new Compiler(new Configuration(dateTimeFormat: 'Y-m-d H:i')))->compile(OrderDeclaration::class, DeclarationKind::Response, ApiRevision::Atlas), $shape);
+    }
+
+    public function test_its_registry_is_the_one_of_its_compiler(): void
+    {
+        $converters = Converters::builtIn()->identity('relation');
+
+        self::assertSame($converters, (new Shapes(new Compiler(converters: $converters)))->converters());
     }
 
     public function test_two_repositories_never_share_a_shape(): void

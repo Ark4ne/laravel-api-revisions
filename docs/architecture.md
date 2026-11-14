@@ -200,7 +200,9 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
   `was()` declares the direction: always a step), `Registered` (a registry key) or `Missing` (recorded, thrown by
   `apply()` only). Two types holding the same values (kind, enum class, custom name, items and children by key) add no
   step: constraints, formats and documentation never convert a value; a custom type compares its fragment too (spike
-  F7). `bind(Converters, $explicit)`
+  F7), unless the registry declares its name an identity (`Converters::identity()`, `model.md` D82: its fragments
+  vary by instance, its values do not; the exporter, through `Shapes::converters()`, then writes it in place instead
+  of a component). `bind(Converters, $explicit)`
   re-finds the registered converters by their types and takes the explicit ones by `was` index (an array, not a
   `History`: `Conversion` sits left of `Schema`). Every step keeps its `was` index. `apply()` runs the whole chain
   (down side); the upgrader runs an up chain step by step (`stepOf()`), normalizing the value to each shape and passing
@@ -444,7 +446,9 @@ Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Component
   so the shape of another class would leave a dangling `$ref`); the exporter reads the
   `Shape` only (fields at `R`, their presence and nullability; children and items from the field definitions where the
   head is in force, from the type at `R` where a `was()` schema is), never a descriptor; nested resources resolved
-  through its `Shapes` into a flat `$defs` (same kind, same revision). `typeKeywords()` gives the keywords of a type
+  through its `Shapes` into a flat `$defs` (same kind, same revision). One answer comes from outside the `Shape`: whether
+  a custom type declares its identity (`Shapes::converters()->isIdentity()`, D82), written then in place instead of a
+  component; a `revision:cache` is rebuilt when the registry changes, as for any planned conversion. `typeKeywords()` gives the keywords of a type
   before its rule keywords, read by the check `schema-override`. `Export\DatePattern` (`@internal`) derives the
   `pattern` of a numeric PHP date format, `Export\RegexPattern` (`@internal`) the ECMA `pattern` of a PCRE (D68).
   Exported by `revision:export` (`Laravel\Console\ExportCommand`).
@@ -452,7 +456,8 @@ Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Component
   then filled, components defined at first use; another body under a name, or a component named as a nested resource,
   throws `componentConflict()` naming the field: its head key path from the top level, or from the referencing field
   inside a nested resource, the names at `R` below a `was()` schema). The exporter
-  threads it and that path through its walk; a component (`TypeDefinition::$component`, or a custom type's `$name`)
+  threads it and that path through its walk; a component (`TypeDefinition::$component`, or a custom type's `$name`,
+  unless it declares its identity, D82)
   is defined with its typed keywords and replaced by its `$ref`, only inside a document (`typeKeywords()` stays
   inline). Since US 10.4 (D72): `closed: true` adds `additionalProperties: false` to every declared object (the test
   assertions); `JsonSchemaExporter::objects()` turns a document into objects for `json_encode()` (an empty schema is

@@ -7,8 +7,10 @@ namespace Test\Unit\Checking\Checks;
 use Ark4ne\ApiRevisions\Checking\Checks\ComponentConflict;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Test\Fixtures\Address;
 use Test\Fixtures\ApiRevision;
+use Test\Fixtures\RelationSchema;
 use Test\TestCase;
 
 final class ComponentConflictTest extends TestCase
@@ -48,6 +50,16 @@ final class ComponentConflictTest extends TestCase
             'to' => Address::schema(),
             'from' => Address::schema()->nullable(),
             'stops' => Schema::list(Address::schema()),
+        ]));
+    }
+
+    public function test_two_fragments_of_a_custom_type_declaring_its_identity_report_nothing(): void
+    {
+        TypeRegistry::register('relation', RelationSchema::class);
+
+        self::assertSame([], self::check(new ComponentConflict(), static fn(): array => [
+            'customer' => new RelationSchema('customers'),
+            'product' => new RelationSchema('products'),
         ]));
     }
 

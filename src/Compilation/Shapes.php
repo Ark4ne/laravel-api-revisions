@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ark4ne\ApiRevisions\Compilation;
 
+use Ark4ne\ApiRevisions\Conversion\Converters;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 
@@ -39,6 +40,14 @@ final class Shapes
         $key = CompiledShapes::key($class, $kind, $revision);
 
         return $this->shapes[$key] ??= $this->compiled->get($class, $kind, $revision) ?? $this->compiler->compile($class, $kind, $revision);
+    }
+
+    /**
+     * The registry the shapes are planned against (`Compiler::converters()`).
+     */
+    public function converters(): Converters
+    {
+        return $this->compiler->converters();
     }
 
     /**

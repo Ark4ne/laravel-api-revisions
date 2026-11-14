@@ -251,6 +251,23 @@ final class ConvertersTest extends TestCase
         self::assertNull($registry->find(TypeDefinition::custom('euro'), $float, Direction::Down));
     }
 
+    public function test_a_custom_type_declares_the_identity_of_its_fragments(): void
+    {
+        $registry = new Converters();
+        $identity = $registry->identity('relation');
+
+        self::assertFalse($registry->isIdentity('relation'));
+        self::assertTrue($identity->isIdentity('relation'));
+        self::assertFalse($identity->isIdentity('money'));
+    }
+
+    public function test_the_identity_of_an_empty_name_is_refused(): void
+    {
+        $this->expectExceptionObject(DefinitionException::invalidConversionSide(''));
+
+        (new Converters())->identity('');
+    }
+
     public function test_the_custom_kind_without_name_is_refused(): void
     {
         $this->expectExceptionObject(DefinitionException::invalidConversionSide('custom'));

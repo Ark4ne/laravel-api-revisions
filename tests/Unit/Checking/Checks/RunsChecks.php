@@ -41,7 +41,12 @@ trait RunsChecks
             }
         };
         $found = [];
-        foreach ((new Checker(ApiRevision::class, $finder, [$check], $compiler))->run() as $diagnostic) {
+        try {
+            $diagnostics = (new Checker(ApiRevision::class, $finder, [$check], $compiler))->run();
+        } finally {
+            CheckedDeclaration::reset();
+        }
+        foreach ($diagnostics as $diagnostic) {
             self::assertSame(CheckedDeclaration::class, $diagnostic->class);
             $found[] = [$diagnostic->code, $diagnostic->severity->value, $diagnostic->field, $diagnostic->revision, $diagnostic->message];
         }

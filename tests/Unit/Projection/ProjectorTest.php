@@ -19,6 +19,7 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use ArrayObject;
 use DateTimeImmutable;
 use LogicException;
@@ -29,6 +30,7 @@ use Test\Fixtures\Declarations\CountingDeclaration;
 use Test\Fixtures\Declarations\CustomerDeclaration;
 use Test\Fixtures\Declarations\OrderDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
+use Test\Fixtures\RelationSchema;
 use Test\TestCase;
 
 final class ProjectorTest extends TestCase
@@ -185,6 +187,18 @@ final class ProjectorTest extends TestCase
             self::assertSame(['total' => null], self::project($head, $revision, ['total' => null]));
         }
         self::assertFalse($called);
+    }
+
+    public function test_a_custom_type_declaring_its_identity_keeps_its_value_across_fragments(): void
+    {
+        TypeRegistry::register('relation', RelationSchema::class);
+        $head = ['buyer' => (new RelationSchema('customers'))->was(ApiRevision::Winter25, schema: new RelationSchema('buyers'))];
+        $subject = ['buyer' => ['type' => 'customers', 'id' => '7']];
+
+        $shape = ShapeSelector::at($head, ApiRevision::Genesis, Direction::Down, TypeRegistry::converters());
+
+        self::assertSame([], array_values($shape->fields)[0]->chain->steps);
+        self::assertSame(['buyer' => ['type' => 'customers', 'id' => '7']], (new Projector())->project($shape, $head, $subject));
     }
 
     public function test_a_failing_condition_omits_the_field(): void

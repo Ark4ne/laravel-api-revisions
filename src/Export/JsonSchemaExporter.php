@@ -17,7 +17,8 @@ use DateTimeInterface;
 /**
  * The JSON Schema (draft 2020-12) of a declaring class for one declaration kind at one revision (model.md §11, D67):
  * read from its `Shape` only, so the export, the projection, the validation and the lock agree by construction. Nested
- * resources go to `$defs`, read from the same `Shapes`.
+ * resources go to `$defs`, read from the same `Shapes`; whether a custom type is written in place rather than as a
+ * component is asked of their registry (`Shapes::converters()`, D82).
  *
  * @implements SchemaVisitor<array<string, mixed>>
  */
@@ -197,8 +198,15 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
             Kind::Custom => $type->fragment,
             Kind::Any => [],
         };
-        $component = $type->kind === Kind::Custom ? $type->name : ($type->resource === null ? $type->component : null);
-        if ($component === null || $root === null) {
+        if ($root === null) {
+            return $keywords;
+        }
+        $component = match (true) {
+            // the fragments of a custom type declaring its identity vary by instance: written in place (D82)
+            $type->kind === Kind::Custom => $type->name !== null && $this->shapes->converters()->isIdentity($type->name) ? null : $type->name,
+            default => $type->resource === null ? $type->component : null,
+        };
+        if ($component === null) {
             return $keywords;
         }
         $components->define($component, $keywords, $path);

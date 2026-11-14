@@ -12,6 +12,7 @@ use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Schema\Schema;
+use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Closure;
 use DateTimeInterface;
 use Test\Fixtures\Address;
@@ -23,6 +24,7 @@ use Test\Fixtures\Declarations\ShippingDeclaration;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Enums\Priority;
 use Test\Fixtures\MoneySchema;
+use Test\Fixtures\RelationSchema;
 use Test\Fixtures\Rules\PostcodeRule;
 use Test\TestCase;
 
@@ -414,6 +416,25 @@ final class JsonSchemaExporterTest extends TestCase
             'to' => $street(),
             'from' => Schema::string()->was(ApiRevision::Winter25, schema: $street()),
         ], ApiRevision::Winter25);
+    }
+
+    public function test_a_custom_type_declaring_its_identity_is_exported_in_place(): void
+    {
+        TypeRegistry::register('relation', RelationSchema::class);
+        $describe = static fn(): array => [
+            'buyer' => (new RelationSchema('customers'))->was(ApiRevision::Winter25, schema: new RelationSchema('buyers')),
+            'product' => new RelationSchema('products'),
+            'price' => new MoneySchema(),
+        ];
+        $head = self::export($describe, ApiRevision::Spring26);
+        $old = self::export($describe, ApiRevision::Winter25);
+
+        self::assertSame(['const' => 'customers'], self::dig($head, 'properties', 'buyer', 'properties', 'type'));
+        self::assertSame(['const' => 'products'], self::dig($head, 'properties', 'product', 'properties', 'type'));
+        self::assertSame(['const' => 'buyers'], self::dig($old, 'properties', 'buyer', 'properties', 'type'));
+        $defs = self::dig($head, '$defs');
+        self::assertIsArray($defs);
+        self::assertSame(['money'], array_keys($defs));
     }
 
     public function test_a_closed_export_refuses_other_properties_of_every_declared_object(): void
