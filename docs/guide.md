@@ -598,6 +598,52 @@ parameters:
 
 `Schema::money(...)` then takes the parameters of `MoneySchema`'s constructor and returns a `MoneySchema`.
 
+## Descriptor macros
+
+A package or an application adds its own fluent methods to every descriptor: register a closure under a name at boot,
+then call it like a modifier. The closure receives the descriptor first, then the arguments given, and builds with
+the public modifiers (`when()`, `describe()`…). It must return an instance of the descriptor's class (the modifiers
+do), or the call throws a `DefinitionException`:
+
+```php
+use Ark4ne\ApiRevisions\Schema\Descriptor;
+
+final class FieldMacros
+{
+    /**
+     * @template TDescriptor of Descriptor<mixed>
+     * @param TDescriptor $descriptor
+     * @return TDescriptor
+     */
+    public static function whenInFields(Descriptor $descriptor, string $field): Descriptor
+    {
+        return $descriptor->when(fn (mixed $value, mixed $subject): bool => in_array($field, $subject->fields, true));
+    }
+}
+
+// AppServiceProvider::boot(), with use Ark4ne\ApiRevisions\Schema\DescriptorMacros;
+DescriptorMacros::register('whenInFields', FieldMacros::whenInFields(...));
+
+'notes' => Schema::string()->nullable()->whenInFields('notes'),
+```
+
+A name is a method name `Descriptor` does not declare (`when`, `nullable`… are refused), case-sensitive; a public
+method of the descriptor's own class wins over a macro of the same name (`Schema::string()->min()` stays `StringSchema::min()`).
+Registrations happen at boot and hold no request data, so they are safe under Octane; `DescriptorMacros::flush()`
+exists for tests.
+
+For PHPStan, map each name to the public static method registered (the same `extension.neon`):
+
+```neon
+parameters:
+    apiRevisions:
+        macros:
+            whenInFields: 'App\Schema\FieldMacros::whenInFields'
+```
+
+`->whenInFields(...)` then takes the method's parameters after the descriptor and returns the type it is called on
+(`Schema::string()->whenInFields('notes')` is a `StringSchema`).
+
 ## Performance and Octane
 
 - A shape is compiled once per class and revision. `revision:cache` writes every shape to

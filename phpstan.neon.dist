@@ -14,6 +14,9 @@ parameters:
     apiRevisions:
         types:
             money: Test\Fixtures\MoneySchema
+        macros:
+            whenFlag: 'Test\Fixtures\Macros\FieldMacros::whenFlag'
+            documented: 'Test\Fixtures\Macros\FieldMacros::documented'
     level: max
     paths:
         - src

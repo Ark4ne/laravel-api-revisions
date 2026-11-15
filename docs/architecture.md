@@ -54,7 +54,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context), `Unrevisioned` (the implicit revision without configured enum) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `HasLifetime`, `ClassLifetime` (its one reader, `model.md` D81), `EagerSchema` (a plain value wrapped by a bridge) |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescriptorMacros`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `HasLifetime`, `ClassLifetime` (its one reader, `model.md` D81), `EagerSchema` (a plain value wrapped by a bridge) |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `ProjectionPlan` (`PlannedField`), `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
@@ -62,7 +62,7 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract, `Declarations` (discovered classes with their kinds, D84) |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`, `Resources\RevisionedResourceCollection`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (US 9.3: `assertRevisionsAreConsistent()`, reading the application's `$app`; US 10.4: `withRevision()`, `assertRendersAtEveryRevision()`, `setUpInteractsWithRevisions()` registering the macro), `TestResponseMacros` (`assertMatchesRevisionSchema()`), `RevisionSchema` (validation against the closed export, opis) — model.md D72 |
-| PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`), the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`) and the `TestResponse` macro (`RevisionSchemaAssertionExtension`, reading `Testing\TestResponseMacros::assert()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes`, `TestResponseMacros` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
+| PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`), the descriptor macros (`DescriptorMacrosExtension`, reading the signature of each mapped static method), the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`) and the `TestResponse` macro (`RevisionSchemaAssertionExtension`, reading `Testing\TestResponseMacros::assert()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes`, `TestResponseMacros` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
 
 - A layer depends only on the layers to its left. Checked by `phpat` (`tests/Architecture/ArchitectureTest.php`).
@@ -122,6 +122,7 @@ major version). What a generator (`laravel-openapi-generator`, X2) or another co
 | `Export\Changelog` | `changes(class, kind, revision)`: `list<Change>` (`kind`: `ChangeKind`; `path` at the revision, dotted, `''` for the class itself; `previousPath`; `before` / `after`; `describe()`); `markdown(classes, from, to)` |
 | `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject (US 12.8, D86); `project(shape, descriptors, subject)` |
 | `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
+| `Schema\DescriptorMacros` | `register(name, Closure)`: the closure called `($descriptor, ...$arguments)`, returning an instance of the receiver's class; `has(name)`; served by `Descriptor::__call()`; PHPStan `apiRevisions.macros` (US 12.9, D87) |
 | `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
 
 Only the items of this table are the contract for tools. Anything marked `@internal`, a class (`DatePattern`, `RegexPattern`…) or a member, may change in a minor version.
@@ -130,11 +131,14 @@ Only the items of this table are the contract for tools. Anything marked `@inter
 
 The user vocabulary. Patterns: **Static Factory** (`Schema::…`), **Immutable Fluent Builder** (every modifier returns
 a clone), **Composite** (`ObjectSchema`, `ListSchema`), **Reference** (`ResourceSchema`), **Registry + Macro** (custom
-types).
+types, descriptor macros).
 
 - `Schema` is a `final` class of static factories; its `__callStatic()` serves the macros of the `TypeRegistry`
   (`Schema::money()`).
 - `Descriptor` is the abstract root: source, modifiers, conditions, rules, `History` (lifetime + ordered `Change`s).
+  Its `__call()` serves the macros of `DescriptorMacros` (`model.md` D87): an unbound closure
+  `($descriptor, ...$arguments)` built with the public modifiers, returning an instance of the receiver's class
+  (checked); a public method of the subclass wins over a macro of its name.
   Every concrete descriptor is `final`, except the documented extension base `Descriptor` itself.
 - `Source` is a value object: `Source::key('title')` (dotted paths allowed), `Source::closure($fn)`,
   `Source::declaredKey()`. **Every closure the library calls has one signature, `($value, $subject)`** (`model.md`
@@ -559,6 +563,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 | Extension point | Contract | Registered in |
 | --- | --- | --- |
 | Custom type | `extends Schema\Descriptor` (+ its converters) | `TypeRegistry` (macro on `Schema`) |
+| Descriptor macro | `Closure ($descriptor, ...$arguments)` returning the receiver's class | `DescriptorMacros` (method on every `Descriptor`; PHPStan: `apiRevisions.macros`) |
 | Conversion | `Conversion\Converter` | `Converters` |
 | Export format | `Export\SchemaVisitor` | used directly |
 | Check rule | `Checking\Check` | `Checker::builtIn()`; from a package or an application: the container tag `RevisionsServiceProvider::CHECKS` (`model.md` D83) |
@@ -604,7 +609,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container), the queue payload hook (`Queue::createPayloadUsing`, registered at boot, reading the container of the dispatch; reset by Laravel's test lifecycle), the `assertMatchesRevisionSchema` `TestResponse` macro (registered again by `InteractsWithRevisions::setUpInteractsWithRevisions()` before each test, capturing that test's application) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), `Schema\DescriptorMacros` (descriptor macros registered at boot, no volatile data; `flush()` for tests, `model.md` D87), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container), the queue payload hook (`Queue::createPayloadUsing`, registered at boot, reading the container of the dispatch; reset by Laravel's test lifecycle), the `assertMatchesRevisionSchema` `TestResponse` macro (registered again by `InteractsWithRevisions::setUpInteractsWithRevisions()` before each test, capturing that test's application) |
 | Facades and helpers | Only in `src/Laravel/` (`src/Testing/` resolves from the test case's `$app` only) |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |

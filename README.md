@@ -216,14 +216,18 @@ The schema assertions need `opis/json-schema` (`composer require --dev opis/json
 
 The package ships `extension.neon`, included by `phpstan/extension-installer` (or by hand with
 `includes: [vendor/ark4ne/laravel-api-revisions/extension.neon]`). It types `Route::revisioned()`,
-`assertMatchesRevisionSchema()` and the custom types registered on `Schema` (`TypeRegistry::register('money',
-MoneySchema::class)`, [guide](docs/guide.md#custom-types)), once each name is mapped to its class:
+`assertMatchesRevisionSchema()`, the custom types registered on `Schema` (`TypeRegistry::register('money',
+MoneySchema::class)`, [guide](docs/guide.md#custom-types)) and the descriptor macros
+(`DescriptorMacros::register('whenInFields', FieldMacros::whenInFields(...))`,
+[guide](docs/guide.md#descriptor-macros)), once each name is mapped:
 
 ```neon
 parameters:
     apiRevisions:
         types:
             money: App\Schema\MoneySchema
+        macros:
+            whenInFields: 'App\Schema\FieldMacros::whenInFields'
 ```
 
 ## Octane and caching

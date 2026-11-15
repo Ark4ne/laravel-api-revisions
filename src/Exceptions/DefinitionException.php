@@ -420,4 +420,29 @@ final class DefinitionException extends LogicException implements RevisionsExcep
             field: $field,
         );
     }
+
+    /**
+     * A descriptor macro registered under a name `Descriptor` cannot serve: not a method name, or one of its own
+     * methods (model.md D87).
+     */
+    public static function invalidMacroName(string $name): self
+    {
+        return new self("Invalid macro name '{$name}': a descriptor macro needs a PHP method name that Descriptor does not already declare.");
+    }
+
+    /**
+     * A call to a descriptor macro that is not registered in `Schema\DescriptorMacros`.
+     */
+    public static function unknownMacro(string $name, string $class): self
+    {
+        return new self("Call to undefined method {$class}::{$name}(): register it with DescriptorMacros::register('{$name}', …).");
+    }
+
+    /**
+     * A descriptor macro that does not return an instance of the receiver's class (model.md D87).
+     */
+    public static function invalidMacroResult(string $name, string $class, string $result): self
+    {
+        return new self("The descriptor macro '{$name}' must return an instance of {$class}, got {$result}.");
+    }
 }

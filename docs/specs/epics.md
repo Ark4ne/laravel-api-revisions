@@ -26,8 +26,9 @@ Sizes: **S** ≤ 1 day, **M** 2–3 days, **L** 4–5 days. Story ids are stable
 5. `composer test:coverage` ≥ 90 %; Infection MSI ≥ 80 % on the new classes.
 6. `CHANGELOG.md` updated under `[Unreleased]` for every public change.
 7. `docs/architecture.md` / `model.md` updated when the story adds a rule, a pattern or changes a decision.
-8. No static state outside `Support\Memo`, `RevisionScope::provider()` and `Schema\TypeRegistry` (D42), plus Laravel's
-   registries filled at boot (the `revisioned` router macro, the queue payload hook, US 8.8).
+8. No static state outside `Support\Memo`, `RevisionScope::provider()`, `Schema\TypeRegistry` (D42) and
+   `Schema\DescriptorMacros` (D87), plus Laravel's registries filled at boot (the `revisioned` router macro, the queue
+   payload hook, US 8.8).
 9. §8 updated: status `done`, and a **Done** note under the story (what was built, deviations, follow-ups).
 
 ---
@@ -1657,6 +1658,19 @@ taken. Infection is not installed, not run.
 - A consumer registers fluent methods on `Descriptor` (as `TypeRegistry` does on `Schema`), typed for PHPStan through
   the extension; a macro returns a descriptor built with the public modifiers (R10).
 
+**Done** (US 12.9): `Schema\DescriptorMacros` (`register($name, Closure)`, `has()`, `flush()` for tests, `call()`
+`@internal`), served by `Descriptor::__call()`: the closure is called unbound `($descriptor, ...$arguments)` and must
+return an instance of the receiver's class (`DefinitionException::invalidMacroResult()`); a name `Descriptor` declares
+is refused (`invalidMacroName()`), an unregistered one throws `unknownMacro()`; a public method of the subclass wins.
+PHPStan: `PHPStan\DescriptorMacrosExtension`, configured by `apiRevisions.macros` (name => `Class::method`, a public
+static method whose first, non-variadic parameter takes a descriptor), declares the method's other parameters and
+returns the receiver's type (generics kept). Decided with the maintainer in `model.md` D87 (a dedicated registry, not
+`TypeRegistry` nor `Descriptor::macro()`; the fourth allowed global state, DoD §1.8 updated). Tests:
+`DescriptorMacrosTest`, `DescriptorMacrosExtensionTest`, `tests/Types/DescriptorMacroTypes.php`; fixture
+`tests/Fixtures/Macros/FieldMacros`. Deviations: the template types of a macro method are not resolved in its other
+parameters (PHPStan); a private or protected method of a subclass does not win over a macro (PHP's `__call()`).
+Infection is not installed, not run.
+
 ---
 
 ## 3. Order and milestones
@@ -1861,4 +1875,4 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.6 | Export as a public contract | S | 12.3 | M4 | done |
 | US 12.7 | Cheap shape lookup | S | 11.2 | M4 | done |
 | US 12.8 | Projection plan | L | 12.7 | M4 | done |
-| US 12.9 | Macros on descriptors | M | 11.2 | M4 | todo |
+| US 12.9 | Macros on descriptors | M | 11.2 | M4 | done |

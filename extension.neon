@@ -1,5 +1,6 @@
-# PHPStan extension of ark4ne/laravel-api-revisions: types the custom types served by Schema::__callStatic() and the
-# route macro Route::revisioned() and the TestResponse macro assertMatchesRevisionSchema().
+# PHPStan extension of ark4ne/laravel-api-revisions: types the custom types served by Schema::__callStatic(), the
+# descriptor macros served by Descriptor::__call(), the route macro Route::revisioned() and the TestResponse macro
+# assertMatchesRevisionSchema().
 # Included automatically with phpstan/extension-installer, or by hand:
 #   includes: [vendor/ark4ne/laravel-api-revisions/extension.neon]
 # then map each registered name to its class, as given to TypeRegistry::register():
@@ -7,20 +8,31 @@
 #       apiRevisions:
 #           types:
 #               money: App\Schema\MoneySchema
+# and each descriptor macro to the public static method registered with DescriptorMacros::register():
+#           macros:
+#               whenInFields: 'App\Schema\Macros::whenInFields'
 parametersSchema:
     apiRevisions: structure([
-        types: arrayOf(string())
+        types: arrayOf(string()),
+        macros: arrayOf(string())
     ])
 
 parameters:
     apiRevisions:
         types: []
+        macros: []
 
 services:
     -
         class: Ark4ne\ApiRevisions\PHPStan\CustomTypesExtension
         arguments:
             types: %apiRevisions.types%
+        tags:
+            - phpstan.broker.methodsClassReflectionExtension
+    -
+        class: Ark4ne\ApiRevisions\PHPStan\DescriptorMacrosExtension
+        arguments:
+            macros: %apiRevisions.macros%
         tags:
             - phpstan.broker.methodsClassReflectionExtension
     -

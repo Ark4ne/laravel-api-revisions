@@ -257,6 +257,15 @@ The schema assertions need `opis/json-schema` (dev).
   the export.
 - PHPStan: map each name in `parameters.apiRevisions.types` (`money: App\Schema\MoneySchema`) with the package's
   `extension.neon`.
+- `Ark4ne\ApiRevisions\Schema\DescriptorMacros`: fluent methods added to every descriptor.
+  `DescriptorMacros::register('whenInFields', FieldMacros::whenInFields(...))` at boot, then
+  `Schema::string()->whenInFields('notes')`. The closure is called `($descriptor, ...$arguments)`, unbound, builds
+  with the public modifiers and returns an instance of the descriptor's class (else `DefinitionException`). The name
+  is a method name `Descriptor` does not declare, case-sensitive; a public method of the descriptor's class wins.
+  `DescriptorMacros::has()`, `DescriptorMacros::call()` (`@internal`: what `Descriptor::__call()` runs), `DescriptorMacros::flush()`
+  (tests). PHPStan: map each name in `parameters.apiRevisions.macros` to the static method registered
+  (`whenInFields: 'App\Schema\FieldMacros::whenInFields'`): its parameters after the first, returning the receiver's
+  type.
 
 ## Core without Laravel
 

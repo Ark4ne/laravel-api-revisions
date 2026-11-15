@@ -9,6 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Descriptor macros: `Schema\DescriptorMacros::register($name, Closure)` adds a fluent method to every descriptor,
+  served by `Descriptor::__call()` (`Schema::string()->whenInFields('notes')`). The closure receives the descriptor,
+  then the arguments, and must return an instance of the descriptor's class; a name `Descriptor` declares is refused
+  and a public method of the descriptor's own class wins. New `DefinitionException::invalidMacroName()`, `unknownMacro()`
+  and `invalidMacroResult()`. PHPStan: `apiRevisions.macros` maps each name to its static method
+  (`PHPStan\DescriptorMacrosExtension`), typed with the method's parameters after the descriptor and returning the
+  receiver's type (`model.md` D87).
 - Projection plan: `Projection\Projector::plan(Shape, descriptors, ?keys)` resolves a projection once per render into a
   `Projection\ProjectionPlan`, run per subject (`run($subject)`); `keys` keeps those head keys of the top level
   (a sparse fieldset). `Projector::project()` runs through it.

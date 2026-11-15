@@ -6,3 +6,11 @@ parameters:
         types:
             money: Test\Fixtures\MoneySchema
             missing: Test\Fixtures\Missing
+        macros:
+            whenFlag: 'Test\Fixtures\Macros\FieldMacros::whenFlag'
+            documented: 'Test\Fixtures\Macros\FieldMacros::documented'
+            noClass: 'Test\Fixtures\Missing::whenFlag'
+            noMethod: 'Test\Fixtures\Macros\FieldMacros::missing'
+            instance: 'Test\Fixtures\Macros\FieldMacros::instance'
+            noDescriptor: 'Test\Fixtures\Macros\FieldMacros::noDescriptor'
+            notAMethod: 'Test\Fixtures\Macros\FieldMacros'

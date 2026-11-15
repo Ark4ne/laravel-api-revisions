@@ -80,6 +80,17 @@ abstract class Descriptor
     }
 
     /**
+     * A macro of `DescriptorMacros` (`->whenInFields('title')`), run on this descriptor with the arguments given
+     * (model.md D87); `DefinitionException::unknownMacro()` otherwise.
+     *
+     * @param array<array-key, mixed> $arguments
+     */
+    public function __call(string $name, array $arguments): static
+    {
+        return DescriptorMacros::call($this, $name, $arguments);
+    }
+
+    /**
      * The PHP value of the type from what the source read (model.md §6.3), or the refusal: never throws. `null` never
      * reaches it (the pipeline handles it first); given anyway, it is refused.
      *
