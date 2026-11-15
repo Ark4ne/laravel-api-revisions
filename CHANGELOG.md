@@ -9,6 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Projection plan: `Projection\Projector::plan(Shape, descriptors, ?keys)` resolves a projection once per render into a
+  `Projection\ProjectionPlan`, run per subject (`run($subject)`); `keys` keeps those head keys of the top level
+  (a sparse fieldset). `Projector::project()` runs through it.
+- `RevisionedResource::collection()` returns a `Laravel\Resources\RevisionedResourceCollection`: `toArray()` runs
+  once per render on a template instance and every item goes through one plan (about 4.5 times faster on the
+  benchmark). A resource whose structure depends on its model in plain PHP opts out with
+  `static revisionedPerSubject(): bool` returning `true`; plain values and native conditions keep the per-item path.
 - Benchmark: a `lookup` scenario keeps `Shapes::for()` on a cached class at one array read and one `unserialize()`
   (against the bare `unserialize()` of the same entries).
 - `Checking\Declarations`: the discovered classes with their declaration kinds (`declarations()`), or those existing at
@@ -329,6 +336,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- A descriptor that does not match its shape (missing, or a composite on one side only) throws
+  `DefinitionException::missingDescriptor()` when the projection is planned, even when its value is `null`; it threw
+  only on a non-null value.
 - `CompiledShapes::load()` no longer walks the compiled file: an entry is checked when first read, and an invalid one
   (`null` included) throws `CacheException::invalidFile()` then; a cached shape loads neither its declaring class nor
   a descriptor.

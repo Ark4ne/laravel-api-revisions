@@ -56,11 +56,11 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
 | Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `HasLifetime`, `ClassLifetime` (its one reader, `model.md` D81), `EagerSchema` (a plain value wrapped by a bridge) |
 | Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
-| Projection | `src/Projection/` | `Projector`, `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
+| Projection | `src/Projection/` | `Projector`, `ProjectionPlan` (`PlannedField`), `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
 | Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract, `Declarations` (discovered classes with their kinds, D84) |
-| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
+| Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`, `Resources\RevisionedResourceCollection`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
 | Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (US 9.3: `assertRevisionsAreConsistent()`, reading the application's `$app`; US 10.4: `withRevision()`, `assertRendersAtEveryRevision()`, `setUpInteractsWithRevisions()` registering the macro), `TestResponseMacros` (`assertMatchesRevisionSchema()`), `RevisionSchema` (validation against the closed export, opis) — model.md D72 |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`), the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`) and the `TestResponse` macro (`RevisionSchemaAssertionExtension`, reading `Testing\TestResponseMacros::assert()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes`, `TestResponseMacros` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
@@ -120,6 +120,7 @@ major version). What a generator (`laravel-openapi-generator`, X2) or another co
 | `Export\JsonSchemaExporter` | `export(class, kind, revision)`: one JSON Schema document (draft 2020-12, `$defs` for nested resources and components); `objects()` for `json_encode()` |
 | `revision:export` | `{revision value: {class: {kind value: schema}}}`, only the revisions a class exists in (D81); the schema alone when one revision, one class and one kind remain |
 | `Export\Changelog` | `changes(class, kind, revision)`: `list<Change>` (`kind`: `ChangeKind`; `path` at the revision, dotted, `''` for the class itself; `previousPath`; `before` / `after`; `describe()`); `markdown(classes, from, to)` |
+| `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject (US 12.8, D86); `project(shape, descriptors, subject)` |
 | `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
 | `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
 
@@ -290,7 +291,16 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
 Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the closures), **Adapter** at the edge
 (the consumer places `key → value` where it wants).
 
-- `Projector::project(Shape $shape, array $descriptors, mixed $subject): array<string, mixed>`.
+- `Projector::project(Shape $shape, array $descriptors, mixed $subject): array<string, mixed>` is
+  `plan($shape, $descriptors)->run($subject)`: one pipeline. Since US 12.8 (`model.md` D77, D86),
+  `Projector::plan(Shape, descriptors, ?keys): ProjectionPlan` resolves per field, once per render, what depends only
+  on the shape and the descriptors (`Projection\PlannedField`, `@internal`: presence paths, the source closure or
+  path, the `when()` conditions, the chain bound to its converters, the serializer configured, the nested object and
+  list plans); `ProjectionPlan::run($subject)` runs the pipeline below on each subject (**Interpreter** over the
+  plan). `keys` keeps those head keys of the top level, in the head order. A plan holds the closures of its
+  declaration: built per render, never cached across renders; only the `Shape` is cached per process. A nested
+  resource is planned per value (its `describeRevisioned()` receives its subject). Descriptors missing a field kept
+  throw when planning.
 - Per field, a fixed **Pipeline** (`model.md` §6.5): presence conditions → `SourceReader::read($source, $subject)`
   → `Descriptor::normalize()` → `when()` conditions → `ConversionChain::apply()` (down, with the subject) →
   `Descriptor::serialize()`.
@@ -402,14 +412,21 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   (no exception renderer, nothing reported); the days of `#[Meta]` read in `app.timezone`.
   `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn` (D59). Since US 8.4 (D60):
   it forgets the route parameters of the chain's `PathResolver`s and sets them as URL defaults.
-- `Laravel\Resources\RevisionedResource` (since US 8.5, `model.md` D61) — overrides `JsonResource::resolve()` only:
+- `Laravel\Resources\RevisionedResource` (since US 8.5, `model.md` D61) — overrides `JsonResource::resolve()` and, since US 12.8, `newCollection()`:
   projects the descriptors of `toArray()` with the container's `Projector` (`scoped`: `EloquentSourceReader`, the
   `Shapes`, the `ValueErrorHandler`) on the shape of `current()`, then walks the `filter()`ed `toArray()` to keep its
   order and its plain values / native conditions. Its bridge builds the resource on `DescribeSubject` (a permissive
   **Null Object**, `@internal`) with an empty `Request` at compilation (the shape never depends on the request served;
   a plain value failing there throws `DefinitionException::failedDescribing()`); at a nested render it adds a never-rendered field for each declared key
   missing (the declared keys memoized per class, `Support\Memo`). Its private helpers are prefixed `revisioned` (a
-  trait shares the namespace of the application's class).
+  trait shares the namespace of the application's class). Since US 12.8 (`model.md` D86): `newCollection()` returns a
+  `Laravel\Resources\RevisionedResourceCollection` (`final`, extends `AnonymousResourceCollection`), whose
+  `toArray()` hands its items to `revisionedResolveAll()` (`@internal`): `toArray()` run once on a **template**
+  instance built on the first subject, one `ProjectionPlan`, then the template's `resource` set to each subject before
+  its run, so closures capturing `$this` read the subject rendered. `null` sends the collection back to the per-item
+  `resolve()` (D78): the class opts out (`revisionedPerSubject()`), reports a native condition (memoized per class,
+  `Support\Memo`), or the template's declaration holds a value that is not a descriptor or lacks a key of the
+  shape.
 - `Laravel\Routing\RevisionedRoutes::group()` — the body of the route macro `revisioned`, registered on the `Router` in
   the provider's `boot()` (a macro closure is bound to the router, so it is not static); prefix, enum constraint and
   `revision` middleware.
@@ -660,4 +677,4 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
 | Coverage ≥ 90 % (`bin/coverage-check.php`) | Tested lines |
 | Infection (MSI ≥ 80 %) | Test quality; a change generating no mutant is not measured (`ignoreMsiWithNoMutations`) |
-| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of 1 000 orders at the head and the oldest revision (a `RevisionedResource` resolved per order in a bare container holding the services the provider binds, shapes compiled once; since US 8.5) as **ratios** to a plain `JsonResource`; since US 12.7, the `lookup` scenario (a compiled file of the reference declarations loaded, then every shape read twice through a fresh `Shapes`) as a ratio to the `require` and `unserialize()` of the same entries (class loading is guarded by the fresh-process test of `CompiledShapesTest`, not by the benchmark): scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |
+| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of a collection of 1 000 orders at the head and the oldest revision (a `RevisionedResource` collection in a bare container holding the services the provider binds, shapes compiled once; since US 8.5, one plan per render since US 12.8) as **ratios** to a collection of a plain `JsonResource`; since US 12.7, the `lookup` scenario (a compiled file of the reference declarations loaded, then every shape read twice through a fresh `Shapes`) as a ratio to the `require` and `unserialize()` of the same entries (class loading is guarded by the fresh-process test of `CompiledShapesTest`, not by the benchmark): scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |

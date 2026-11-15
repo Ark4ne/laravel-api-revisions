@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /*
- * The benchmark gate (docs/specs/epics.md US 5.4): renders 1 000 orders of the reference scenario at the head and at
- * the oldest revision through a `RevisionedResource` (US 8.5; a bare container holds the services the provider binds),
- * and with a plain `JsonResource` as baseline. Each projection is
+ * The benchmark gate (docs/specs/epics.md US 5.4): renders a collection of 1 000 orders of the reference scenario at
+ * the head and at the oldest revision through a `RevisionedResource` (US 8.5; one plan per render since US 12.8; a bare
+ * container holds the services the provider binds), and a collection of a plain `JsonResource` as baseline. Each projection is
  * compared with the baseline as a ratio (time and peak memory), so the gate holds on any machine; a ratio beyond the
  * reference by more than its tolerance fails. The `lookup` scenario (US 12.7, model.md D85) loads a compiled file of
  * the reference declarations and reads every shape twice through a fresh `Shapes`, against the `require` and the
@@ -88,44 +88,39 @@ RevisionScope::provider(static fn(): RevisionScope => $scope);
  *
  * @return Closure(): list<array<string, mixed>>
  */
-$project = static fn(array $orders, Revision $revision): Closure => static fn(): array => ApiRevision::using($revision, static function () use ($orders, $request): array {
-    $outputs = [];
-    foreach ($orders as $order) {
-        $outputs[] = (new PlainOrderResource($order))->resolve($request);
-    }
+$project = static fn(array $orders, Revision $revision): Closure => static fn(): array => ApiRevision::using(
+    $revision,
+    static fn(): array => PlainOrderResource::collection($orders)->resolve($request),
+);
 
-    return $outputs;
-});
+/**
+ * The baseline: the same orders written by hand in a plain `JsonResource`, rendered as a collection.
+ */
+final class BaselineOrderResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        $order = $this->resource;
+        assert($order instanceof Order);
+
+        return [
+            'title' => $order->title,
+            'status' => $order->status->value,
+            'total' => $order->total,
+            'placed_at' => $order->placed_at->format('Y-m-d\TH:i:sP'),
+            'delivery' => ['day' => $order->day->format('Y-m-d')],
+            'customer' => ['name' => $order->customer['name'], 'orders' => []],
+            'tags' => $order->tags,
+            'notes' => $order->notes,
+        ];
+    }
+}
 
 $scenarios = [
-    'baseline' => static function () use ($orders, $request): array {
-        $outputs = [];
-        foreach ($orders as $order) {
-            $outputs[] = (new class ($order) extends JsonResource {
-                /**
-                 * @return array<string, mixed>
-                 */
-                public function toArray(Request $request): array
-                {
-                    $order = $this->resource;
-                    assert($order instanceof Order);
-
-                    return [
-                        'title' => $order->title,
-                        'status' => $order->status->value,
-                        'total' => $order->total,
-                        'placed_at' => $order->placed_at->format('Y-m-d\TH:i:sP'),
-                        'delivery' => ['day' => $order->day->format('Y-m-d')],
-                        'customer' => ['name' => $order->customer['name'], 'orders' => []],
-                        'tags' => $order->tags,
-                        'notes' => $order->notes,
-                    ];
-                }
-            })->resolve($request);
-        }
-
-        return $outputs;
-    },
+    'baseline' => static fn(): array => BaselineOrderResource::collection($orders)->resolve($request),
     'head' => $project($orders, ApiRevision::Atlas),
     'oldest' => $project($orders, ApiRevision::Genesis),
 ];

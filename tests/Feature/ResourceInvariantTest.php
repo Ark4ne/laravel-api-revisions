@@ -21,6 +21,7 @@ use Test\Fixtures\Eloquent\Order;
 use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Order as PlainOrder;
 use Test\Fixtures\Resources\BrokenResource;
+use Test\Fixtures\Resources\CountedResource;
 use Test\Fixtures\Resources\CustomerResource;
 use Test\Fixtures\Resources\InvertedResource;
 use Test\Fixtures\Resources\NativeResource;
@@ -62,7 +63,7 @@ final class ResourceInvariantTest extends FeatureTestCase
      */
     public static function fixtures(): iterable
     {
-        foreach ([OrderResource::class, CustomerResource::class, PlainOrderResource::class] as $class) {
+        foreach ([OrderResource::class, CustomerResource::class, PlainOrderResource::class, CountedResource::class] as $class) {
             foreach (ApiRevision::cases() as $revision) {
                 yield "{$class} at {$revision->name}" => [$class, $revision];
             }
@@ -99,6 +100,23 @@ final class ResourceInvariantTest extends FeatureTestCase
     }
 
     /**
+     * US 12.8 (model.md D86): a collection of distinct subjects, rendered through one plan, renders what each item renders
+     * alone (fresh models on each side: a render may load a relation).
+     *
+     * @param class-string<JsonResource> $class
+     */
+    #[DataProvider('fixtures')]
+    public function test_a_collection_renders_what_each_item_renders_for_every_resource_at_every_revision(string $class, Revision $revision): void
+    {
+        $subjects = static fn(): array => [self::subject($class), self::subject($class, 'Desk', 'fragile')];
+
+        $expected = array_map(static fn(mixed $subject): array => ApiRevision::using($revision, static fn(): array => (new $class($subject))->resolve()), $subjects());
+        $rendered = ApiRevision::using($revision, static fn(): array => $class::collection($subjects())->resolve());
+
+        self::assertSame($expected, $rendered);
+    }
+
+    /**
      * @param array<array-key, mixed> $rendered
      */
     private static function assertAgree(Shapes $shapes, Shape $shape, array $rendered, string $path): void
@@ -118,33 +136,33 @@ final class ResourceInvariantTest extends FeatureTestCase
         }
     }
 
-    private static function subject(string $class): mixed
+    private static function subject(string $class, string $title = 'Lamp', ?string $notes = null): mixed
     {
         $order = new Order([
-            'title' => 'Lamp',
+            'title' => $title,
             'status' => OrderStatus::Paid,
             'total_cents' => 1250,
             'placed_at' => '2026-03-01 10:30:00',
             'tags' => ['gift'],
-            'notes' => null,
+            'notes' => $notes,
         ]);
-        $customer = new Customer(['name' => 'Ada Lovelace']);
+        $customer = new Customer(['name' => "Ada {$title}"]);
         $customer->setRelation('orders', new Collection());
         $order->setRelation('customer', $customer);
 
         return match ($class) {
-            OrderResource::class => $order,
+            OrderResource::class, CountedResource::class => $order,
             CustomerResource::class => $customer,
             default => new PlainOrder(
-                'Lamp',
+                $title,
                 OrderStatus::Paid,
                 1250,
                 new DateTimeImmutable('2026-03-01 10:30:00+00:00'),
                 new DateTimeImmutable('2026-03-04'),
                 ['name' => 'Ada Lovelace', 'orders' => []],
                 ['gift'],
-                null,
-                new PlainCustomer('Ada', 'Lovelace'),
+                $notes,
+                new PlainCustomer('Ada', $title),
             ),
         };
     }

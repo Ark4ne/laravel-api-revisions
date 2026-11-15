@@ -216,6 +216,25 @@ final class OrderResource extends JsonResource implements Revisioned
 - Each field is read, normalized to its head type, filtered by `when()`, converted down to the client's revision, then
   serialized once. The output keeps the order of `toArray()`.
 - `with()`, `additional()`, wrapping, collections and pagination work as usual.
+- `OrderResource::collection($orders)` runs `toArray()` **once per render**, on a template instance whose `resource`
+  is set to each order in turn, and renders every order through one projection plan. So `toArray()` must depend on
+  the order only through the closures and `->when()` of its descriptors: closures reading `$this->resource` or the
+  request keep working. A structure decided in plain PHP on the model (an `if` adding a key, a ternary choosing the
+  descriptor, a native `$this->when($condition, Schema::string())`) would apply the first order's choice to all: such a
+  resource opts out, and runs `toArray()` per item. A collection given resources built beforehand renders them through
+  a fresh template: their own instance state is not read.
+
+  ```php
+  public static function revisionedPerSubject(): bool
+  {
+      return true;
+  }
+  ```
+
+  A resource with plain values or native conditions, and a custom `ResourceCollection`, keep the per-item path.
+- A consumer rendering many subjects of one declaration builds a plan itself: `$plan = $projector->plan($shape,
+  $descriptors, ['title', 'total'])` keeps those head keys (a sparse fieldset), then `$plan->run($subject)` per
+  subject. Build a plan per render, never keep it: it holds the closures of that declaration.
 - A plain value (`'x' => $this->x`) is rendered as is in every revision, typed `any`, and reported by the check
   (`eager-value`). A native `$this->when()` or `mergeWhen()` is honoured but invisible to the schema
   (`native-condition`): prefer `->when()` / `->whenLoaded()` on the descriptor.

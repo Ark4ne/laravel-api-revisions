@@ -103,6 +103,14 @@ A `JsonResource` implements `Ark4ne\ApiRevisions\Schema\Revisioned` and uses
 - `resolve($request = null)` renders the current revision; `toResponse()`, collections, `with()`, `additional()` and
   wrapping work as usual.
 - `static declarationKinds()`: `[DeclarationKind::Response]`.
+- `static collection($items)` (through `newCollection()`) returns a
+  `Ark4ne\ApiRevisions\Laravel\Resources\RevisionedResourceCollection`: one render runs `toArray()` once, on a
+  template instance whose `resource` is set to each item, and projects every item through one plan. Under it,
+  `toArray()` depends on the subject only through descriptor closures and `when()`; a class deciding its structure in
+  plain PHP on `$this->resource` (an `if`, a ternary choosing the descriptor, a native `$this->when($c, $descriptor)`)
+  returns `true` from
+  `static revisionedPerSubject(): bool` (default `false`) to run `toArray()` per item. Plain values and native
+  conditions keep the per-item path; a custom `ResourceCollection` too.
 - Without Laravel, a class implementing `Revisioned` is projected by the core (below).
 - A class added or retired implements `Ark4ne\ApiRevisions\Schema\HasLifetime`:
   `static revisionedLifetime(): Lifetime` returns `Lifetime::since(R)`, `Lifetime::until(R)` or `Lifetime::since(A)->withUntil(B)` (inclusive).
@@ -255,6 +263,9 @@ The schema assertions need `opis/json-schema` (dev).
 - `Ark4ne\ApiRevisions\Compilation\Shapes`: `for(string $class, DeclarationKind $kind, Revision $revision)` compiles
   the shape once and memoizes it.
 - `Ark4ne\ApiRevisions\Projection\Projector`: `project(Shape $shape, array $descriptors, mixed $subject)` renders it;
+  `plan(Shape $shape, array $descriptors, ?array $keys = null)` resolves it ahead into a
+  `Ark4ne\ApiRevisions\Projection\ProjectionPlan`, whose `run(mixed $subject)` renders each subject of one render
+  (`$keys`: the head keys of the top level kept, e.g. a sparse fieldset). Build a plan per render, never keep it;
   the descriptors come from `$class::describeRevisioned($kind, $subject)`, which `RevisionedResource` and
   `RevisionedRequest` implement; a class outside Laravel implements it and `declarationKinds()` itself.
 - `Ark4ne\ApiRevisions\Schema\DeclarationKind`: `Response`, `RequestBody`, `RequestQuery`.

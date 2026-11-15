@@ -47,6 +47,26 @@ trait RevisionedResource
     }
 
     /**
+     * Whether a collection of this resource runs `toArray()` per item rather than once per render (model.md D86): `true`
+     * for a `toArray()` whose structure depends on its subject in plain PHP (an `if`, a ternary choosing the
+     * descriptor). `false` by default.
+     */
+    public static function revisionedPerSubject(): bool
+    {
+        return false;
+    }
+
+    /**
+     * A collection of this resource renders its items through one plan (model.md D86).
+     *
+     * @param mixed $resource
+     */
+    protected static function newCollection($resource): RevisionedResourceCollection
+    {
+        return new RevisionedResourceCollection($resource, static::class);
+    }
+
+    /**
      * The descriptors of `toArray()`, the resource built on `$subject`: on a permissive subject at compilation
      * (`DescribeSubject`: plain values and native conditions evaluate on `null`s, the native conditions missing there
      * stay out of the shape), on the subject of a nested resource at projection (a native condition missing there, or a
@@ -100,6 +120,55 @@ trait RevisionedResource
         }
 
         return $keys;
+    }
+
+    /**
+     * The items of a collection of this resource at the current revision, by their keys, through one plan (model.md
+     * D77, D86): `toArray()` run once on a template instance built on the first subject, whose `resource` is then set
+     * to each subject. `null` when the declaration cannot be held by a plan — the class opts out
+     * (`revisionedPerSubject()`), reports a native condition (D65), or the template's declaration holds a plain value or a
+     * native condition or lacks a key of the shape (D78) —: the collection then resolves each item.
+     *
+     * @param array<array-key, static> $items resources of this class
+     *
+     * @return array<array-key, array<array-key, mixed>>|null
+     *
+     * @internal called by `RevisionedResourceCollection`
+     */
+    public static function revisionedResolveAll(array $items, Request $request): ?array
+    {
+        $first = reset($items);
+        if ($first === false || static::revisionedPerSubject() || Memo::remember('revisioned-native:' . static::class, static fn(): array => static::revisionedNativeConditions()) !== []) {
+            return null;
+        }
+        $template = new static($first->resource);
+        $data = $template->revisionedData($request);
+        foreach ($data as $value) {
+            if (!$value instanceof Descriptor) {
+                return null;
+            }
+        }
+        $container = Container::getInstance();
+        $revision = $container->make(RevisionScope::class)->current($container->make(RevisionsConfig::class)->enum);
+        $shape = $container->make(Shapes::class)->for(static::class, DeclarationKind::Response, $revision);
+        $descriptors = [];
+        foreach (array_keys($shape->fields) as $key) {
+            if (!isset($data[$key])) {
+                return null;
+            }
+            $descriptors[$key] = $data[$key];
+        }
+        /** @var array<string, Descriptor<mixed>> $descriptors every value is a descriptor */
+        $plan = $container->make(Projector::class)->plan($shape, $descriptors);
+
+        $rendered = [];
+        foreach ($items as $key => $item) {
+            // the closures of the declaration capture the template: they read the subject being rendered
+            $template->resource = $item->resource;
+            $rendered[$key] = array_map(self::revisionedArrayable(...), $plan->run($item->resource));
+        }
+
+        return $rendered;
     }
 
     /**

@@ -1637,6 +1637,21 @@ not run.
   per-subject path (D78). Outputs identical to the current `Projector` on every fixture; the benchmark reference
   lowered. Starting point: the spike of the `laravel-json-api` study (`spike/projection-plan`, untested).
 
+**Done** (US 12.8): `Projection\ProjectionPlan` (`run($subject)`) built by `Projector::plan(Shape, descriptors,
+?keys)`, its fields `Projection\PlannedField` (`@internal`); `Projector::project()` is `plan()->run()` (one pipeline,
+the old per-subject one removed once a comparison on every fixture at every revision gave identical outputs). Laravel:
+`RevisionedResource::newCollection()` returns `Laravel\Resources\RevisionedResourceCollection`, which renders through
+`revisionedResolveAll()` (`@internal`: `toArray()` once on a template instance, one plan, the template's `resource`
+set per item) and falls back to the per-item `resolve()` (`revisionedPerSubject()` opt-out, native conditions, a
+plain value or a key missing in the template's declaration). Decided in `model.md` D86 (clarifies D77, D78). Tests:
+`ProjectionPlanTest`, `RevisionedResourceCollectionTest`, and the collection invariant of `ResourceInvariantTest`
+(a collection of distinct subjects renders what each item renders, every resource fixture at every revision).
+Benchmark: `head` / `oldest` render collections (the baseline too); reference ×22 → ×4.9 (head), ×21 → ×3.9 (oldest).
+Deviations: the plan is built per render, not cached per process (D86); a nested resource is still declared per value;
+a custom `ResourceCollection` keeps the per-item path; a native `when(condition, descriptor)` met at compilation is
+not detected (documented rule, opt-out). Follow-up: the direct property read of the spike (2.8 µs per item) is not
+taken. Infection is not installed, not run.
+
 #### US 12.9 — Macros on descriptors · M · depends 11.2
 
 - A consumer registers fluent methods on `Descriptor` (as `TypeRegistry` does on `Schema`), typed for PHPStan through
@@ -1845,5 +1860,5 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.5 | Checks contributed by a consumer | S | 11.2 | M4 | done |
 | US 12.6 | Export as a public contract | S | 12.3 | M4 | done |
 | US 12.7 | Cheap shape lookup | S | 11.2 | M4 | done |
-| US 12.8 | Projection plan | L | 12.7 | M4 | todo |
+| US 12.8 | Projection plan | L | 12.7 | M4 | done |
 | US 12.9 | Macros on descriptors | M | 11.2 | M4 | todo |

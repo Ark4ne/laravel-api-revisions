@@ -2,16 +2,16 @@
     "tolerance": 0.1,
     "ratios": {
         "head": {
-            "time": 22.026,
-            "memory": 1.14
+            "time": 4.875,
+            "memory": 1.084
         },
         "oldest": {
-            "time": 21.066,
-            "memory": 1.033
+            "time": 3.855,
+            "memory": 0.869
         },
         "lookup": {
-            "time": 1.05,
-            "memory": 1.001
+            "time": 1.036,
+            "memory": 1
         }
     }
 }
