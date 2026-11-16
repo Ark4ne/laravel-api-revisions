@@ -274,7 +274,9 @@ The schema assertions need `opis/json-schema` (dev).
 - `Ark4ne\ApiRevisions\Projection\Projector`: `project(Shape $shape, array $descriptors, mixed $subject)` renders it;
   `plan(Shape $shape, array $descriptors, ?array $keys = null)` resolves it ahead into a
   `Ark4ne\ApiRevisions\Projection\ProjectionPlan`, whose `run(mixed $subject)` renders each subject of one render
-  (`$keys`: the head keys of the top level kept, e.g. a sparse fieldset). Build a plan per render, never keep it;
+  (`$keys`: the head keys kept, e.g. a sparse fieldset; a dotted path of head keys keeps a member of an object,
+  `address.city`, or of each item of a list, `tags.*.name`; a member left out is never evaluated; a shorter path
+  wins; a path into a field converted at the revision, a list through a key, a resource or a scalar keeps it whole). Build a plan per render, never keep it;
   the descriptors come from `$class::describeRevisioned($kind, $subject)`, which `RevisionedResource` and
   `RevisionedRequest` implement; a class outside Laravel implements it and `declarationKinds()` itself.
 - `Ark4ne\ApiRevisions\Schema\DeclarationKind`: `Response`, `RequestBody`, `RequestQuery`.

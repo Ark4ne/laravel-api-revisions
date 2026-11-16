@@ -19,6 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Projection plan: `Projection\Projector::plan(Shape, descriptors, ?keys)` resolves a projection once per render into a
   `Projection\ProjectionPlan`, run per subject (`run($subject)`); `keys` keeps those head keys of the top level
   (a sparse fieldset). `Projector::project()` runs through it.
+- Paths in a projection plan: a `keys` entry of `Projector::plan()` may be a dotted path of head keys (`address.city`,
+  `tags.*.name`), keeping only that member of an object or of each item of a list; a member left out is never
+  evaluated (source, conditions, conversions, value errors). A shorter path wins; a path into a field converted at
+  the revision, a list through a key, a resource or a scalar keeps the field whole; a head key of the top level holding
+  a dot is still kept whole (`model.md` D89).
 - `RevisionedResource::collection()` returns a `Laravel\Resources\RevisionedResourceCollection`: `toArray()` runs
   once per render on a template instance and every item goes through one plan (about 4.5 times faster on the
   benchmark). A resource whose structure depends on its model in plain PHP opts out with

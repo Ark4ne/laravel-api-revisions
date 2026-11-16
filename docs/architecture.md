@@ -120,7 +120,7 @@ major version). What a generator (`laravel-openapi-generator`, X2) or another co
 | `Export\JsonSchemaExporter` | `export(class, kind, revision)`: one JSON Schema document (draft 2020-12, `$defs` for nested resources and components); `objects()` for `json_encode()` |
 | `revision:export` | `{revision value: {class: {kind value: schema}}}`, only the revisions a class exists in (D81); the schema alone when one revision, one class and one kind remain |
 | `Export\Changelog` | `changes(class, kind, revision)`: `list<Change>` (`kind`: `ChangeKind`; `path` at the revision, dotted, `''` for the class itself; `previousPath`; `before` / `after`; `describe()`); `markdown(classes, from, to)` |
-| `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject (US 12.8, D86); `project(shape, descriptors, subject)` |
+| `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject (US 12.8, D86); `keys` holds head keys or dotted paths of head keys, `*` for the items of a list (US 12.11, D89); `project(shape, descriptors, subject)` |
 | `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
 | `Schema\DescriptorMacros` | `register(name, Closure)`: the closure called `($descriptor, ...$arguments)`, returning an instance of the receiver's class; `has(name)`; served by `Descriptor::__call()`; PHPStan `apiRevisions.macros` (US 12.9, D87) |
 | `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
@@ -301,10 +301,12 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   on the shape and the descriptors (`Projection\PlannedField`, `@internal`: presence paths, the source closure or
   path, the `when()` conditions, the chain bound to its converters, the serializer configured, the nested object and
   list plans); `ProjectionPlan::run($subject)` runs the pipeline below on each subject (**Interpreter** over the
-  plan). `keys` keeps those head keys of the top level, in the head order. A plan holds the closures of its
-  declaration: built per render, never cached across renders; only the `Shape` is cached per process. A nested
-  resource is planned per value (its `describeRevisioned()` receives its subject). Descriptors missing a field kept
-  throw when planning.
+  plan). `keys` keeps those head keys, in the head order; since US 12.11 (`model.md` D89) a dotted path of head keys
+  keeps a member of an object (`address.city`) or of each item of a list (`tags.*.name`), the plan of a member left
+  out never built; a field converted as a whole at the revision (a chain or a `was(schema:)`), a list through a key, a
+  resource or a scalar is kept whole. A plan holds the closures of its declaration: built per render, never cached
+  across renders; only the `Shape` is cached per process. A nested resource is planned per value (its
+  `describeRevisioned()` receives its subject). Descriptors missing a field kept throw when planning.
 - Per field, a fixed **Pipeline** (`model.md` §6.5): presence conditions → `SourceReader::read($source, $subject)`
   → `Descriptor::normalize()` → `when()` conditions → `ConversionChain::apply()` (down, with the subject) →
   `Descriptor::serialize()`.

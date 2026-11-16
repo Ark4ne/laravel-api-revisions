@@ -1695,6 +1695,24 @@ shadowed dynamic properties and internal handlers reading otherwise); the cache 
 `Support\Memo` (a `Memo::remember()` closure per read was slower than `get_object_vars()`). Infection is not
 installed, not run.
 
+#### US 12.11 — Plan of paths · S · depends 12.8
+
+- `Projector::plan(Shape, descriptors, ?keys)`: `keys` may hold dotted paths of head keys at every level; a member
+  left out is never evaluated (its source, presences, normalization, conversions and value errors); the object keeps
+  its own source and conditions, its kept children in the head order under their names at the revision; `*` goes
+  through the items of a list; the shorter path wins; a field whose members are not planned one by one is kept whole
+  (D89) (R13).
+
+**Done** (US 12.11): `Projector::plan()` reads `keys` as a tree of head-key paths (`tree()`, the shorter path
+winning) and plans only the members kept: an object planned child by child keeps its kept children, a list its items
+through `*`; a member left out has no `PlannedField`, so its source, presences, normalization, conversions and value
+errors never run; a field converted as a whole at the revision (a chain or a `was(schema:)`), a list through a key, a
+resource or a scalar is kept whole; a path naming no child is ignored, and a field all of whose paths are ignored is
+left out. `ProjectionPlan` is unchanged. Decided with the maintainer in `model.md` D89 (`*` for lists; a path into a
+field not planned member by member keeps it whole). Tests in `ProjectionPlanTest`. Added after review (D89): a list is filtered only when every path into it goes
+through `*`; a `keys` entry equal to a top-level head key holding a dot keeps it whole, as before. Deviations: none. Infection is not
+installed, not run.
+
 ---
 
 ## 3. Order and milestones
@@ -1711,7 +1729,7 @@ E6 ─────────────────────────�
 E7 ───────────────────────────────────────────── 7.1 ─ 7.2 ─ 7.3
 E9 ───────────────────────────────────────────── 9.1 ─ 9.2 ─ 9.3 ─ 9.4 (after 10.1)
 E10 ──────────────────────────────────────────── 10.1 ─ 10.2 ─ 10.3 ─ 10.4 ─ 10.5
-E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.9
+E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.11 · 12.9
 E11 ── last (11.3 after E12)
 ```
 
@@ -1901,3 +1919,4 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.8 | Projection plan | L | 12.7 | M4 | done |
 | US 12.9 | Macros on descriptors | M | 11.2 | M4 | done |
 | US 12.10 | Property read without `get_object_vars()` | S | 12.8 | M4 | done |
+| US 12.11 | Plan of paths | S | 12.8 | M4 | done |

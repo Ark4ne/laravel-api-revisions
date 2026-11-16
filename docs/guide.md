@@ -234,7 +234,11 @@ final class OrderResource extends JsonResource implements Revisioned
   A resource with plain values or native conditions, and a custom `ResourceCollection`, keep the per-item path.
 - A consumer rendering many subjects of one declaration builds a plan itself: `$plan = $projector->plan($shape,
   $descriptors, ['title', 'total'])` keeps those head keys (a sparse fieldset), then `$plan->run($subject)` per
-  subject. Build a plan per render, never keep it: it holds the closures of that declaration.
+  subject. A dotted path of head keys keeps one member of an object (`'address.city'`) or of each item of a list
+  (`'tags.*.name'`): the members left out are never read, converted or validated. A shorter path wins (`'address'`
+  keeps it whole); a path into a field converted at that revision (a `was(schema:)` or a `down:` converter), a
+  list through a key, a nested resource or a scalar keeps the field whole; a path naming no member is ignored.
+  Build a plan per render, never keep it: it holds the closures of that declaration.
 - A plain value (`'x' => $this->x`) is rendered as is in every revision, typed `any`, and reported by the check
   (`eager-value`). A native `$this->when()` or `mergeWhen()` is honoured but invisible to the schema
   (`native-condition`): prefer `->when()` / `->whenLoaded()` on the descriptor.
