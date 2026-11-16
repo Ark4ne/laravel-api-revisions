@@ -317,7 +317,9 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   `DefinitionException::missingDescriptor()`. A `when()` passes only when it returns `true`.
 - `SourceReader` (**Strategy**, an interface since US 8.5: `PlainSourceReader` in the core, decorated by the Laravel
   layer's `EloquentSourceReader`) reads keys and dotted paths on arrays, `ArrayAccess` and objects (public property, then `__get()`
-  called directly, never after an `isset()`: the subject's own errors show, spike F11); a missing key reads `null`;
+  called directly; a public property found as `get_object_vars()` lists it but without building the object's
+  property table on the common paths: the properties of each class listed once by reflection per reader, a dynamic one
+  through `property_exists()`, `get_object_vars()` for the rare cases, `model.md` D88; never after an `isset()`: the subject's own errors show, spike F11); a missing key reads `null`;
   `has()` answers `whenHas()` (a `Presence` without key checks the source path, else the declared key, D37),
   checking each segment before reading it, in the order of `read()` (array offset, public property, `__isset()`,
   `ArrayAccess`);

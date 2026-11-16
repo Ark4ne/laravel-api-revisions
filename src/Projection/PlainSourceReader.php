@@ -5,15 +5,34 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Projection;
 
 use ArrayAccess;
+use ReflectionClass;
+use ReflectionProperty;
+use stdClass;
 
 /**
- * The core `SourceReader` (model.md §6.2): arrays and `ArrayAccess` by offset, objects by public property, then
- * `__get()`. A key the subject does not have reads `null`; `null` in a path stops it. The errors of the subject itself
- * (a strict mode refusing a missing attribute) are never hidden: no `isset()` before `__get()`. A relation is a key:
- * `loaded()` is `has()`.
+ * The core `SourceReader` (model.md §6.2): arrays and `ArrayAccess` by offset, objects by public property (never
+ * through `get_object_vars()`, model.md D88), then `__get()`. A key the subject does not have reads `null`; `null` in a
+ * path stops it. The errors of the subject itself (a strict mode refusing a missing attribute) are never hidden: no
+ * `isset()` before `__get()`. A relation is a key: `loaded()` is `has()`.
  */
-final readonly class PlainSourceReader implements SourceReader
+final class PlainSourceReader implements SourceReader
 {
+    /**
+     * The properties each class read declares (model.md D88): a public non-static one by its reflection, any other as
+     * `false`. Per instance: it depends only on the code, and the reader is built once per projector.
+     *
+     * @var array<class-string, array<string, ReflectionProperty|false>>
+     */
+    private array $declared = [];
+
+    /**
+     * Whether `property_exists()` tells the dynamic properties of a class (no internal parent but `stdClass`, whose
+     * own handlers may answer otherwise: `SimpleXMLElement`, `ArrayObject`…), per class.
+     *
+     * @var array<class-string, bool>
+     */
+    private array $plain = [];
+
     /**
      * The value at `$path` on `$subject`, `null` when a segment is missing or `null`.
      *
@@ -54,7 +73,7 @@ final readonly class PlainSourceReader implements SourceReader
     {
         return match (true) {
             is_array($subject) => $subject[$key] ?? null,
-            is_object($subject) => get_object_vars($subject)[$key] ?? null,
+            is_object($subject) => $this->property($subject, $key, $value) ? $value : null,
             default => null,
         };
     }
@@ -78,7 +97,7 @@ final readonly class PlainSourceReader implements SourceReader
         return match (true) {
             is_array($subject) => array_key_exists($key, $subject),
             !is_object($subject) => false,
-            array_key_exists($key, get_object_vars($subject)) => true,
+            $this->property($subject, $key, $value) => true,
             method_exists($subject, '__isset') => $subject->__isset($key) === true,
             $subject instanceof ArrayAccess => $subject->offsetExists($key),
             default => false,
@@ -93,9 +112,8 @@ final readonly class PlainSourceReader implements SourceReader
         if (!is_object($subject)) {
             return null;
         }
-        $properties = get_object_vars($subject);
-        if (array_key_exists($key, $properties)) {
-            return $properties[$key];
+        if ($this->property($subject, $key, $value)) {
+            return $value;
         }
         if (method_exists($subject, '__get')) {
             return $subject->__get($key);
@@ -105,5 +123,83 @@ final readonly class PlainSourceReader implements SourceReader
         }
 
         return null;
+    }
+
+    /**
+     * Whether `$key` is a public property the subject holds, exactly as `get_object_vars()` from outside lists it, its
+     * value set in `$value` (model.md D88). Without building the object's property table on the common paths: an
+     * initialized declared public property, read directly; a name no class declares, through `property_exists()` on a
+     * plain class. Every other case asks `get_object_vars()` (rare: a property not initialized, unset or lazy, a
+     * non-public, static or virtual one, a class with an internal parent).
+     */
+    private function property(object $subject, string $key, mixed &$value): bool
+    {
+        $class = $subject::class;
+        $declared = ($this->declared[$class] ??= self::declared($class))[$key] ?? null;
+        if ($declared instanceof ReflectionProperty && $declared->isInitialized($subject)) {
+            $value = $subject->{$key}; // @phpstan-ignore property.dynamicName (a public property, checked just above)
+
+            return true;
+        }
+        if ($declared === null && ($this->plain[$class] ??= self::plain($class))) {
+            if (!property_exists($subject, $key)) {
+                return false;
+            }
+            $value = $subject->{$key}; // @phpstan-ignore property.dynamicName (a dynamic property, checked just above)
+
+            return true;
+        }
+        $properties = get_object_vars($subject);
+        if (!array_key_exists($key, $properties)) {
+            return false;
+        }
+        $value = $properties[$key];
+
+        return true;
+    }
+
+    /**
+     * The properties `$class` and its parents declare: a public non-static concrete one by its reflection, any other
+     * (static, protected, private, virtual) as `false`.
+     *
+     * @param class-string $class
+     *
+     * @return array<string, ReflectionProperty|false>
+     */
+    private static function declared(string $class): array
+    {
+        $declared = [];
+        for ($reflection = new ReflectionClass($class); $reflection !== false; $reflection = $reflection->getParentClass()) {
+            foreach ($reflection->getProperties() as $property) {
+                $concrete = $property->isPublic() && !$property->isStatic() && !self::isVirtual($property);
+                $declared[$property->getName()] ??= $concrete ? $property : false;
+            }
+        }
+
+        return $declared;
+    }
+
+    /**
+     * A hooked property without storage (PHP 8.4), which `get_object_vars()` never lists.
+     */
+    private static function isVirtual(ReflectionProperty $property): bool
+    {
+        return PHP_VERSION_ID >= 80400 && $property->isVirtual();
+    }
+
+    /**
+     * Whether `$class` has no internal parent but `stdClass`.
+     *
+     * @param class-string $class
+     */
+    private static function plain(string $class): bool
+    {
+        for ($reflection = new ReflectionClass($class); $reflection !== false; $reflection = $reflection->getParentClass()) {
+            if ($reflection->isInternal() && $reflection->getName() !== stdClass::class) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

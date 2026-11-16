@@ -1671,6 +1671,30 @@ returns the receiver's type (generics kept). Decided with the maintainer in `mod
 parameters (PHPStan); a private or protected method of a subclass does not win over a macro (PHP's `__call()`).
 Infection is not installed, not run.
 
+#### US 12.10 — Property read without `get_object_vars()` · S · depends 12.8
+
+- `PlainSourceReader` (`read()`, `has()`, `peek()`) calls no `get_object_vars()` on the common paths: the declared
+  properties of a class are listed once; a declared public property is held when initialized and read directly;
+  a dynamic public property (`stdClass`, `#[AllowDynamicProperties]`) through `property_exists()`; otherwise
+  `__get()` / `__isset()` / `ArrayAccess` as before. Outputs unchanged (an uninitialized typed property still falls
+  back to the magic methods, D88) (R12).
+
+**Done** (US 12.10): `PlainSourceReader` (no longer `readonly`) reads a public property as `get_object_vars()` lists
+it, without building the property table on the common paths: the properties of each class and its parents listed
+once by reflection, per reader instance; an initialized public non-static concrete one read directly; a name no class
+declares through `property_exists()` on a class without internal parent but `stdClass`; `get_object_vars()` for the
+rest (uninitialized, unset or lazy properties, non-public, static or virtual names, internal classes), then
+`__get()` / `__isset()` / `ArrayAccess` as before. Decided with the maintainer in `model.md` D88 (an uninitialized
+typed property still falls back). Tests in `PlainSourceReaderTest` (declared, uninitialized, unset, static, protected,
+private, parent's private, dynamic beside a non-public one, `stdClass`, `SimpleXMLElement`, `ArrayObject`; lazy ghosts
+and proxies and hooked properties on PHP 8.4; no property table built: 1 000 subjects read under 64 KB, 375 KB
+before); fixtures `PropertySubject`, `ChildPropertySubject`, `Php84\{HookedSubject,LazySubject}` (the hooked one
+excluded from PHPStan's analysis: hooks parse only on 8.4). Benchmark reference lowered: head ×4.875 → ×4.772, oldest
+×3.855 → ×3.778. Deviations: `get_object_vars()` is kept for the rare cases (the review found lazy objects, hooks,
+shadowed dynamic properties and internal handlers reading otherwise); the cache is per reader instance rather than in
+`Support\Memo` (a `Memo::remember()` closure per read was slower than `get_object_vars()`). Infection is not
+installed, not run.
+
 ---
 
 ## 3. Order and milestones
@@ -1687,7 +1711,7 @@ E6 ─────────────────────────�
 E7 ───────────────────────────────────────────── 7.1 ─ 7.2 ─ 7.3
 E9 ───────────────────────────────────────────── 9.1 ─ 9.2 ─ 9.3 ─ 9.4 (after 10.1)
 E10 ──────────────────────────────────────────── 10.1 ─ 10.2 ─ 10.3 ─ 10.4 ─ 10.5
-E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 · 12.9
+E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.9
 E11 ── last (11.3 after E12)
 ```
 
@@ -1876,3 +1900,4 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.7 | Cheap shape lookup | S | 11.2 | M4 | done |
 | US 12.8 | Projection plan | L | 12.7 | M4 | done |
 | US 12.9 | Macros on descriptors | M | 11.2 | M4 | done |
+| US 12.10 | Property read without `get_object_vars()` | S | 12.8 | M4 | done |

@@ -24,6 +24,10 @@ parameters:
         - bin
         - config
     tmpDir: build/phpstan
+    excludePaths:
+        analyse:
+            # Property hooks parse only on PHP 8.4, the package supports 8.3 (model.md D88).
+            - tests/Fixtures/Php84/HookedSubject.php
 
     # Facades, global helpers and the container belong to src/Laravel/ (docs/architecture.md §2).
     disallowedNamespaces:

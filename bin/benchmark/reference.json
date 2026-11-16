@@ -2,15 +2,15 @@
     "tolerance": 0.1,
     "ratios": {
         "head": {
-            "time": 4.875,
+            "time": 4.772,
             "memory": 1.084
         },
         "oldest": {
-            "time": 3.855,
+            "time": 3.778,
             "memory": 0.869
         },
         "lookup": {
-            "time": 1.036,
+            "time": 1.035,
             "memory": 1
         }
     }

@@ -7,10 +7,17 @@ namespace Test\Unit\Projection;
 use Ark4ne\ApiRevisions\Projection\PlainSourceReader;
 use ArrayObject;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhp;
+use ReflectionClass;
 use RuntimeException;
+use SimpleXMLElement;
 use stdClass;
+use Test\Fixtures\ChildPropertySubject;
 use Test\Fixtures\Customer;
 use Test\Fixtures\MagicSubject;
+use Test\Fixtures\Php84\HookedSubject;
+use Test\Fixtures\Php84\LazySubject;
+use Test\Fixtures\PropertySubject;
 use Test\TestCase;
 
 final class PlainSourceReaderTest extends TestCase
@@ -139,5 +146,156 @@ final class PlainSourceReaderTest extends TestCase
 
         self::assertTrue($reader->loaded(['customer' => ['address' => null]], ['customer', 'address']));
         self::assertFalse($reader->loaded(['customer' => []], ['customer', 'address']));
+    }
+
+    public function test_a_declared_public_property_is_read_and_held_without_the_magic_methods(): void
+    {
+        $reader = new PlainSourceReader();
+        $subject = new PropertySubject();
+
+        self::assertSame('Book', $reader->read($subject, ['title']));
+        self::assertNull($reader->read($subject, ['notes']));
+        self::assertTrue($reader->has($subject, ['title']));
+        self::assertTrue($reader->has($subject, ['notes']));
+        self::assertSame('Book', $reader->peek($subject, 'title'));
+        self::assertSame([], $subject->calls);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function fallbacks(): iterable
+    {
+        yield 'an uninitialized typed property' => ['pending'];
+        yield 'an unset property' => ['removed'];
+        yield 'a static property' => ['shared'];
+        yield 'a protected property' => ['secret'];
+        yield 'a private property' => ['attributes'];
+        yield 'an undeclared key' => ['other'];
+    }
+
+    #[DataProvider('fallbacks')]
+    public function test_a_property_the_subject_does_not_expose_falls_back_to_the_magic_methods(string $key): void
+    {
+        $reader = new PlainSourceReader();
+        $subject = new PropertySubject([$key => 'attribute']);
+
+        self::assertSame('attribute', $reader->read($subject, [$key]));
+        self::assertTrue($reader->has($subject, [$key]));
+        self::assertFalse($reader->has(new PropertySubject(), [$key]));
+        self::assertNull($reader->peek($subject, $key));
+        self::assertSame(["get:{$key}", "isset:{$key}", "get:{$key}"], $subject->calls);
+    }
+
+    public function test_the_properties_of_the_parent_classes_are_told_apart_too(): void
+    {
+        $reader = new PlainSourceReader();
+        $subject = new ChildPropertySubject(['attributes' => 'attribute']);
+
+        self::assertSame('child', $reader->read($subject, ['child']));
+        self::assertSame('Book', $reader->read($subject, ['title']));
+        self::assertSame('attribute', $reader->read($subject, ['attributes']));
+        self::assertSame(['get:attributes'], $subject->calls);
+    }
+
+    public function test_a_dynamic_property_is_read_and_held(): void
+    {
+        $reader = new PlainSourceReader();
+        $subject = new PropertySubject();
+        $subject->extra = 'dynamic'; // @phpstan-ignore property.notFound (a dynamic property)
+        $object = new stdClass();
+        $object->title = null;
+
+        self::assertSame('dynamic', $reader->read($subject, ['extra']));
+        self::assertTrue($reader->has($subject, ['extra']));
+        self::assertSame('dynamic', $reader->peek($subject, 'extra'));
+        self::assertTrue($reader->has($object, ['title']));
+        self::assertNull($reader->read($object, ['title']));
+        self::assertSame([], $subject->calls);
+    }
+
+    public function test_a_dynamic_property_beside_a_non_public_or_static_one_of_that_name_is_read(): void
+    {
+        $reader = new PlainSourceReader();
+        $subject = new ChildPropertySubject();
+        $subject->attributes = 'dynamic'; // @phpstan-ignore property.private (a dynamic property: the parent's is private)
+        $static = new PropertySubject();
+
+        self::assertSame('dynamic', $reader->read($subject, ['attributes']));
+        self::assertTrue($reader->has($subject, ['attributes']));
+        self::assertNull($reader->peek($static, 'shared'));
+    }
+
+    public function test_an_internal_class_reads_as_get_object_vars_lists_it(): void
+    {
+        $reader = new PlainSourceReader();
+        $xml = simplexml_load_string('<order><title>Book</title></order>');
+        $object = new ArrayObject(['title' => 'Book'], ArrayObject::ARRAY_AS_PROPS);
+
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+        self::assertSame('Book', $reader->read($xml, ['title']));
+        self::assertFalse($reader->has($xml, ['missing']));
+        self::assertNull($reader->peek($object, 'title'));
+        self::assertSame('Book', $reader->read($object, ['title']));
+    }
+
+    #[RequiresPhp('>= 8.4.0')]
+    public function test_lazy_objects_are_read_as_initialized(): void
+    {
+        $reader = new PlainSourceReader();
+        $class = new ReflectionClass(LazySubject::class);
+
+        foreach ([1, 2] as $_) {
+            $ghost = $class->newLazyGhost(static function (LazySubject $subject): void {
+                $subject->title = 'ghost';
+            });
+            $proxy = $class->newLazyProxy(static function (): LazySubject {
+                $subject = new LazySubject();
+                $subject->title = 'proxy';
+
+                return $subject;
+            });
+
+            self::assertSame('ghost', $reader->read($ghost, ['title']));
+            self::assertSame('proxy', $reader->read($proxy, ['title']));
+            self::assertSame('proxy', $reader->peek($proxy, 'title'));
+            self::assertTrue($reader->has($proxy, ['title']));
+        }
+    }
+
+    #[RequiresPhp('>= 8.4.0')]
+    public function test_hooked_properties_are_read_as_get_object_vars_lists_them(): void
+    {
+        $reader = new PlainSourceReader();
+        $subject = new HookedSubject();
+
+        self::assertSame('hooked:raw', $reader->read($subject, ['backed']));
+        self::assertTrue($reader->has($subject, ['backed']));
+        self::assertSame('virtual', $reader->read($subject, ['virtual']));
+        self::assertSame('virtual', $reader->peek($subject, 'virtual'));
+        // a write-only property: whatever get_object_vars() lists for it (its listing varies across PHP versions)
+        $listed = array_key_exists('writeOnly', get_object_vars($subject));
+        self::assertSame($listed, $reader->has($subject, ['writeOnly']));
+        self::assertSame($listed ? null : 'magic:writeOnly', $reader->read($subject, ['writeOnly']));
+    }
+
+    public function test_reading_never_builds_the_property_table_of_the_subject(): void
+    {
+        $reader = new PlainSourceReader();
+        $subjects = [];
+        for ($i = 0; $i < 1000; ++$i) {
+            $subjects[] = new Customer('Ada', 'Lovelace');
+        }
+        $reader->read($subjects[0], ['firstName']);
+        $before = memory_get_usage();
+
+        foreach ($subjects as $subject) {
+            $reader->read($subject, ['firstName']);
+            $reader->has($subject, ['lastName']);
+            $reader->peek($subject, 'firstName');
+        }
+
+        // get_object_vars() keeps a property table on each object read (hundreds of bytes)
+        self::assertLessThan(64 * 1000, memory_get_usage() - $before);
     }
 }

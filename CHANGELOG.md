@@ -343,6 +343,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- `Projection\PlainSourceReader` no longer calls `get_object_vars()` on every read: an initialized public property
+  is read directly (the properties of a class listed once by reflection), a dynamic one found with
+  `property_exists()`; `get_object_vars()` decides only the rare cases (uninitialized, lazy, non-public, internal
+  classes). Same outputs; an Eloquent model no longer keeps a property table per instance read (`model.md` D88).
 - A descriptor that does not match its shape (missing, or a composite on one side only) throws
   `DefinitionException::missingDescriptor()` when the projection is planned, even when its value is `null`; it threw
   only on a non-null value.
