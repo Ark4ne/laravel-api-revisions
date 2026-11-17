@@ -1845,7 +1845,7 @@ Recorded for the dependencies only; their stories are written and delivered in t
 
 | Epic | Repository | Content | Needs |
 | --- | --- | --- | --- |
-| **X1** — JSON:API on revisions | `laravel-json-api` 3.0 | descriptors replaced by `Schema`; relationships with history (`include`, `included`); type renames; attribute ↔ relationship; `fields` / `include` / `sort` / `filter` per revision; `Fields` / `Includes` rules from the client's shape; adapter for 2.1 declarations (1:1, same bounds) | M2 (Projector, Upgrader, `Shape` public) |
+| **X1** — JSON:API on revisions | `laravel-json-api` 3.0 | descriptors replaced by `Schema`; relationships with history (`include`, `included`); type renames; attribute ↔ relationship; `fields` / `include` / `sort` / `filter` per revision; `Fields` / `Includes` rules from the client's shape; no adapter for 2.1 declarations, never released (`model.md` D75) | M2 (Projector, Upgrader, `Shape` public) |
 | **X2** — OpenAPI per revision | `laravel-openapi-generator` | reads the JSON Schema export of each revision; one document per revision (`--revision=`); changelog in `info.description` | US 10.1, US 10.3 |
 
 ---
@@ -1900,7 +1900,7 @@ added here with the story that raised them, then moved to `model.md` §14 once d
 | Closures lost or mismatched after cache (`revision:cache`) | Plans reference `was` indexes; US 5.3 test projects from the cache |
 | A source runs during compilation (side effects, N+1) | The probe throws on any access (US 5.1) |
 | Lossy automatic scalar casts surprise clients | `conversion-lossy` warning in the check; changelog shows the type change; `down:` / `up:` |
-| Static state under Octane | Only `Memo` and the scope provider; `scoped` binding; US 8.1 test |
+| Static state under Octane | Only `Memo`, the scope provider and the boot registries (`TypeRegistry`, `DescriptorMacros`), with no volatile data (`architecture.md` §16); `scoped` binding; US 8.1 test |
 | Performance regression on large collections | Compiled plans; benchmark gate US 5.4 |
 | A forgotten `since` leaks a field into old revisions | Lock (US 9.4) |
 

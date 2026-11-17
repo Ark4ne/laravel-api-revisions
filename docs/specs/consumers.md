@@ -1,7 +1,7 @@
 # Consumer epic — what `laravel-json-api` and `laravel-openapi-generator` need
 
-Status: **decided** (2026-11-14), written from the `laravel-json-api` study; decisions in `model.md` D74–D78, stories
-in `epics.md` E12 · Related: `epics.md` §4 (X1, X2),
+Status: **delivered** (2026-11-17), written from the `laravel-json-api` study; decisions in `model.md` D74–D78
+(R1–R11) and D88–D93 (R12–R17), stories in `epics.md` E12, all done before 1.0.0 · Related: `epics.md` §4 (X1, X2),
 `laravel-json-api/docs/rfc/api-revisions-integration.md`, `laravel-openapi-generator/docs/rfc/api-revisions.md`
 
 ## 1. Goal
@@ -44,10 +44,10 @@ an adapter for the 2.1 declarations (2.1 is never tagged).
 
 ## 3. Questions
 
-| # | Question | Proposal |
-|---|---|---|
-| CQ1 | Which requirements before the 1.0.0 tag? | R2 (touches `Shapes`, the lock format and the changelog) and R9 (changes how `RevisionedResource` runs `toArray()`): before. The others are additive: 1.1 is possible. |
-| CQ5 | With R9, a plain value in `toArray()` (`EagerSchema`, `model.md` D61) is evaluated once, not per subject. | Either such a class keeps the per-subject path (slower, reported by the check), or plain values are refused. |
-| CQ2 | R2 as an interface or as attributes? | An interface on the `Revisioned` class: no reflection, and a consumer maps its own attributes to it. |
-| CQ3 | Does the lock record a class absent from a revision, or leave it out? | Leave it out: a file lists the classes existing at its revision. |
-| CQ4 | `model.md` §12–§13 describe `laravel-json-api` 2.1 and a "3.0" replacing its describer by `Schema`. | Rewrite both sections from this document once decided: the façade stays, 2.1 was never released. |
+| # | Question | Proposal | Status |
+|---|---|---|---|
+| CQ1 | Which requirements before the 1.0.0 tag? | R2 (touches `Shapes`, the lock format and the changelog) and R9 (changes how `RevisionedResource` runs `toArray()`): before. The others are additive: 1.1 is possible. | **Decided**: every requirement before 1.0.0 (D75) |
+| CQ5 | With R9, a plain value in `toArray()` (`EagerSchema`, `model.md` D61) is evaluated once, not per subject. | Either such a class keeps the per-subject path (slower, reported by the check), or plain values are refused. | **Decided**: the per-subject path is kept (D78) |
+| CQ2 | R2 as an interface or as attributes? | An interface on the `Revisioned` class: no reflection, and a consumer maps its own attributes to it. | **Decided**: an interface (D76) |
+| CQ3 | Does the lock record a class absent from a revision, or leave it out? | Leave it out: a file lists the classes existing at its revision. | **Decided**: left out (D76) |
+| CQ4 | `model.md` §12–§13 describe `laravel-json-api` 2.1 and a "3.0" replacing its describer by `Schema`. | Rewrite both sections from this document once decided: the façade stays, 2.1 was never released. | **Applied**: §12–§13 rewritten (D75) |
