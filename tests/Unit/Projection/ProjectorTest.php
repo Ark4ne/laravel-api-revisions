@@ -684,6 +684,21 @@ final class ProjectorTest extends TestCase
         }));
     }
 
+    public function test_a_date_time_renders_its_day_where_it_was_a_date_without_a_closure(): void
+    {
+        $head = [
+            'born_at' => Schema::dateTime(),
+            'born_at_old' => Schema::dateTime('born_at')->was(ApiRevision::Winter25, schema: Schema::date()),
+            'paid_on' => Schema::date()->was(ApiRevision::Winter25, schema: Schema::dateTime()),
+        ];
+        $subject = ['born_at' => new DateTimeImmutable('2026-03-04 23:30:00+02:00'), 'paid_on' => new DateTimeImmutable('2026-03-05 10:00:00+02:00')];
+
+        self::assertSame(
+            ['born_at' => '2026-03-04T23:30:00+02:00', 'born_at_old' => '2026-03-04', 'paid_on' => '2026-03-05T00:00:00+02:00'],
+            self::project($head, ApiRevision::Genesis, $subject),
+        );
+    }
+
     /**
      * @param array<string, Descriptor<mixed>> $head
      *

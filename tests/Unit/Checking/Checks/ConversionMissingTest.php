@@ -57,6 +57,8 @@ final class ConversionMissingTest extends TestCase
     {
         self::assertSame([], self::check(new ConversionMissing(), static fn(): array => [
             'total' => Schema::string()->was(ApiRevision::Winter25, schema: Schema::int()),
+            'born_at' => Schema::dateTime()->was(ApiRevision::Winter25, schema: Schema::date()),
+            'paid_on' => Schema::date()->was(ApiRevision::Winter25, schema: Schema::dateTime()),
             'tags' => Schema::string()->was(ApiRevision::Winter25, schema: Schema::list(Schema::string()), down: static fn(string $tags): array => explode(',', $tags)),
         ]));
     }

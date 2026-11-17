@@ -6,6 +6,8 @@ namespace Test\Unit\Conversion;
 
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\BoolToInt;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\BoolToString;
+use Ark4ne\ApiRevisions\Conversion\BuiltIn\DateTimeToDate;
+use Ark4ne\ApiRevisions\Conversion\BuiltIn\DateToDateTime;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\EnumToBacked;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\FloatToInt;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\FloatToString;
@@ -22,6 +24,7 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Test\Fixtures\Enums\OrderStatus;
@@ -135,6 +138,14 @@ final class ConvertersTest extends TestCase
                 yield "{$label} {$direction->value}" => [$from, $to, $value, $expected, $lossless, $direction];
             }
         }
+        $at = new DateTimeImmutable('2026-03-04 23:30:00+02:00');
+        $midnight = new DateTimeImmutable('2026-03-04 00:00:00+02:00');
+        $date = self::type(Kind::Date);
+        $dateTime = self::type(Kind::DateTime);
+        yield 'date-time → date down' => [$dateTime, $date, $at, $at, true, Direction::Down];
+        yield 'date-time → date up' => [$dateTime, $date, $at, $at, false, Direction::Up];
+        yield 'date → date-time down' => [$date, $dateTime, $at, $midnight, true, Direction::Down];
+        yield 'date → date-time up' => [$date, $dateTime, $at, $midnight, true, Direction::Up];
     }
 
     #[DataProvider('table')]
@@ -143,7 +154,13 @@ final class ConvertersTest extends TestCase
         $converter = Converters::builtIn()->find($from, $to, $direction);
 
         self::assertNotNull($converter);
-        self::assertSame($expected, $converter->convert($value));
+        $converted = $converter->convert($value);
+        if ($expected instanceof DateTimeImmutable && $converted instanceof DateTimeImmutable && $expected !== $value) {
+            // a new instant: the same moment and timezone
+            self::assertSame($expected->format(DATE_ATOM), $converted->format(DATE_ATOM));
+        } else {
+            self::assertSame($expected, $converted);
+        }
         self::assertSame($lossless, $converter->lossless());
     }
 
@@ -212,7 +229,7 @@ final class ConvertersTest extends TestCase
         foreach ([
             new IntToFloat(), new IntToString(), new FloatToString(), new BoolToString(), new BoolToInt(),
             new NumericStringToInt(), new NumericStringToFloat(), new FloatToInt(), new IntToBool(), new StringToBool(),
-            new EnumToBacked(Kind::String), new EnumToBacked(Kind::Int),
+            new EnumToBacked(Kind::String), new EnumToBacked(Kind::Int), new DateTimeToDate(), new DateToDateTime(),
         ] as $converter) {
             yield $converter::class . ' ' . spl_object_id($converter) => [$converter];
         }

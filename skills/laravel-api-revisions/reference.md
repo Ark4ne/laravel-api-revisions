@@ -83,7 +83,9 @@ Type-specific modifiers:
 ## Conversions
 
 A `was()` with another `schema:` converts the value between the two types. Automatic, as PHP casts: int → float; int,
-float, bool → string; bool → int; enum → its backed value; string or int → enum. Automatic but lossy, warned
+float, bool → string; bool → int; date-time ↔ date (the day in the value's timezone, a date becoming midnight; date-time → date in a request warns
+`conversion-lossy`);
+enum → its backed value; string or int → enum. Automatic but lossy, warned
 `conversion-lossy` without a closure: string → int, string → float, float → int, int or string → bool. Anything else
 (float ↔ bool, objects, lists, custom types without declared conversions) needs `down:` / `up:`
 (`conversion-missing`).

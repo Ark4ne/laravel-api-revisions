@@ -7,6 +7,8 @@ namespace Ark4ne\ApiRevisions\Conversion;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\BackedToEnum;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\BoolToInt;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\BoolToString;
+use Ark4ne\ApiRevisions\Conversion\BuiltIn\DateTimeToDate;
+use Ark4ne\ApiRevisions\Conversion\BuiltIn\DateToDateTime;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\EnumToBacked;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\FloatToInt;
 use Ark4ne\ApiRevisions\Conversion\BuiltIn\FloatToString;
@@ -41,7 +43,7 @@ final class Converters
     private array $identities = [];
 
     /**
-     * The built-in conversions of model.md §5 (D25, D40, D41), in both directions.
+     * The built-in conversions of model.md §5 (D25, D40, D41, D90), in both directions.
      */
     public static function builtIn(): self
     {
@@ -58,6 +60,7 @@ final class Converters
             [Kind::Float, Kind::Int, $always(new FloatToInt())],
             [Kind::Int, Kind::Bool, $always(new IntToBool())],
             [Kind::String, Kind::Bool, $always(new StringToBool())],
+            [Kind::Date, Kind::DateTime, $always(new DateToDateTime())],
             [Kind::Enum, Kind::String, $always(new EnumToBacked(Kind::String))],
             [Kind::Enum, Kind::Int, static fn(TypeDefinition $from): ?Converter => $from->backing === Kind::Int ? new EnumToBacked(Kind::Int) : null],
             [Kind::String, Kind::Enum, self::toEnum(...)],
@@ -69,7 +72,10 @@ final class Converters
             }
         }
 
-        return $registry;
+        // lossless down (the day a response falls back to), lossy up (the time a client sent dropped), D90
+        return $registry
+            ->register(Kind::DateTime, Kind::Date, Direction::Down, $always(new DateTimeToDate()))
+            ->register(Kind::DateTime, Kind::Date, Direction::Up, $always(new DateTimeToDate(lossless: false)));
     }
 
     /**

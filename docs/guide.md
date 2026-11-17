@@ -178,6 +178,7 @@ or `up:` (requests) whenever the cast is not what your clients need, and for any
 | --- | --- | --- |
 | int → float; int, float, bool → string; bool → int | yes | no |
 | string → int, string → float, float → int; int, string → bool | yes | **yes** (`conversion-lossy`) |
+| date-time → date, date → date-time | yes (the day in the value's timezone; a date becomes midnight) | date-time → date in a request (the time sent is dropped) |
 | backed enum → string, or int when int-backed | yes (`->value`) | no |
 | string or int → backed enum | yes (`::from()`) | no |
 | object, list, custom type | no: give a closure, unless the custom type declares its conversions | — |

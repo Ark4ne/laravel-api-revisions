@@ -46,6 +46,23 @@ final class ConversionLossyTest extends TestCase
         self::assertSame([], self::check(new ConversionLossy(), static fn(): array => [
             'total' => Schema::int()->was(ApiRevision::Winter25, schema: Schema::string()),
             'amount' => Schema::float()->was(ApiRevision::Winter25, schema: Schema::int(), down: Cast::round()),
+            'born_at' => Schema::dateTime()->was(ApiRevision::Winter25, schema: Schema::date()),
+            'paid_on' => Schema::date()->was(ApiRevision::Winter25, schema: Schema::dateTime()),
         ]));
+    }
+
+    public function test_a_date_time_sent_where_the_head_is_a_date_warns_its_time_is_dropped(): void
+    {
+        self::assertSame(
+            [['conversion-lossy', 'warning', 'paid_on', 'winter-25', "The automatic up conversion from date-time to date of 'paid_on' (request-body) at was(Winter25) may lose information: declare up: to decide."]],
+            self::check(
+                new ConversionLossy(),
+                static fn(): array => [
+                    'paid_on' => Schema::date()->was(ApiRevision::Winter25, schema: Schema::dateTime()),
+                    'born_at' => Schema::dateTime()->was(ApiRevision::Winter25, schema: Schema::date()),
+                ],
+                [DeclarationKind::RequestBody],
+            ),
+        );
     }
 }

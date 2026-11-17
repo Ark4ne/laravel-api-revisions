@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Automatic date ↔ date-time conversions (`Conversion\BuiltIn\DateTimeToDate`, `DateToDateTime`), lossless in
+  both directions: a date-time that was a date (or a date that was a date-time) needs no `down:` / `up:` any more.
+  The day is written in the timezone of the value (never shifted to UTC); a date becomes midnight of its day. A
+  date-time sent where the head is a date warns `conversion-lossy` (its time is dropped) (`model.md` D90).
 - Descriptor macros: `Schema\DescriptorMacros::register($name, Closure)` adds a fluent method to every descriptor,
   served by `Descriptor::__call()` (`Schema::string()->whenInFields('notes')`). The closure receives the descriptor,
   then the arguments, and must return an instance of the descriptor's class; a name `Descriptor` declares is refused

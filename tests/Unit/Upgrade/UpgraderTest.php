@@ -193,6 +193,25 @@ final class UpgraderTest extends TestCase
         );
     }
 
+    public function test_a_date_sent_where_the_head_is_a_date_time_is_upgraded_without_a_closure(): void
+    {
+        $head = [
+            'born_at' => Schema::dateTime()->was(ApiRevision::Spring26, schema: Schema::date()),
+            'paid_on' => Schema::date()->was(ApiRevision::Spring26, schema: Schema::dateTime()),
+        ];
+        $timezone = date_default_timezone_get();
+        date_default_timezone_set('Europe/Paris');
+
+        try {
+            self::assertSame(
+                ['born_at' => '2026-03-04T00:00:00+01:00', 'paid_on' => '2026-03-05'],
+                $this->upgrade($head, ApiRevision::Genesis, ['born_at' => '2026-03-04', 'paid_on' => '2026-03-05T23:30:00+02:00']),
+            );
+        } finally {
+            date_default_timezone_set($timezone);
+        }
+    }
+
     public function test_a_field_retired_is_dropped_after_the_hook_of_its_last_step(): void
     {
         $hook = new class implements UpgradesInput {
