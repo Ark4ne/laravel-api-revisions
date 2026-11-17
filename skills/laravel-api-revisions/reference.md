@@ -61,7 +61,8 @@ Every descriptor (`Ark4ne\ApiRevisions\Schema\Descriptor`) returns a modified co
 | `sometimes(bool $sometimes = true)` | request: validated only when sent |
 | `describe(string $description)`, `example(mixed $example)`, `deprecated(bool $deprecated = true)` | export only |
 | `rules(mixed ...$rules)` | extra Laravel rules (strings, rule objects, closures) |
-| `when(Closure $condition)` | keeps the field when the condition `($value, $subject)` holds, run after the source |
+| `when(Closure $condition)` | keeps the field when the condition `($subject, $attribute)` returns `true`, run before the source: a field refused is never read |
+| `unless(Closure $condition)` | keeps the field when the condition `($subject, $attribute)` returns `false` |
 | `whenHas(?string $key = null)` | keeps the field when the subject has the key, before the source |
 | `whenLoaded(string $relation)` | keeps the field when the relation is loaded, before the source |
 | `since(Revision $revision, mixed $default = <none>)` | exists from `$revision` included; `default:` for older requests |

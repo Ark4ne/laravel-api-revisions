@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Descriptor::unless(Closure)`: the negation of `when()` (`model.md` D93).
 - `Export\RegexPattern::of()` and `Export\DatePattern::of()` are public contract (no longer `@internal`): a
   generator gets the ECMA `pattern` `JsonSchemaExporter` writes for a string pattern, or for a date format JSON
   Schema does not name (`Y-m-d`, RFC 3339 and RFC 3339 extended export `format`), `null` when there is none
@@ -360,6 +361,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Breaking:** `when()` runs **before** the value is read, after the presence conditions: a field refused is never
+  read (its source closure never called), normalized, projected nor converted. Its closure receives
+  `($subject, string $attribute)` instead of `($value, $subject)`: the subject of the level (the model a resource
+  wraps, an object's value for its children, a list's element for its items) and the key read (the source key or
+  path, else the declared key; `*` for an item). A composite's `when()` no longer receives its projected children.
+  A condition on the value reads the attribute on the subject (`model.md` D93).
 - `Projection\PlainSourceReader` no longer calls `get_object_vars()` on every read: an initialized public property
   is read directly (the properties of a class listed once by reflection), a dynamic one found with
   `property_exists()`; `get_object_vars()` decides only the rare cases (uninitialized, lazy, non-public, internal

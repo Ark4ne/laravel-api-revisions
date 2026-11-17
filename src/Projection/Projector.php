@@ -25,7 +25,7 @@ use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 /**
  * Renders a subject in the shape of a revision (model.md §6.5, docs/architecture.md §8): the compiled `Shape` decides
  * which fields, under which names, through which conversions; the fresh descriptors of the instance give the sources,
- * conditions and closures. Per visible field, in the head order: presence conditions → source → normalize → `when()`
+ * conditions and closures. Per visible field, in the head order: presence conditions → `when()` → source → normalize
  * → down chain → serialize. Never mutates the subject. Projects responses: a nested resource is the `Response` shape of
  * its class (model.md D49).
  */
@@ -250,6 +250,7 @@ final readonly class Projector
             $children,
             $items,
             $resource,
+            $source->path !== [] ? implode('.', $source->path) : ($key ?? '*'),
         );
     }
 

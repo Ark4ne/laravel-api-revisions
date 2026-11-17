@@ -108,8 +108,11 @@ object's source. The **source** of a field says what to read on it. It is always
 | `Schema::object([...])` | the children read the parent's subject |
 | `Schema::list(Schema::object([...]), 'lines')` | each item is the subject of the object |
 
-Every closure the library calls (a source, `when()`, `down:`, `up:`) receives `($value, $subject)`. It may declare
-fewer parameters. In a source closure, `$value` is the value of the declared key when the subject holds it without side
+Every closure the library calls on a value (a source, `down:`, `up:`) receives `($value, $subject)`. It may declare
+fewer parameters. A condition, `when()` or its negation `unless()`, runs **before** the value is read and receives
+`($subject, $attribute)`: the subject of the level and the key read (`string('customer.name')` →
+`'customer.name'`, else the declared key). A field refused is never read: `->when(fn (Order $order) =>
+$order->isPaid())` guards an expensive source, and a `whenNotNull()` macro reads `data_get($subject, $attribute)`. In a source closure, `$value` is the value of the declared key when the subject holds it without side
 effect (an existing offset, an initialized property, a loaded attribute or relation), `null` otherwise.
 
 **A source is never an evaluated value.** The shapes are compiled without a real subject, and no source, closure or
@@ -121,8 +124,8 @@ Conditions:
 
 - `->whenHas()` keeps the field only when the subject has the key, `->whenLoaded('customer')` only when the relation is
   loaded. Both run **before** the source and protect it: no lazy load, no missing attribute.
-- `->when(fn ($value, $subject) => ...)` runs **after** the source, on the head value. A field whose condition fails is
-  omitted, never `null`.
+- `->when(fn ($subject, $attribute) => ...)` runs after them and **before** the source: a field whose condition fails
+  is omitted, never `null`, and never read. `->unless()` is its negation.
 - A conditional field is optional in the export.
 
 ## History: since, until, was
@@ -214,8 +217,8 @@ final class OrderResource extends JsonResource implements Revisioned
 }
 ```
 
-- Each field is read, normalized to its head type, filtered by `when()`, converted down to the client's revision, then
-  serialized once. The output keeps the order of `toArray()`.
+- Each field is filtered by `when()`, then read, normalized to its head type, converted down to the client's
+  revision, then serialized once. The output keeps the order of `toArray()`.
 - `with()`, `additional()`, wrapping, collections and pagination work as usual.
 - `OrderResource::collection($orders)` runs `toArray()` **once per render**, on a template instance whose `resource`
   is set to each order in turn, and renders every order through one projection plan. So `toArray()` must depend on
@@ -627,7 +630,7 @@ final class FieldMacros
      */
     public static function whenInFields(Descriptor $descriptor, string $field): Descriptor
     {
-        return $descriptor->when(fn (mixed $value, mixed $subject): bool => in_array($field, $subject->fields, true));
+        return $descriptor->when(fn (mixed $subject): bool => in_array($field, $subject->fields, true));
     }
 }
 

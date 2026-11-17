@@ -110,21 +110,93 @@ final class ProjectorTest extends TestCase
         self::assertSame([['Raw', ['title' => 'Raw']], [null, ['other' => 'Raw']]], $received);
     }
 
-    public function test_when_receives_the_normalized_head_value(): void
+    public function test_when_receives_the_subject_and_the_attribute_read(): void
     {
         $received = [];
-        $head = [
-            'total' => Schema::int()
-                ->when(static function (mixed $value, mixed $subject) use (&$received): bool {
-                    $received[] = [$value, $subject];
+        $record = static function (mixed $subject, string $attribute) use (&$received): bool {
+            $received[] = [$attribute, $subject];
 
-                    return true;
-                })
-                ->was(ApiRevision::Winter25, schema: Schema::string()),
+            return true;
+        };
+        $head = [
+            'total' => Schema::int()->when($record)->was(ApiRevision::Winter25, schema: Schema::string()),
+            'ref' => Schema::string('code')->when($record),
+            'buyer' => Schema::string('customer.name')->when($record),
+            'label' => Schema::string(static fn(): string => 'computed')->when($record),
+            'address' => Schema::object(['city' => Schema::string()->when($record)], 'address')->when($record),
+            'tags' => Schema::list(Schema::string()->when($record))->when($record),
+            'meta' => Schema::object(['code' => Schema::string()->when($record)])->when($record),
+            'lines' => Schema::list(Schema::object(['sku' => Schema::string()->when($record)])->when($record), 'items'),
+            'buyer_card' => Schema::resource(CustomerDeclaration::class, 'customer')->when($record),
+        ];
+        $subject = [
+            'total' => '1250', 'code' => 'A1', 'customer' => ['name' => 'Ada'], 'address' => ['city' => 'Paris'], 'tags' => ['x'],
+            'items' => [['sku' => 'S1']],
         ];
 
-        self::assertSame(['total' => '1250'], self::project($head, ApiRevision::Genesis, ['total' => '1250']));
-        self::assertSame([[1250, ['total' => '1250']]], $received);
+        self::project($head, ApiRevision::Genesis, $subject);
+
+        self::assertSame([
+            ['total', $subject],
+            ['code', $subject],
+            ['customer.name', $subject],
+            ['label', $subject],
+            ['address', $subject],
+            ['city', ['city' => 'Paris']],
+            ['tags', $subject],
+            ['*', 'x'],
+            // an object without source: the parent subject
+            ['meta', $subject],
+            ['code', $subject],
+            // the items of a list of objects: the element
+            ['*', ['sku' => 'S1']],
+            ['sku', ['sku' => 'S1']],
+            ['customer', $subject],
+        ], $received);
+    }
+
+    public function test_a_field_whose_condition_fails_is_never_read_normalized_nor_converted(): void
+    {
+        $ran = static fn(): never => throw new LogicException('Ran although refused.');
+        $head = [
+            'label' => Schema::string($ran)->when(static fn(): bool => false),
+            // a value outside its type: not normalized, so no error even when strict
+            'total' => Schema::int()->when(static fn(): bool => false)->was(ApiRevision::Winter25, schema: Schema::string(), down: $ran),
+            'address' => Schema::object(['city' => Schema::string($ran)], 'address')->when(static fn(): bool => false),
+            'tags' => Schema::list(Schema::string($ran))->when(static fn(): bool => false),
+            // its declaration fails: never described
+            'counted' => Schema::resource(CountingDeclaration::class, 'counted')->when(static fn(): bool => false),
+            'title' => Schema::string(),
+        ];
+        CountingDeclaration::$fail = true;
+
+        try {
+            self::assertSame(['title' => 'Lamp'], self::project($head, ApiRevision::Genesis, [
+                'total' => 'many', 'address' => ['city' => 'Paris'], 'tags' => ['x'], 'counted' => ['title' => 'x'], 'title' => 'Lamp',
+            ]));
+        } finally {
+            CountingDeclaration::$fail = false;
+        }
+    }
+
+    public function test_a_condition_runs_after_the_presences(): void
+    {
+        $head = ['title' => Schema::string()->whenHas()->when(static fn(): never => throw new LogicException('The condition ran.'))];
+
+        self::assertSame([], self::project($head, ApiRevision::Atlas, ['other' => 'x']));
+    }
+
+    public function test_unless_keeps_the_field_when_its_closure_returns_false(): void
+    {
+        $head = [
+            'title' => Schema::string()->unless(static fn(array $subject): bool => $subject['title'] === ''),
+            'notes' => Schema::string()->nullable()->unless(static fn(array $subject, string $attribute): bool => $subject[$attribute] === null),
+            'ref' => Schema::string()->unless(static fn(): bool => false),
+            'code' => Schema::string('ref')->unless(static fn(): int => 0),
+        ];
+
+        self::assertSame(['title' => 'Book', 'notes' => 'x', 'ref' => 'A1'], self::project($head, ApiRevision::Atlas, ['title' => 'Book', 'notes' => 'x', 'ref' => 'A1']));
+        self::assertSame(['ref' => 'A1'], self::project($head, ApiRevision::Atlas, ['title' => '', 'notes' => null, 'ref' => 'A1']));
     }
 
     public function test_conversions_receive_normalized_values(): void
@@ -204,7 +276,7 @@ final class ProjectorTest extends TestCase
     public function test_a_failing_condition_omits_the_field(): void
     {
         $head = [
-            'title' => Schema::string()->when(static fn(string $title): bool => $title !== ''),
+            'title' => Schema::string()->when(static fn(array $subject): bool => $subject['title'] !== ''),
             'notes' => Schema::string()->when(static fn(): bool => true)->when(static fn(): bool => false),
             'ref' => Schema::string(),
             'code' => Schema::string('ref')->when(static fn(): int => 1),
@@ -425,13 +497,13 @@ final class ProjectorTest extends TestCase
         );
     }
 
-    public function test_a_composite_condition_and_conversion_receive_its_projected_children(): void
+    public function test_a_composite_condition_receives_its_subject_and_its_conversion_the_projected_children(): void
     {
         $received = [];
         $head = [
             'address' => Schema::object(['street' => Schema::string('road')])
-                ->when(static function (mixed $children) use (&$received): bool {
-                    $received[] = $children;
+                ->when(static function (mixed $subject) use (&$received): bool {
+                    $received[] = $subject;
 
                     return true;
                 })
@@ -443,7 +515,7 @@ final class ProjectorTest extends TestCase
         ];
 
         self::assertSame(['address' => '1 line'], self::project($head, ApiRevision::Genesis, ['road' => 'Main street']));
-        self::assertSame([['street' => 'Main street'], ['street' => 'Main street']], $received);
+        self::assertSame([['road' => 'Main street'], ['street' => 'Main street']], $received);
     }
 
     public function test_a_nested_resource_is_projected_at_the_same_revision(): void
@@ -548,7 +620,6 @@ final class ProjectorTest extends TestCase
         $reported = [];
         $head = [
             'status' => Schema::enum(OrderStatus::class)
-                ->when(static fn(OrderStatus $status): bool => $status !== OrderStatus::Pending)
                 ->was(ApiRevision::Winter25, schema: Schema::string(), down: static fn(OrderStatus $status): string => strtoupper($status->value)),
         ];
 

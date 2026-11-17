@@ -161,7 +161,8 @@ types, descriptor macros).
   (compiled for `($type->resource, $shape->kind, $field->revision)`, through `Shapes::for()`), never inlined: cycles compile.
 - Composites (`ListSchema`, `ObjectSchema`) normalize only their own value: a list to `list` of elements, an object
   to the subject of its children. Projecting each item and child is the projection's job (a descriptor never reads
-  the subject), before the composite's own `when()` and conversions (`model.md` D34). `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
+  the subject), after the composite's own `when()` (D93) and before its conversions
+  (`model.md` D34). `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
   so `serialize()` takes a `mixed` and passes any other type through.
 - A descriptor owns the **value rules of its type**: `normalize(mixed): mixed` (subject data → PHP value of the type,
   or an `InvalidValue`, returned, never thrown: not named `ValueError`, which PHP already defines and `BackedEnum::from()`
@@ -309,9 +310,10 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   resource or a scalar is kept whole. A plan holds the closures of its declaration: built per render, never cached
   across renders; only the `Shape` is cached per process. A nested resource is planned per value (its
   `describeRevisioned()` receives its subject). Descriptors missing a field kept throw when planning.
-- Per field, a fixed **Pipeline** (`model.md` §6.5): presence conditions → `SourceReader::read($source, $subject)`
-  → `Descriptor::normalize()` → `when()` conditions → `ConversionChain::apply()` (down, with the subject) →
-  `Descriptor::serialize()`.
+- Per field, a fixed **Pipeline** (`model.md` §6.5): presence conditions → `when()` conditions
+  (`Invoke::condition($closure, $subject, $attribute)`, D93) → `SourceReader::read($source, $subject)` →
+  `Descriptor::normalize()` → `ConversionChain::apply()` (down, with the subject) → `Descriptor::serialize()`. A field
+  refused by a condition is never read.
   Each step has one owner; no step is skipped or reordered for a type.
 - `Projector` (`final readonly`) is built with the `Configuration` the shapes were compiled with (the descriptor that
   serializes is `configure()`d with it, its own defaults only: serializing never reads the history, and a render
@@ -338,14 +340,14 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
   `Shape` of the other class at the same revision (`Shapes::for($class, Response, $field->headAt)`, a `Shapes` given to
   the projector or one compiling with its configuration) and to its descriptors built on the value
   (`describeRevisioned()`, D50). For a composite, the head's children are projected **between** its `normalize()`
-  (which only checks the container) and its own `when()` / down conversions, which therefore receive the projected,
-  serialized children; its `serialize()` receives them too (`model.md` D34, D52). An item is told by a flag, never by
+  (which only checks the container) and its own down conversions, which therefore receive the projected,
+  serialized children (its `when()` ran before anything was read, D93); its `serialize()` receives them too (`model.md` D34, D52). An item is told by a flag, never by
   its `*` key: a closure source gets the element as `$value`. Descriptors that do not match the shape (a composite on
   one side only) throw `missingDescriptor()`.
 - **Value errors** go to a `ValueErrorHandler` (**Strategy**, `handle(ValueException $error, mixed $fallback): mixed`):
   `StrictValues` throws the `ValueException`; `LenientValues` hands it to its reporter (`Closure(ValueException): void`,
-  optional) and returns the fallback: the cast of a refused value (rendered as it is: no `when()`, chain nor
-  serializer), `null` for a failed conversion or a non-nullable `null`, resolved or given by a `down:` (`model.md`
+  optional) and returns the fallback: the cast of a refused value (rendered as it is: no chain nor serializer,
+  its `when()` already passed), `null` for a failed conversion or a non-nullable `null`, resolved or given by a `down:` (`model.md`
   D53). The projector takes a handler, or builds one from
   `Configuration::$strictValues` (`true` in the core). A `ValueException` exposes `class`, `field`, `revision` (the
   Laravel reporter reports once per class and field) and never holds the value in its message; its stack trace holds

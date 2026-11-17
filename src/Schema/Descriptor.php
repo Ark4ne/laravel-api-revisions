@@ -11,6 +11,7 @@ use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\Revision;
+use Ark4ne\ApiRevisions\Support\Invoke;
 use Ark4ne\ApiRevisions\Support\Json;
 use Ark4ne\ApiRevisions\Support\Undefined;
 use Closure;
@@ -228,8 +229,11 @@ abstract class Descriptor
     }
 
     /**
-     * Keeps the field only when the closure returns `true`: called with `($value, $subject)` after the source and the
-     * normalization (model.md §6.4). Several conditions must all pass. The field becomes conditional (optional in the
+     * Keeps the field only when the closure returns `true`: called with `($subject, $attribute)` after the presences and
+     * **before** the source is read (model.md D93): a field refused is never read, normalized, projected nor converted.
+     * `$subject` is the subject of the level (the model a resource wraps, an object's value for its children, the
+     * element of a list), `$attribute` the key read (the source key or path, else the declared key); a closure may
+     * declare fewer parameters. Several conditions must all pass. The field becomes conditional (optional in the
      * export).
      */
     public function when(Closure $condition): static
@@ -238,6 +242,14 @@ abstract class Descriptor
         $clone->conditions[] = $condition;
 
         return $clone;
+    }
+
+    /**
+     * Keeps the field only when the closure returns `false`: the negation of `when()`, called alike (model.md D93).
+     */
+    public function unless(Closure $condition): static
+    {
+        return $this->when(static fn(mixed $subject, string $attribute): bool => Invoke::value($condition, $subject, $attribute) === false);
     }
 
     /**

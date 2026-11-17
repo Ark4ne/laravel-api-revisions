@@ -16,7 +16,8 @@ use stdClass;
 /**
  * The projection of one declaration at one revision, resolved ahead of its subjects (model.md D77, D86): built by
  * `Projector::plan()` from a `Shape` and the descriptors of one render, then run on each subject. Per field, in the head
- * order: presence conditions → source → normalize → nested plan → `when()` → down chain → serialize (model.md §6.5).
+ * order: presence conditions → `when()` → source → normalize → nested plan → down chain → serialize (model.md §6.5,
+ * D93).
  * Holds the closures of that declaration: built per render, never kept across renders. Public contract for consumers
  * rendering many subjects of one declaration.
  */
@@ -75,13 +76,20 @@ final readonly class ProjectionPlan
     }
 
     /**
-     * One field (or item) through the pipeline: its serialized value, or the sentinel when it is not rendered. A
-     * composite projects its children, items or resource between its normalization and its `when()` (model.md D34).
+     * One field (or item) through the pipeline: its serialized value, or the sentinel when it is not rendered. Its
+     * conditions run before its source (D93); a composite projects its children, items or resource after its
+     * normalization (model.md D34).
      */
     private function field(PlannedField $field, mixed $subject): mixed
     {
         foreach ($field->presences as [$relation, $path]) {
             if (!($relation ? $this->reader->loaded($subject, $path) : $this->reader->has($subject, $path))) {
+                return $this->omitted;
+            }
+        }
+        foreach ($field->conditions as $condition) {
+            // before the value: a field refused is never read, normalized, projected nor converted (model.md D93)
+            if (!Invoke::condition($condition, $subject, $field->attribute)) {
                 return $this->omitted;
             }
         }
@@ -101,11 +109,6 @@ final readonly class ProjectionPlan
                 );
             }
             $value = $this->nested($field, $value);
-        }
-        foreach ($field->conditions as $condition) {
-            if (Invoke::value($condition, $value, $subject) !== true) {
-                return $this->omitted;
-            }
         }
         if ($value !== null) {
             if ($field->chain !== null) {

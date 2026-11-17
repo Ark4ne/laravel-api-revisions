@@ -35,7 +35,8 @@ client's revision and upgraded **up** to the head. Controllers only ever see the
 4. **A source is lazy.** It is the key the field is declared under (default), another key (`Schema::int('total_cents')`),
    a dotted path (`'customer.name'`) or a closure `($value, $subject)`. Never an evaluated value:
    `Schema::string($this->title)` reads the key *named by the title*. In a closure, read the `$subject` parameter.
-5. **Every closure receives `($value, $subject)`**: sources, `when()`, `down:`, `up:`. It may declare fewer.
+5. **Value closures receive `($value, $subject)`**: sources, `down:`, `up:`. **Conditions** (`when()`, `unless()`)
+   run before the value is read and receive `($subject, $attribute)`. Each may declare fewer.
 6. **`down:` receives the PHP value of the newer shape**, normalized, never the wire value: an `OrderStatus` case (not
    `'paid'`), an `int`, a `DateTimeImmutable`. In a chain, it receives what the next newer `was()` produced (a
    `string` after a `was(schema: Schema::string())`). It returns the PHP value of the older shape; serialization
@@ -46,8 +47,8 @@ client's revision and upgraded **up** to the head. Controllers only ever see the
    what the client sent, in its revision.
 9. **`required()->since(R)` declares `default:`**, the value older clients get (`default: null` for an explicit
    `null`). Without it, `revision:check` fails (unless the application set `missing_default` to `'null'`).
-10. **Conditions belong to the descriptor**: `->whenLoaded('customer')`, `->whenHas()`, `->when(fn ($value, $subject)
-    => ...)`. A native `$this->when()`, `mergeWhen()` or `$this->whenLoaded()` is invisible to the schema
+10. **Conditions belong to the descriptor**: `->whenLoaded('customer')`, `->whenHas()`, `->when(fn ($subject,
+    $attribute) => ...)`. A native `$this->when()`, `mergeWhen()` or `$this->whenLoaded()` is invisible to the schema
     (`native-condition`); a plain value (`'x' => $this->x`) is typed `any`, the same in every revision, and fails the
     check (`eager-value`).
 11. **Outside HTTP, choose the revision and render inside it**: `ApiRevision::using($revision, function () use (...) {

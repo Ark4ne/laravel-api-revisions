@@ -14,8 +14,8 @@ use stdClass;
  * An object: named children, nested freely, each with its own source and history. Its value is the subject of its
  * children (model.md §6.1): the value of its source, or the parent's subject without one (`Source::parent()`).
  * `normalize()` only checks that subject (an array or an object); the projection then projects every child through
- * its own pipeline, and the object's `when()`, `down:` and `serialize()` receive the projected children (model.md
- * D34). Serialized as a JSON object, even when empty.
+ * its own pipeline, and the object's `down:` and `serialize()` receive the projected children (model.md D34); its
+ * `when()` runs before, on the subject (D93). Serialized as a JSON object, even when empty.
  *
  * @extends Descriptor<array<mixed>|object> its value is the subject of its children
  */

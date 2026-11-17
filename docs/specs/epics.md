@@ -1754,6 +1754,25 @@ and the skill reference. Decided with the maintainer in `model.md` D92. Both get
 classes named by the reference); the conversions keep their own tests (`RegexPatternTest`, `DatePatternTest`).
 Deviations: none. Infection is not installed, not run.
 
+#### US 12.15 — Conditions before the value · S · depends 12.8
+
+- `when(Closure($subject, $attribute): bool)` and its negation `unless()` are evaluated after the presences and
+  before the source: a field refused is never read, normalized, projected nor converted; `$subject` is the subject of
+  the level, `$attribute` the key read (the source key or path, else the declared key). No condition after the value
+  (D93) (R17).
+
+**Done** (US 12.15): `ProjectionPlan::field()` runs the conditions after the presences and before the source, through
+`Support\Invoke::condition($closure, $subject, $attribute)`; `PlannedField::$attribute` is computed when planning
+(the source key or path, else the declared key, `*` for an item); `Descriptor::unless()`. Decided with the maintainer
+in `model.md` D93 (amends §3, §6.4, §6.5, D18, D34). Tests: `ProjectorTest` (the subject and attribute received at
+every level, a refused field never read, normalized, projected nor converted, conditions after the presences,
+`unless()`, a composite's condition receives its subject, a refused nested resource never described),
+`DescriptorTest` (`unless()`), `InvokeTest` (`Invoke::condition()`), updated `ProjectionPlanTest` and the `whenFlag`
+macro.
+Deviations: R17 asked for `when(Closure(): bool)`; the maintainer chose `($subject, $attribute)` (a closure without
+parameters still works) so conditions on nested levels and macros keep their subject. `CLAUDE.md` still describes the
+old order and signature: left to the maintainer. Infection is not installed, not run.
+
 ---
 
 ## 3. Order and milestones
@@ -1770,7 +1789,7 @@ E6 ─────────────────────────�
 E7 ───────────────────────────────────────────── 7.1 ─ 7.2 ─ 7.3
 E9 ───────────────────────────────────────────── 9.1 ─ 9.2 ─ 9.3 ─ 9.4 (after 10.1)
 E10 ──────────────────────────────────────────── 10.1 ─ 10.2 ─ 10.3 ─ 10.4 ─ 10.5
-E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.11 · 12.9 · 12.12 · 12.13 · 12.14
+E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.11 · 12.9 · 12.12 · 12.13 · 12.14 · 12.15
 E11 ── last (11.3 after E12)
 ```
 
@@ -1964,3 +1983,4 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.12 | Date and date-time conversions | S | 11.2 | M4 | done |
 | US 12.13 | A checker on some classes | S | 12.5 | M4 | done |
 | US 12.14 | Public pattern conversions | S | 12.6 | M4 | done |
+| US 12.15 | Conditions before the value | S | 12.8 | M4 | done |

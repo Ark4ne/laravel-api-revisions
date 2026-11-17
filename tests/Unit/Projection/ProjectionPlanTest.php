@@ -31,7 +31,7 @@ final class ProjectionPlanTest extends TestCase
 
                 return strtoupper($title);
             }),
-            'notes' => Schema::string()->nullable()->when(static fn(?string $notes): bool => $notes !== null),
+            'notes' => Schema::string()->nullable()->when(static fn(array $subject): bool => ($subject['notes'] ?? null) !== null),
         ];
         $plan = (new Projector())->plan(self::shape($head, ApiRevision::Genesis), $head);
 

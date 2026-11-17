@@ -23,7 +23,7 @@ final class FieldMacros
      */
     public static function whenFlag(Descriptor $descriptor, string $flag = 'visible'): Descriptor
     {
-        return $descriptor->when(static fn(mixed $value, mixed $subject): bool => is_array($subject) && ($subject[$flag] ?? false) === true);
+        return $descriptor->when(static fn(mixed $subject): bool => is_array($subject) && ($subject[$flag] ?? false) === true);
     }
 
     /**

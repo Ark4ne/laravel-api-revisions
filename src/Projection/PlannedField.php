@@ -26,7 +26,9 @@ final readonly class PlannedField
      * @param list<array{bool, non-empty-list<string>}> $presences each presence condition: whether a relation, its path
      * @param Closure|null $closure the source closure
      * @param non-empty-list<string>|null $path the path read on the subject; `null` without closure: the subject itself
-     * @param list<Closure> $conditions the `when()` conditions
+     * @param list<Closure> $conditions the `when()` conditions, called `($subject, $attribute)` before the source
+     * @param string $attribute the key read, given to the conditions: the source key or path, else the declared key
+     *                          (`*` for an item, model.md D93)
      * @param ConversionChain|null $chain the down chain bound to its converters; `null` when empty
      * @param list<PlannedField>|null $children the children of an object
      * @param class-string<Revisioned>|null $resource the class of a nested resource
@@ -44,5 +46,6 @@ final readonly class PlannedField
         public ?array $children = null,
         public ?PlannedField $items = null,
         public ?string $resource = null,
+        public string $attribute = '*',
     ) {}
 }

@@ -23,6 +23,7 @@ use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Schema\Presence;
 use Ark4ne\ApiRevisions\Schema\StringSchema;
 use Ark4ne\ApiRevisions\Support\Undefined;
+use ArrayObject;
 use Closure;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
@@ -169,6 +170,26 @@ final class DescriptorTest extends TestCase
         self::assertTrue($conditional->isConditional());
         self::assertSame([$condition], $conditional->conditions());
         self::assertSame([], $conditional->presences());
+    }
+
+    public function test_unless_adds_a_negated_condition_and_marks_the_field_conditional(): void
+    {
+        /** @var ArrayObject<int, string> $calls */
+        $calls = new ArrayObject();
+        $schema = new StringSchema();
+
+        $conditional = $schema->unless(static function () use ($calls): bool {
+            $calls->append('called');
+
+            return false;
+        });
+
+        self::assertSame([], $schema->conditions());
+        self::assertTrue($conditional->isConditional());
+        self::assertCount(1, $conditional->conditions());
+        self::assertCount(0, $calls);
+        self::assertTrue($conditional->conditions()[0](null, 'title'));
+        self::assertCount(1, $calls);
     }
 
     public function test_conditions_are_kept_in_declaration_order(): void
