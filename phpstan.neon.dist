@@ -19,8 +19,8 @@ parameters:
             documented: 'Test\Fixtures\Macros\FieldMacros::documented'
     level: max
     ignoreErrors:
-        # Reported by PHPStan on PHP 8.5 only (property hooks): no subclass hooks it. Unmatched on the other
-        # versions, hence not reported there.
+        # Reported by some PHPStan versions only (property hooks); no subclass hooks it. Unmatched elsewhere, hence
+        # reportUnmatched: false.
         -
             identifier: unset.possiblyHookedProperty
             path: tests/Fixtures/PropertySubject.php
