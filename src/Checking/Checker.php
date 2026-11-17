@@ -43,12 +43,14 @@ final readonly class Checker
     /**
      * @param class-string<Revision> $revisions
      * @param list<Check> $checks
+     * @param bool $subset whether the finder gives only some of the application's classes (`forClasses()`, D91)
      */
     public function __construct(
         private string $revisions,
         private ClassFinder $finder,
         private array $checks,
         private Compiler $compiler = new Compiler(),
+        private bool $subset = false,
     ) {}
 
     /**
@@ -76,6 +78,16 @@ final readonly class Checker
     }
 
     /**
+     * This checker (its enum, compiler and checks) on the classes `$finder` gives, some of the application's (model.md
+     * D91): every `CheckContext` says so (`$subset`), so a check needing every class skips what it cannot tell (the
+     * lock mismatch does not report the locked classes the finder does not give).
+     */
+    public function forClasses(ClassFinder $finder): self
+    {
+        return new self($this->revisions, $finder, $this->checks, $this->compiler, true);
+    }
+
+    /**
      * Every diagnostic of every check on every target.
      */
     public function run(): Diagnostics
@@ -83,12 +95,12 @@ final readonly class Checker
         $diagnostics = new Diagnostics();
         $shapes = new Shapes($this->compiler);
         $classes = $this->finder->find();
-        $this->runChecks(new CheckContext($this->revisions, null, $this->compiler, $shapes, $diagnostics, $classes));
+        $this->runChecks(new CheckContext($this->revisions, null, $this->compiler, $shapes, $diagnostics, $classes, $this->subset));
         if (!$this->orderIsValid($diagnostics)) {
             return $diagnostics;
         }
         foreach ($classes as $class) {
-            $context = new CheckContext($this->revisions, $class, $this->compiler, $shapes, $diagnostics, $classes);
+            $context = new CheckContext($this->revisions, $class, $this->compiler, $shapes, $diagnostics, $classes, $this->subset);
             if ($this->builds($context, $diagnostics)) {
                 $this->runChecks($context);
             }

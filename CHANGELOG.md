@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Checking\Checker::forClasses(ClassFinder)`: the checker the provider binds on a subset of the classes, every
+  built-in, Laravel and tagged rule included, so a consumer's own check command does not rebuild the list;
+  `CheckContext::$subset` tells a check it runs on a subset, and `LockMismatch` then reports no locked class gone
+  (`model.md` D91).
 - Automatic date ↔ date-time conversions (`Conversion\BuiltIn\DateTimeToDate`, `DateToDateTime`), lossless in
   both directions: a date-time that was a date (or a date that was a date-time) needs no `down:` / `up:` any more.
   The day is written in the timezone of the value (never shifted to UTC); a date becomes midnight of its day. A

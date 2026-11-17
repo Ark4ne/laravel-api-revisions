@@ -37,6 +37,8 @@ final class CheckContext
      * @param class-string<Revision> $revisions
      * @param class-string<Revisioned>|null $class
      * @param list<class-string<Revisioned>> $classes every class the run checks (the targets after the enum)
+     * @param bool $subset whether `$classes` are only some of the application's (`Checker::forClasses()`, model.md
+     *                     D91): a check needing every class (a locked class gone) skips what it cannot tell
      */
     public function __construct(
         public readonly string $revisions,
@@ -45,6 +47,7 @@ final class CheckContext
         private readonly Shapes $shapes,
         private readonly Diagnostics $diagnostics,
         public readonly array $classes = [],
+        public readonly bool $subset = false,
     ) {}
 
     /**

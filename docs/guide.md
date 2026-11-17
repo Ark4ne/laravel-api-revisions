@@ -455,6 +455,11 @@ final readonly class ReservedNameCheck implements Check
 }
 ```
 
+A command checking some classes only (a package's own check command) resolves the same checker and narrows it:
+`app(Checker::class)->forClasses($finder)->run()`. Every rule runs, the lock comparison of the classes given included;
+only a locked class the finder does not give is not reported gone. A tagged rule needing every class reads
+`$context->subset` to skip what a subset cannot tell.
+
 ## Lock
 
 The real risk is a **forgotten** `since()`: a new field leaking into the revisions already published. Rather than

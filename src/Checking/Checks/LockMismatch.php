@@ -18,7 +18,7 @@ use Throwable;
  * `lock-mismatch` (model.md §9, D69): the structure of a class at a locked revision differs from its lock — per
  * top-level field added, removed or changed, per other keyword, per class or kind added or removed (a class absent at
  * a revision by its lifetime, model.md D81, is compared only when the snapshot holds it). On the enum: the
- * locked classes no longer discovered, and the lock files that cannot be read. The snapshots are read once per run,
+ * locked classes no longer discovered (not on a subset of the classes, D91), and the lock files that cannot be read. The snapshots are read once per run,
  * on the enum (checked first by every run).
  */
 final class LockMismatch implements Check
@@ -83,6 +83,10 @@ final class LockMismatch implements Check
                 continue;
             }
             $this->snapshots[] = $snapshot;
+            if ($context->subset) {
+                // some classes only (Checker::forClasses(), D91): one not given is not gone
+                continue;
+            }
             foreach (array_diff(array_keys($snapshot->classes), $context->classes) as $class) {
                 $context->error(self::CODE, "{$class} is gone from the locked revision {$value}: " . self::relock($value), revision: $revision);
             }

@@ -26,6 +26,7 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Ark4ne\ApiRevisions\Schema\Schema;
 use Ark4ne\ApiRevisions\Support\Diagnostic;
 use Ark4ne\ApiRevisions\Support\Severity;
+use ArrayObject;
 use Closure;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Fixtures\ApiRevision;
@@ -282,6 +283,32 @@ final class CheckerTest extends TestCase
                 $context->warning($this->name, 'Ran.');
             }
         };
+    }
+
+    public function test_a_checker_for_some_classes_runs_every_check_and_says_it_is_a_subset(): void
+    {
+        /** @var ArrayObject<int, string> $runs */
+        $runs = new ArrayObject();
+        $record = static fn(string $name): Check => new readonly class ($name, $runs) implements Check {
+            /**
+             * @param ArrayObject<int, string> $runs
+             */
+            public function __construct(private string $name, private ArrayObject $runs) {}
+
+            public function run(CheckContext $context): void
+            {
+                $this->runs->append("{$this->name}:" . ($context->class ?? 'enum') . ($context->subset ? ':subset' : ''));
+            }
+        };
+        CheckedDeclaration::$describe = static fn(): array => ['title' => Schema::string()];
+        $checker = new Checker(ApiRevision::class, self::finder([]), [$record('first'), $record('added')]);
+
+        $checker->forClasses(self::finder([CheckedDeclaration::class]))->run();
+        self::assertSame(['first:enum:subset', 'added:enum:subset', 'first:' . CheckedDeclaration::class . ':subset', 'added:' . CheckedDeclaration::class . ':subset'], $runs->getArrayCopy());
+
+        $runs->exchangeArray([]);
+        $checker->run();
+        self::assertSame(['first:enum', 'added:enum'], $runs->getArrayCopy());
     }
 
     /**

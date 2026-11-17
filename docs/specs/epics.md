@@ -1728,9 +1728,18 @@ upgrade in `UpgraderTest`, `ConversionMissingTest`, `ConversionLossyTest`, the t
 
 #### US 12.13 — A checker on some classes · S · depends 12.5
 
-- `Checker::forClasses(ClassFinder)`: the checker the provider binds, with another finder and without the checks
-  needing every class (a marker interface on the lock checks); a check added to `Checker::builtIn()` or tagged is
-  picked up without change by the consumer (R15).
+- `Checker::forClasses(ClassFinder)`: the checker the provider binds, with another finder, on a subset of the classes
+  (a locked class not given is not reported gone); a check added to `Checker::builtIn()` or tagged is picked up
+  without change by the consumer (R15).
+
+**Done** (US 12.13): `Checking\Checker::forClasses(ClassFinder)` (a copy with that finder, its enum, compiler and
+every check, marked as a subset) and `CheckContext::$subset`; `LockMismatch` on a subset compares the classes given
+with the lock and reports an unreadable file, but no locked class gone. Decided with the maintainer in `model.md` D91
+(first a marker interface leaving out the whole lock mismatch; after review, the subset flag, so a forgotten
+`since()` is still caught). Tests: `CheckerTest` (every check runs, told it is a subset),
+`tests/Feature/CheckerForClassesTest.php` (the bound checker: built-in and tagged checks run, no class reported gone,
+a leaked field still a `lock-mismatch`). Deviation: R15 suggested dropping the lock checks; none is dropped. Infection
+is not installed, not run.
 
 ---
 
@@ -1940,4 +1949,4 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.10 | Property read without `get_object_vars()` | S | 12.8 | M4 | done |
 | US 12.11 | Plan of paths | S | 12.8 | M4 | done |
 | US 12.12 | Date and date-time conversions | S | 11.2 | M4 | done |
-| US 12.13 | A checker on some classes | S | 12.5 | M4 | todo |
+| US 12.13 | A checker on some classes | S | 12.5 | M4 | done |

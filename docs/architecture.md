@@ -123,6 +123,7 @@ major version). What a generator (`laravel-openapi-generator`, X2) or another co
 | `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject (US 12.8, D86); `keys` holds head keys or dotted paths of head keys, `*` for the items of a list (US 12.11, D89); `project(shape, descriptors, subject)` |
 | `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
 | `Schema\DescriptorMacros` | `register(name, Closure)`: the closure called `($descriptor, ...$arguments)`, returning an instance of the receiver's class; `has(name)`; served by `Descriptor::__call()`; PHPStan `apiRevisions.macros` (US 12.9, D87) |
+| `Checking\Checker` | `forClasses(finder)`: the bound checker on a subset of the classes, `CheckContext::$subset` true (US 12.13, D91); `run()`: `Diagnostics` |
 | `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
 
 Only the items of this table are the contract for tools. Anything marked `@internal`, a class (`DatePattern`, `RegexPattern`…) or a member, may change in a minor version.
@@ -536,7 +537,9 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   tagged `RevisionsServiceProvider::CHECKS`, built by the container in tag order, `model.md` D83; a `Compiler` with the application's
   `Configuration`; custom types through `TypeRegistry::converters()`), each built anew (never the compiled shapes).
   `revision:check` (`--format=table|json`, `--list`) and `Testing\InteractsWithRevisions::assertRevisionsAreConsistent()`
-  resolve the `Checker`: errors fail, warnings alone pass.
+  resolve the `Checker`: errors fail, warnings alone pass. Since US 12.13 (`model.md` D91), `Checker::forClasses($finder)`
+  is that checker on a subset of the classes (a consumer's own check command): every check runs, `CheckContext::$subset`
+  says so, and `LockMismatch` then compares the classes given but reports no locked class gone.
   The codes of the errors thrown when declared are literals on `DefinitionException` (`Exceptions` cannot see
   `Checking`); `Checker::DEFINITION_ERROR` equals the default one (tested). `CheckContext` memoizes the descriptors per
   kind, `Shapes` the shapes: a class is described and compiled once per run.
