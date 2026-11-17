@@ -12,6 +12,8 @@ use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\RevisionsException;
+use Ark4ne\ApiRevisions\Export\DatePattern;
+use Ark4ne\ApiRevisions\Export\RegexPattern;
 use Ark4ne\ApiRevisions\Laravel\Http\ResolveRevision;
 use Ark4ne\ApiRevisions\Laravel\Http\RevisionResolver;
 use Ark4ne\ApiRevisions\Laravel\Requests\RevisionedRequest;
@@ -68,6 +70,8 @@ final class SkillTest extends TestCase
      */
     private const array NAMED_CLASSES = [
         Schema::class,
+        RegexPattern::class,
+        DatePattern::class,
         Cast::class,
         Converters::class,
         Direction::class,

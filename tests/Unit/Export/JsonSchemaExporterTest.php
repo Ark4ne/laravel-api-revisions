@@ -8,7 +8,9 @@ use Ark4ne\ApiRevisions\Compilation\Shapes;
 use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
+use Ark4ne\ApiRevisions\Export\DatePattern;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
+use Ark4ne\ApiRevisions\Export\RegexPattern;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Schema\Schema;
@@ -317,6 +319,62 @@ final class JsonSchemaExporterTest extends TestCase
             'insensitive' => Schema::string()->pattern('/^a$/i'),
             'undelimited' => Schema::string()->pattern('^a$'),
         ]), 'properties'));
+    }
+
+    public function test_the_exported_patterns_are_those_of_the_public_conversions(): void
+    {
+        $patterns = ['/^A-/', '#^\\p{Lu}$#uD', '{^a/b$}', '/^a$/i', '^a$'];
+        $dates = ['d/m/Y', 'H:i', 'D, d M Y', 'U'];
+        $dateTimes = ['Y-m-d H:i', 'd/m/Y H:i:s', 'D, d M Y H:i'];
+        $head = [];
+        foreach ($patterns as $index => $pattern) {
+            $head["p{$index}"] = Schema::string()->pattern($pattern);
+        }
+        foreach ($dates as $index => $format) {
+            $head["d{$index}"] = Schema::date()->format($format);
+        }
+        foreach ($dateTimes as $index => $format) {
+            $head["t{$index}"] = Schema::dateTime()->format($format);
+        }
+        $properties = self::head(static fn(): array => $head)['properties'];
+        self::assertIsArray($properties);
+
+        foreach ($patterns as $index => $pattern) {
+            $expected = RegexPattern::of($pattern);
+            self::assertEquals(
+                ['type' => 'string', ...($expected === null ? ['$comment' => "PCRE {$pattern}"] : ['pattern' => $expected])],
+                $properties["p{$index}"] ?? null,
+                $pattern,
+            );
+        }
+        foreach (['d' => $dates, 't' => $dateTimes] as $prefix => $formats) {
+            foreach ($formats as $index => $format) {
+                $expected = DatePattern::of($format);
+                self::assertEquals(
+                    ['type' => 'string', ...($expected === null ? [] : ['pattern' => $expected]), '$comment' => "PHP date format {$format}"],
+                    $properties["{$prefix}{$index}"] ?? null,
+                    $format,
+                );
+            }
+        }
+    }
+
+    public function test_a_date_format_json_schema_names_exports_its_format_and_no_pattern(): void
+    {
+        self::assertEquals([
+            'day' => ['type' => 'string', 'format' => 'date'],
+            'iso' => ['type' => 'string', 'format' => 'date'],
+            'at' => ['type' => 'string', 'format' => 'date-time'],
+            'rfc' => ['type' => 'string', 'format' => 'date-time'],
+            'extended' => ['type' => 'string', 'format' => 'date-time'],
+        ], self::head(static fn(): array => [
+            'day' => Schema::date(),
+            'iso' => Schema::date()->format('Y-m-d'),
+            'at' => Schema::dateTime(),
+            'rfc' => Schema::dateTime()->format(DateTimeInterface::RFC3339),
+            'extended' => Schema::dateTime()->format(DateTimeInterface::RFC3339_EXTENDED),
+        ])['properties']);
+        self::assertNotNull(DatePattern::of('Y-m-d'));
     }
 
     public function test_the_items_of_a_was_schema_keep_their_nullability(): void

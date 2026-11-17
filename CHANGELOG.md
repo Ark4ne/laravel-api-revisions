@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Export\RegexPattern::of()` and `Export\DatePattern::of()` are public contract (no longer `@internal`): a
+  generator gets the ECMA `pattern` `JsonSchemaExporter` writes for a string pattern, or for a date format JSON
+  Schema does not name (`Y-m-d`, RFC 3339 and RFC 3339 extended export `format`), `null` when there is none
+  (`model.md` D92).
 - `Checking\Checker::forClasses(ClassFinder)`: the checker the provider binds on a subset of the classes, every
   built-in, Laravel and tagged rule included, so a consumer's own check command does not rebuild the list;
   `CheckContext::$subset` tells a check it runs on a subset, and `LockMismatch` then reports no locked class gone

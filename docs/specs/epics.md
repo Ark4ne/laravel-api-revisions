@@ -1741,6 +1741,19 @@ with the lock and reports an unreadable file, but no locked class gone. Decided 
 a leaked field still a `lock-mismatch`). Deviation: R15 suggested dropping the lock checks; none is dropped. Infection
 is not installed, not run.
 
+#### US 12.14 — Public pattern conversions · S · depends 12.6
+
+- `Export\RegexPattern::of(string $pcre): ?string` and `Export\DatePattern::of(string $format): ?string` are no
+  longer `@internal`: named in the public contract for tools (`architecture.md` §4), identical to the `pattern`
+  `JsonSchemaExporter` writes (a date format JSON Schema names exports `format` instead) (D92) (R16).
+
+**Done** (US 12.14): `Export\RegexPattern` and `Export\DatePattern` lose `@internal`, named in `architecture.md` §4
+and the skill reference. Decided with the maintainer in `model.md` D92. Both get a private constructor. Tests: `JsonSchemaExporterTest` (the exported
+`pattern` and `$comment` of several PCREs and date and date-time formats against `of()`, the named formats exporting
+`format` and no pattern), `SkillTest` (both
+classes named by the reference); the conversions keep their own tests (`RegexPatternTest`, `DatePatternTest`).
+Deviations: none. Infection is not installed, not run.
+
 ---
 
 ## 3. Order and milestones
@@ -1757,7 +1770,7 @@ E6 ─────────────────────────�
 E7 ───────────────────────────────────────────── 7.1 ─ 7.2 ─ 7.3
 E9 ───────────────────────────────────────────── 9.1 ─ 9.2 ─ 9.3 ─ 9.4 (after 10.1)
 E10 ──────────────────────────────────────────── 10.1 ─ 10.2 ─ 10.3 ─ 10.4 ─ 10.5
-E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.11 · 12.9 · 12.12 · 12.13
+E12 ── 12.1 ─ 12.3 ─ 12.6 · 12.2 · 12.4 · 12.5 · 12.7 ─ 12.8 ─ 12.10 · 12.11 · 12.9 · 12.12 · 12.13 · 12.14
 E11 ── last (11.3 after E12)
 ```
 
@@ -1950,3 +1963,4 @@ when it starts a story and `done` in the commit that completes it, with a **Done
 | US 12.11 | Plan of paths | S | 12.8 | M4 | done |
 | US 12.12 | Date and date-time conversions | S | 11.2 | M4 | done |
 | US 12.13 | A checker on some classes | S | 12.5 | M4 | done |
+| US 12.14 | Public pattern conversions | S | 12.6 | M4 | done |

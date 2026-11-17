@@ -124,9 +124,10 @@ major version). What a generator (`laravel-openapi-generator`, X2) or another co
 | `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
 | `Schema\DescriptorMacros` | `register(name, Closure)`: the closure called `($descriptor, ...$arguments)`, returning an instance of the receiver's class; `has(name)`; served by `Descriptor::__call()`; PHPStan `apiRevisions.macros` (US 12.9, D87) |
 | `Checking\Checker` | `forClasses(finder)`: the bound checker on a subset of the classes, `CheckContext::$subset` true (US 12.13, D91); `run()`: `Diagnostics` |
+| `Export\RegexPattern`, `Export\DatePattern` | `of(pcre)` / `of(format)`: the ECMA `pattern` `JsonSchemaExporter` writes for a string pattern (`null`: a `$comment` instead) / a date format JSON Schema does not name (`Y-m-d`, RFC 3339 and RFC 3339 extended export `format`); a field's own `schema()` keywords override them (US 12.14, D92) |
 | `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
 
-Only the items of this table are the contract for tools. Anything marked `@internal`, a class (`DatePattern`, `RegexPattern`…) or a member, may change in a minor version.
+Only the items of this table are the contract for tools. Anything marked `@internal`, a class or a member, may change in a minor version.
 
 ## 5. Schema descriptors
 
@@ -492,8 +493,9 @@ Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Component
   through its `Shapes` into a flat `$defs` (same kind, same revision). One answer comes from outside the `Shape`: whether
   a custom type declares its identity (`Shapes::converters()->isIdentity()`, D82), written then in place instead of a
   component; a `revision:cache` is rebuilt when the registry changes, as for any planned conversion. `typeKeywords()` gives the keywords of a type
-  before its rule keywords, read by the check `schema-override`. `Export\DatePattern` (`@internal`) derives the
-  `pattern` of a numeric PHP date format, `Export\RegexPattern` (`@internal`) the ECMA `pattern` of a PCRE (D68).
+  before its rule keywords, read by the check `schema-override`. `Export\DatePattern` derives the
+  `pattern` of a numeric PHP date format, `Export\RegexPattern` the ECMA `pattern` of a PCRE (D68); both public
+  contract since US 12.14 (D92).
   Exported by `revision:export` (`Laravel\Console\ExportCommand`).
 - Since US 10.2 (`model.md` D70): `Components` is the registry of one document's `$defs` (nested resources reserved
   then filled, components defined at first use; another body under a name, or a component named as a nested resource,

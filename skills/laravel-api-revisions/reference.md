@@ -312,6 +312,12 @@ Implemented by the package; an application rarely needs them.
 - `Ark4ne\ApiRevisions\Checking\Declarations`: the discovered classes with their declaration kinds, `declarations()`
   (all) and `at(Revision)` (those existing at it); public contract for generators, with `JsonSchemaExporter::export()`
   and `Changelog::changes()` / `markdown()`.
+- `Ark4ne\ApiRevisions\Export\RegexPattern`: `RegexPattern::of(string $pcre): ?string`, the ECMA `pattern` of a PCRE
+  written with its delimiters (its body when its flags are none, `u` or `D`; `null` otherwise, exported as a
+  `$comment`). `Ark4ne\ApiRevisions\Export\DatePattern`: `DatePattern::of(string $format): ?string`, the `pattern` of a
+  PHP date format whose tokens are all numeric (`d/m/Y` → `^\d{2}/\d{2}/\d{4}$`), `null` otherwise. Public contract
+  for generators: `JsonSchemaExporter` writes their result, except for a date format JSON Schema names (`Y-m-d`, RFC
+  3339, RFC 3339 extended, or none: `format` instead).
 - `Ark4ne\ApiRevisions\Export\SchemaVisitor`: turns a shape into a format (JSON Schema).
 - `Ark4ne\ApiRevisions\Laravel\Validation\RuleMapper`: the Laravel rules a type implies.
 - `Ark4ne\ApiRevisions\Projection\SourceReader`: reads a subject (Eloquent without lazy load).
