@@ -72,10 +72,12 @@ upgrader **walks up**, the exporter **describes**.
   field changing in `N` gets `was(N->previous())`.
 - Descriptors are immutable fluent builders with **lazy sources** (a key, a dotted path or a closure receiving the
   subject, never an evaluated value); compilation runs on a `Probe` and must never run a source.
-- **Value pipeline** (`model.md` §6): presence conditions → read the source on the subject → normalize to the head
-  type → `when()` → down conversions on PHP values → serialize once. A `was()` never has a source.
-- **One closure signature everywhere** (source, `when()`, `down:`, `up:`): `($value, $subject)`, called through
-  `Support\Invoke::value()`.
+- **Value pipeline** (`model.md` §6, D93): presence conditions → `when()` / `unless()` → read the source on the
+  subject → normalize to the head type → down conversions on PHP values → serialize once. A field refused by a
+  condition is never read. A `was()` never has a source.
+- **Two closure signatures** (`model.md` D18, D93): value closures (source, `down:`, `up:`) take `($value, $subject)`,
+  called through `Support\Invoke::value()`; conditions (`when()`, `unless()`) take `($subject, $attribute)`, called
+  through `Support\Invoke::condition()`.
 - Definitions (`src/Definition/`) are `final readonly`, serializable, closure-free: the public contract for tools.
 - The current revision lives only in `RevisionScope` (ambient context, `scoped` binding in Laravel): no other static
   state but `Support\Memo`.
