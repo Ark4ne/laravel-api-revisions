@@ -36,7 +36,7 @@ class PropertySubject
      */
     public function __construct(private readonly array $attributes = [])
     {
-        unset($this->removed); // @phpstan-ignore unset.possiblyHookedProperty (no subclass hooks it)
+        unset($this->removed);
     }
 
     public function __get(string $key): mixed
