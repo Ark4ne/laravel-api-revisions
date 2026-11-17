@@ -12,7 +12,7 @@ use Test\Fixtures\MoneySchema;
 
 /**
  * A response sharing the component `Address` with the resource it nests (`WarehouseDeclaration`), and using the
- * custom type `money` twice (model.md D70).
+ * custom type `money` twice.
  */
 final class ShippingDeclaration implements Revisioned
 {

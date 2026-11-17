@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 
 /**
- * The history of a field: its lifetime and its `was()`, ordered by revision, newest first (model.md §4.2). Immutable.
+ * The history of a field: its lifetime and its `was()`, ordered by revision, newest first. Immutable.
  * Built by `Descriptor` (`since()`, `until()`, `was()`), which checks the arguments of a `was()`.
  */
 final readonly class History

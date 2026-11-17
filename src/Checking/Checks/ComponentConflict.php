@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Checking\CheckContext;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 
 /**
- * `component-conflict` (model.md §9, D70): two uses of one component name with different bodies in the document of a
+ * `component-conflict`: two uses of one component name with different bodies in the document of a
  * kind at a revision, on the field of the second use; reported once per kind and field, at the newest revision (the
  * first conflict of a document stops its export: the next one shows once it is fixed).
  */

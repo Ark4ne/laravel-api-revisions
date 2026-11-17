@@ -13,7 +13,7 @@ use ArrayAccess;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A consumer's class implementing `Revisioned` itself, without the Laravel traits (US 12.1, model.md D75): one response
+ * A consumer's class implementing `Revisioned` itself, without the Laravel traits: one response
  * whose top level holds one object per hook, as a `laravel-json-api` resource declares itself, built on the consumer's
  * own stand-in at compilation (the `Probe` given is ignored). Its `title` closure captures the instance: compilation
  * never runs it on the stand-in, projection runs it on the real subject.

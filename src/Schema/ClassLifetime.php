@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Definition\Lifetime;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 
 /**
- * The lifetime of a class (model.md D81): the one its `HasLifetime` gives, every revision otherwise. What the compiler,
+ * The lifetime of a class: the one its `HasLifetime` gives, every revision otherwise. What the compiler,
  * the check, the cache, the export, the lock and the changelog read; what an application or a consumer reads to answer
  * 404 to a client of a revision the class does not exist in.
  */

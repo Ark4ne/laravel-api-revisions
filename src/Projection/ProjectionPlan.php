@@ -14,10 +14,9 @@ use Closure;
 use stdClass;
 
 /**
- * The projection of one declaration at one revision, resolved ahead of its subjects (model.md D77, D86): built by
+ * The projection of one declaration at one revision, resolved ahead of its subjects: built by
  * `Projector::plan()` from a `Shape` and the descriptors of one render, then run on each subject. Per field, in the head
- * order: presence conditions → `when()` → source → normalize → nested plan → down chain → serialize (model.md §6.5,
- * D93).
+ * order: presence conditions → `when()` → source → normalize → nested plan → down chain → serialize.
  * Holds the closures of that declaration: built per render, never kept across renders. Public contract for consumers
  * rendering many subjects of one declaration.
  */
@@ -48,7 +47,7 @@ final readonly class ProjectionPlan
     /**
      * The fields of the plan read on `$subject`, `name at the revision → serialized value`, in the head order; what
      * `Projector::project()` gives for the same shape, descriptors and subject. A field whose condition fails is
-     * omitted; a refused value, a failed conversion and a non-nullable `null` go to the `ValueErrorHandler` (D53).
+     * omitted; a refused value, a failed conversion and a non-nullable `null` go to the `ValueErrorHandler`.
      *
      * @return array<string, mixed>
      */
@@ -77,8 +76,8 @@ final readonly class ProjectionPlan
 
     /**
      * One field (or item) through the pipeline: its serialized value, or the sentinel when it is not rendered. Its
-     * conditions run before its source (D93); a composite projects its children, items or resource after its
-     * normalization (model.md D34).
+     * conditions run before its source; a composite projects its children, items or resource after its
+     * normalization.
      */
     private function field(PlannedField $field, mixed $subject): mixed
     {
@@ -88,7 +87,7 @@ final readonly class ProjectionPlan
             }
         }
         foreach ($field->conditions as $condition) {
-            // before the value: a field refused is never read, normalized, projected nor converted (model.md D93)
+            // before the value: a field refused is never read, normalized, projected nor converted
             if (!Invoke::condition($condition, $subject, $field->attribute)) {
                 return $this->omitted;
             }
@@ -102,7 +101,7 @@ final readonly class ProjectionPlan
         if ($value !== null) {
             $value = $field->descriptor->normalize($value);
             if ($value instanceof InvalidValue) {
-                // lenient: its PHP cast rendered as it is, no closure ever sees a value outside its type (model.md D53)
+                // lenient: its PHP cast rendered as it is, no closure ever sees a value outside its type
                 return $this->values->handle(
                     ValueException::refused($this->class, $definition->headKey, $definition->revision, $value->expected->value, get_debug_type($value->value)),
                     $value->cast,
@@ -115,7 +114,7 @@ final readonly class ProjectionPlan
                 try {
                     $value = $field->chain->apply($value, $subject);
                 } catch (ConversionException) {
-                    // lenient: no sensible cast between two types, `null` (model.md D53)
+                    // lenient: no sensible cast between two types, `null`
                     return $this->values->handle(
                         ValueException::unconvertible($this->class, $definition->headKey, $definition->revision, get_debug_type($value), $definition->type->kind->value),
                         null,
@@ -134,7 +133,7 @@ final readonly class ProjectionPlan
 
     /**
      * The projected children of an object (on its value), items of a list (each element their subject) or resource (the
-     * shape of its class at the same revision, declared on its value, model.md D49, D50, D86); any other value as it is.
+     * shape of its class at the same revision, declared on its value); any other value as it is.
      */
     private function nested(PlannedField $field, mixed $value): mixed
     {

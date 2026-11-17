@@ -9,7 +9,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 
 /**
- * date → date-time: midnight of that day, in the timezone of the value (model.md D90).
+ * date → date-time: midnight of that day, in the timezone of the value.
  */
 final class DateToDateTime implements Converter
 {

@@ -14,7 +14,7 @@ use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\InvalidValue;
 
 /**
- * A custom type (model.md §3): an amount in cents and a currency, `{"amount": 1250, "currency": "EUR"}`. Accepts a
+ * A custom type: an amount in cents and a currency, `{"amount": 1250, "currency": "EUR"}`. Accepts a
  * `Money` or an array with an int `amount` and a 3-letter `currency`. Converts to and from a float in both directions
  * (`MoneyToFloat`, `FloatToMoney` in euros).
  *

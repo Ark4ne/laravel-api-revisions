@@ -11,14 +11,14 @@ use DateTimeImmutable;
 use DateTimeInterface;
 
 /**
- * A date (a day): serialized with its format, `Y-m-d` unless configured (model.md D29). Accepts a `DateTimeInterface`, a non-empty string `DateTimeImmutable` parses, or an int timestamp (UTC).
+ * A date (a day): serialized with its format, `Y-m-d` unless configured. Accepts a `DateTimeInterface`, a non-empty string `DateTimeImmutable` parses, or an int timestamp (UTC).
  *
  * @extends Descriptor<DateTimeImmutable>
  */
 final class DateSchema extends Descriptor
 {
     /**
-     * `null` until configured: the configured default (model.md D29).
+     * `null` until configured: the configured default.
      *
      * @var non-empty-string|null
      */

@@ -11,7 +11,7 @@ final class Floats
 {
     /**
      * The int of a float, truncated toward zero, or `null` when the int range cannot hold it: outside [-2^63, 2^63),
-     * `INF`, `NaN` (model.md D44). Every float that close to 2^63 is integral, so truncating first changes nothing.
+     * `INF`, `NaN`. Every float that close to 2^63 is integral, so truncating first changes nothing.
      */
     public static function toInt(float $value): ?int
     {

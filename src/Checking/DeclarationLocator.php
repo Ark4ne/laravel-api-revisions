@@ -10,7 +10,7 @@ use PhpToken;
 use ReflectionClass;
 
 /**
- * Where a field is declared, read from the source by reflection (model.md D73): the line of its key (`'key' =>`, a
+ * Where a field is declared, read from the source by reflection: the line of its key (`'key' =>`, a
  * nested path matched key after key) among the tokens of the declaring methods of the class written in its own file,
  * the match naming `$bound` (`::Case`) preferred; else the first line of the first such method; else the file alone.
  */

@@ -9,7 +9,7 @@ use DateTimeInterface;
 use Exception;
 
 /**
- * The normalization shared by `DateSchema` and `DateTimeSchema` (model.md §6.3).
+ * The normalization shared by `DateSchema` and `DateTimeSchema`.
  *
  * @internal
  */
@@ -18,7 +18,7 @@ final class Dates
     /**
      * A `DateTimeImmutable` from a `DateTimeInterface`, a string `DateTimeImmutable` parses without warning and without
      * surrounding blanks (in the default timezone unless it names one; relative strings like `tomorrow` included), or
-     * an int timestamp (UTC); `null` for anything else (model.md D33).
+     * an int timestamp (UTC); `null` for anything else.
      */
     public static function normalize(mixed $value): ?DateTimeImmutable
     {

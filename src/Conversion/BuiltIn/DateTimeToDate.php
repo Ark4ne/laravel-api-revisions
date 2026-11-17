@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Conversion\Converter;
 
 /**
  * date-time → date: the same instant; the date serializer writes its day in the timezone of the value, never shifted
- * to UTC (model.md D90). Lossless down (a response falls back to the day the older shape asks for), lossy up (the time
+ * to UTC. Lossless down (a response falls back to the day the older shape asks for), lossy up (the time
  * a client sent is dropped: `conversion-lossy`).
  */
 final class DateTimeToDate implements Converter

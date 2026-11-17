@@ -20,7 +20,7 @@ use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Support\Undefined;
 
 /**
- * The one pure function of the model (model.md §4.5): the head descriptors of a class and a revision give the
+ * The one pure function of the model: the head descriptors of a class and a revision give the
  * `Shape` of that revision. Nothing else decides visibility, names, types at a revision or conversion plans. Runs no
  * source, no condition, no converter: it reads declarations only.
  */
@@ -38,12 +38,12 @@ final class ShapeSelector
      * `$revision`, each at its `since`. Names written twice are recorded, never thrown.
      *
      * @param array<string, Descriptor<mixed>> $head the head descriptors, by key, groups already spread
-     * @param Direction $direction the direction of the declaration kind (model.md D27): down for a response, up for a
+     * @param Direction $direction the direction of the declaration kind: down for a response, up for a
      *                             request; the chains plan that direction only
      * @param Converters|null $converters the registry the chains are planned against (`TypeRegistry::converters()` for
      *                                    the custom types); the built-in one by default
      * @param Configuration|null $configuration its `missingDefault` gives `null` to a `required()->since()` field
-     *                                          without default (model.md D47); the default configuration otherwise
+     *                                          without default; the default configuration otherwise
      */
     public static function at(
         array $head,
@@ -110,7 +110,7 @@ final class ShapeSelector
         $schemaChange = null;
         foreach (self::walk($key, $head, $revision) as [$change, $index, $name, $descriptor]) {
             if ($change->schema !== null) {
-                // the head is in force up to the revision after its newest `was(schema:)` (model.md D52)
+                // the head is in force up to the revision after its newest `was(schema:)`
                 $headAt ??= self::next($change->revision);
                 $schemaChange = $index;
             }
@@ -139,7 +139,7 @@ final class ShapeSelector
         [$name, $current, $schemaChange] = self::inForce($key, $head, $revision);
         $items = null;
         $children = null;
-        // the items and children of the head where it is still in force (model.md D52): what the projection reads and
+        // the items and children of the head where it is still in force: what the projection reads and
         // the conversions of a `was(schema:)` start from; the schema in force at `$revision` is the type (rules, export)
         $headAt ??= $revision;
         if ($head instanceof ListSchema) {
@@ -170,7 +170,7 @@ final class ShapeSelector
 
     /**
      * The default of its `since()`; for a `required()->since()` field without one, `null` when the configuration says
-     * so (model.md D47), an `Undefined` otherwise.
+     * so, an `Undefined` otherwise.
      *
      * @param Descriptor<mixed> $head
      */
@@ -239,7 +239,7 @@ final class ShapeSelector
     /**
      * The type of `$descriptor` itself (never its own `was()`) at `$revision`: the items and the visible children of a
      * composite are those in force at `$revision`, the children under their name there (the first child of a colliding
-     * name), each nullable as the descriptor in force says (model.md D68).
+     * name), each nullable as the descriptor in force says.
      *
      * @param Descriptor<mixed> $descriptor
      */

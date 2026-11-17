@@ -23,11 +23,11 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 
 /**
- * Renders a subject in the shape of a revision (model.md §6.5, docs/architecture.md §8): the compiled `Shape` decides
+ * Renders a subject in the shape of a revision (docs/architecture.md §8): the compiled `Shape` decides
  * which fields, under which names, through which conversions; the fresh descriptors of the instance give the sources,
  * conditions and closures. Per visible field, in the head order: presence conditions → `when()` → source → normalize
  * → down chain → serialize. Never mutates the subject. Projects responses: a nested resource is the `Response` shape of
- * its class (model.md D49).
+ * its class.
  */
 final readonly class Projector
 {
@@ -37,9 +37,9 @@ final readonly class Projector
 
     /**
      * @param Configuration $configuration the one the shapes were compiled with: it configures the descriptor that
-     *                                     serializes (a date format, model.md D29)
+     *                                     serializes (a date format)
      * @param Converters|null $converters the registry the chains are bound to; `TypeRegistry::converters()` by default
-     * @param Shapes|null $shapes the shapes of the nested resources (model.md D49); one compiling with `$configuration`
+     * @param Shapes|null $shapes the shapes of the nested resources; one compiling with `$configuration`
      *                            and `$converters` by default
      * @param ValueErrorHandler|null $values what a value error does; from `$configuration->strictValues` by default
      *                                       (`StrictValues`, or `LenientValues` without reporter)
@@ -58,7 +58,7 @@ final readonly class Projector
     /**
      * The fields of `$shape` read on `$subject`, `name at the revision → serialized value`, in the head order. A field
      * whose condition fails is omitted. A refused value, a failed conversion and a non-nullable `null` go to the
-     * `ValueErrorHandler` (model.md D53).
+     * `ValueErrorHandler`.
      *
      * @param array<string, Descriptor<mixed>> $descriptors the head descriptors of the instance, by head key
      *
@@ -70,9 +70,8 @@ final readonly class Projector
     }
 
     /**
-     * The projection of `$shape` with the head descriptors of one render, resolved ahead and run per subject
-     * (model.md D86): `$keys` keeps those head keys, in the head order; `null` keeps every field. A key may be a dotted
-     * path of head keys (model.md D89): `address.city` keeps `address` with its child `city` only, `tags.*.name` the
+     * The projection of `$shape` with the head descriptors of one render, resolved ahead and run per subject: `$keys` keeps those head keys, in the head order; `null` keeps every field. A key may be a dotted
+     * path of head keys: `address.city` keeps `address` with its child `city` only, `tags.*.name` the
      * child `name` of each item; a member left out is never evaluated; a shorter path wins; a path going on into a field
      * whose members are not planned one by one (converted at the revision, a list through a key, a resource, a scalar)
      * keeps it whole; a segment naming no child at the revision is ignored.
@@ -104,7 +103,7 @@ final readonly class Projector
     {
         $tree = [];
         foreach ($keys as $key) {
-            // a head key of the top level holding a dot is kept whole, as before paths (model.md D89)
+            // a head key of the top level holding a dot is kept whole, as before paths
             $tree = self::insert($tree, isset($fields[$key]) ? [$key] : explode('.', $key));
         }
 
@@ -171,7 +170,7 @@ final readonly class Projector
 
     /**
      * One field (or item) resolved ahead: its presences (a `Presence` without path checks the source path, or the
-     * declared key when the source has none, model.md D37; an item is the element itself, D51), its source, its bound
+     * declared key when the source has none; an item is the element itself), its source, its bound
      * chain, its serializer (the head or the schema of a `was()`, configured) and its nested plan.
      *
      * @param Descriptor<mixed> $descriptor
@@ -255,7 +254,7 @@ final readonly class Projector
     }
 
     /**
-     * A nested resource: the shape of its class at the revision, declared on its value (model.md D49, D50, D86).
+     * A nested resource: the shape of its class at the revision, declared on its value.
      *
      * @param class-string<Revisioned> $class
      *

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Laravel\Http;
 
 /**
- * Optional contract of a `RevisionResolver` reading request headers (model.md D59, Q19): the `ResolveRevision`
+ * Optional contract of a `RevisionResolver` reading request headers: the `ResolveRevision`
  * middleware adds them to the `Vary` of the response, so a shared cache never serves the revision of one client to
  * another. Implemented by `HeaderResolver`; a custom resolver pinning an account by a header implements it too.
  */

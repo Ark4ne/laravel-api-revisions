@@ -11,9 +11,8 @@ use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 use Illuminate\Http\Request;
 
 /**
- * The resolvers of `revisions.resolvers`, in order (Chain of Responsibility, model.md §8): the first returning a
- * revision wins; when none does, the `default`: a fixed revision, or a resolver whose `null` gives the head (model.md
- * D57). An unknown value stops the chain (`UnknownRevisionException`). Not a `RevisionResolver` itself, so the
+ * The resolvers of `revisions.resolvers`, in order (Chain of Responsibility): the first returning a
+ * revision wins; when none does, the `default`: a fixed revision, or a resolver whose `null` gives the head. An unknown value stops the chain (`UnknownRevisionException`). Not a `RevisionResolver` itself, so the
  * configuration never accepts it as a link or as the default (it would build itself).
  */
 final readonly class ResolverChain
@@ -48,7 +47,7 @@ final readonly class ResolverChain
 
     /**
      * The request headers the chain reads, each once: those of its resolvers implementing `VariesOn`, the default
-     * included (`Vary`, model.md D59).
+     * included (`Vary`).
      *
      * @return list<string>
      */
@@ -67,8 +66,7 @@ final readonly class ResolverChain
     }
 
     /**
-     * The route parameters the chain reads, each once: those of its `PathResolver`s, the default included (path mode,
-     * model.md D60).
+     * The route parameters the chain reads, each once: those of its `PathResolver`s, the default included (path mode).
      *
      * @return list<string>
      */

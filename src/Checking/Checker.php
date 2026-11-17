@@ -27,11 +27,11 @@ use Ark4ne\ApiRevisions\Support\Severity;
 use Throwable;
 
 /**
- * Runs the registered checks (model.md §9): each on the revision enum first, then on every class the finder gives, in
+ * Runs the registered checks: each on the revision enum first, then on every class the finder gives, in
  * its order. Every run compiles with a fresh `Shapes` over its `Compiler` (never a compiled file), shared by the checks
  * of the run. Before its checks, a class is built (its descriptors and its shapes at every revision, for every kind):
  * anything thrown is reported once, under the code of the `DefinitionException` or `definition-error`, and the class
- * is skipped (D39, D66). An invalid `order()` stops the run after the enum.
+ * is skipped. An invalid `order()` stops the run after the enum.
  */
 final readonly class Checker
 {
@@ -43,7 +43,7 @@ final readonly class Checker
     /**
      * @param class-string<Revision> $revisions
      * @param list<Check> $checks
-     * @param bool $subset whether the finder gives only some of the application's classes (`forClasses()`, D91)
+     * @param bool $subset whether the finder gives only some of the application's classes (`forClasses()`)
      */
     public function __construct(
         private string $revisions,
@@ -54,7 +54,7 @@ final readonly class Checker
     ) {}
 
     /**
-     * The checks of the core, one per code of model.md §9 that is not thrown when declared (the lock and the Laravel
+     * The checks of the core, one per diagnostic code that is not thrown when declared (the lock and the Laravel
      * ones excepted).
      *
      * @return list<Check>
@@ -78,8 +78,7 @@ final readonly class Checker
     }
 
     /**
-     * This checker (its enum, compiler and checks) on the classes `$finder` gives, some of the application's (model.md
-     * D91): every `CheckContext` says so (`$subset`), so a check needing every class skips what it cannot tell (the
+     * This checker (its enum, compiler and checks) on the classes `$finder` gives, some of the application's: every `CheckContext` says so (`$subset`), so a check needing every class skips what it cannot tell (the
      * lock mismatch does not report the locked classes the finder does not give).
      */
     public function forClasses(ClassFinder $finder): self
@@ -141,7 +140,7 @@ final readonly class Checker
 
     /**
      * Builds the class of `$context` (its descriptors and its shapes at every revision, for every kind); whatever it
-     * throws is reported once, under the code of a `DefinitionException`, else `definition-error` (D39, D66).
+     * throws is reported once, under the code of a `DefinitionException`, else `definition-error`.
      */
     private function builds(CheckContext $context, Diagnostics $diagnostics): bool
     {

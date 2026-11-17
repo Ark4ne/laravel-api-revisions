@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Schema\EagerSchema;
 
 /**
  * An error per plain value declared in a response instead of a descriptor (`EagerSchema`): typed `any`, the same in
- * every revision (model.md §6.6, D61).
+ * every revision.
  */
 final readonly class EagerValue implements Check
 {

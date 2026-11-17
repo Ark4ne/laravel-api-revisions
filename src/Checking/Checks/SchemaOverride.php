@@ -11,8 +11,7 @@ use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 
 /**
  * A warning per keyword a `DescribesSchema` rule gives with another value than the type of its field
- * (`JsonSchemaExporter::typeKeywords()`, `null` included for a nullable field): the export keeps the rule's (model.md
- * D36, D65), once per kind, field and keyword, at the newest revision it holds. The children of a `was()` schema are
+ * (`JsonSchemaExporter::typeKeywords()`, `null` included for a nullable field): the export keeps the rule's, once per kind, field and keyword, at the newest revision it holds. The children of a `was()` schema are
  * not walked (the head ones are).
  */
 final readonly class SchemaOverride implements Check

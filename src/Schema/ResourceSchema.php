@@ -10,10 +10,10 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use stdClass;
 
 /**
- * Another `Revisioned` class (model.md D20): its value, the value of the source, is the subject of that class, which
- * projects it at the same revision with its own shape (model.md §6.1). Its type is a reference to the class
+ * Another `Revisioned` class: its value, the value of the source, is the subject of that class, which
+ * projects it at the same revision with its own shape. Its type is a reference to the class
  * (`TypeDefinition::$resource`), never a copy of its shape: the nested shape is the class's shape of the same
- * declaration kind at the same revision (model.md D49), so cycles (`Order → Customer → Order`) compile.
+ * declaration kind at the same revision, so cycles (`Order → Customer → Order`) compile.
  *
  * @extends Descriptor<array<mixed>|object> its value is the subject of the other class
  */

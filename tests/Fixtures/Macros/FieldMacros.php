@@ -7,7 +7,7 @@ namespace Test\Fixtures\Macros;
 use Ark4ne\ApiRevisions\Schema\Descriptor;
 
 /**
- * Descriptor macros (model.md D87), registered with `DescriptorMacros::register('whenFlag', FieldMacros::whenFlag(...))`
+ * Descriptor macros, registered with `DescriptorMacros::register('whenFlag', FieldMacros::whenFlag(...))`
  * and mapped in `apiRevisions.macros` for PHPStan.
  */
 final class FieldMacros

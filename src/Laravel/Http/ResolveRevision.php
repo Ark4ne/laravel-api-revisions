@@ -19,14 +19,13 @@ use Illuminate\Routing\UrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The middleware resolving the revision of a request (model.md §8, alias `revision`): runs the `ResolverChain`, stores
+ * The middleware resolving the revision of a request (alias `revision`): runs the `ResolverChain`, stores
  * the revision as the base of the request's `RevisionScope`, then adds to the response the configured
  * `response_header`, `Vary` on the headers the chain reads, and `Deprecation` (RFC 9745, `@` + Unix time) / `Sunset`
  * (RFC 8594, HTTP-date) from the revision's `#[Meta]` as soon as they are declared, at midnight of the day in the
- * application timezone (D30, D58). In path mode it forgets the route parameters of the chain's `PathResolver`s, so
- * no controller receives them, and makes the revision their default for the URLs generated (D60). An unknown revision is answered **400** with a JSON body naming the accepted
- * values, never reported (a client error). The `Vary` covers the headers of every resolver implementing `VariesOn`
- * (D59).
+ * application timezone. In path mode it forgets the route parameters of the chain's `PathResolver`s, so
+ * no controller receives them, and makes the revision their default for the URLs generated. An unknown revision is answered **400** with a JSON body naming the accepted
+ * values, never reported (a client error). The `Vary` covers the headers of every resolver implementing `VariesOn`.
  */
 final readonly class ResolveRevision
 {
@@ -44,7 +43,7 @@ final readonly class ResolveRevision
     public function handle(Request $request, Closure $next): Response
     {
         if (!$this->config->revisioned) {
-            // no enum configured (D80): the implicit revision, invisible to clients
+            // no enum configured: the implicit revision, invisible to clients
             return $next($request);
         }
         try {
@@ -57,7 +56,7 @@ final readonly class ResolveRevision
             ));
         }
         $this->scope->setBase($revision);
-        // path mode (D60): the controller never receives the revision, the URLs generated keep it
+        // path mode: the controller never receives the revision, the URLs generated keep it
         foreach ($this->chain->parameters() as $parameter) {
             $request->route()?->forgetParameter($parameter);
             $this->url->defaults([$parameter => $revision->value]);
@@ -87,7 +86,7 @@ final readonly class ResolveRevision
     }
 
     /**
-     * Midnight of `$day` (`Y-m-d`) in the application timezone (D30).
+     * Midnight of `$day` (`Y-m-d`) in the application timezone.
      */
     private function midnight(string $day): DateTimeImmutable
     {

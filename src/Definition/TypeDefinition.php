@@ -22,13 +22,12 @@ final readonly class TypeDefinition
      * @param array<string, TypeDefinition> $children the types of the children of an `Object` kind, by key
      * @param array<string, mixed> $jsonSchema JSON Schema keywords given by the rules (`DescribesSchema`), JSON-ready
      * @param non-empty-string|null $name the name a `Custom` kind declares (`money`); `null` for every other kind
-     * @param array<string, mixed> $fragment the JSON Schema of a `Custom` kind, JSON-ready (exported once, US 10.2)
+     * @param array<string, mixed> $fragment the JSON Schema of a `Custom` kind, JSON-ready (exported once)
      * @param class-string|null $resource the `Revisioned` class of a nested resource (an `Object` kind): its shape of
-     *                                    the same declaration kind at the same revision (model.md D49), referenced
-     * @param bool $nullable whether `null` is a value, for the items and children of a composite (model.md D68); a
+     *                                    the same declaration kind at the same revision, referenced
+     * @param bool $nullable whether `null` is a value, for the items and children of a composite; a
      *                       field's own nullability is on its `FieldDefinition`
-     * @param non-empty-string|null $component the name an `Object` kind is exported under, as a component (model.md
-     *                                         D70); a `Custom` kind is one under its `$name`
+     * @param non-empty-string|null $component the name an `Object` kind is exported under, as a component; a `Custom` kind is one under its `$name`
      */
     private function __construct(
         public Kind $kind,
@@ -150,7 +149,7 @@ final readonly class TypeDefinition
     }
 
     /**
-     * The `Revisioned` class of a nested resource, referenced (model.md D49).
+     * The `Revisioned` class of a nested resource, referenced.
      *
      * @param class-string $resource
      */
@@ -170,7 +169,7 @@ final readonly class TypeDefinition
     }
 
     /**
-     * The component name of an `Object` kind (model.md D70).
+     * The component name of an `Object` kind.
      *
      * @param non-empty-string|null $component
      */

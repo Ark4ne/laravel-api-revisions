@@ -19,7 +19,7 @@ use PHPStan\Type\StaticType;
 
 /**
  * Declares on every descriptor the macros the application maps in its PHPStan configuration (`apiRevisions.macros`,
- * extension.neon; model.md D87): `->whenInFields(...)` takes the parameters of the mapped public static method after
+ * extension.neon): `->whenInFields(...)` takes the parameters of the mapped public static method after
  * the first (the descriptor) and returns the receiver's type. A name mapped to anything else (a missing class or
  * method, an instance or non-public method, one whose first parameter is missing, variadic or cannot take a
  * descriptor) stays an undefined method; so does an unmapped

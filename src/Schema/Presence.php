@@ -8,14 +8,14 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 
 /**
  * A presence condition (`->whenHas()`, `->whenLoaded()`): checked on the subject **before** the source, so that a
- * missing key is omitted instead of read as `null`, and a relation not loaded is never loaded (model.md §6.4, D61). A
+ * missing key is omitted instead of read as `null`, and a relation not loaded is never loaded. A
  * value, never a closure.
  */
 final readonly class Presence
 {
     /**
      * @param list<string>|null $path the key or dotted path checked; `null` for the field's own key, resolved by the
-     *                                projection (model.md D37)
+     *                                projection
      * @param bool $relation whether `$path` names relations that must be loaded (`whenLoaded()`), not keys
      */
     private function __construct(

@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * A request of an application that configures no revision enum (model.md D80).
+ * A request of an application that configures no revision enum.
  */
 final class StorePostRequest extends FormRequest implements Revisioned
 {

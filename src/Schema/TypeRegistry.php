@@ -9,8 +9,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use ReflectionClass;
 
 /**
- * The custom types served by `Schema::__callStatic()` (`Schema::money()`), registered by name at boot (model.md §3,
- * D42). Static on purpose, like Laravel's macros: one of the allowed global states (docs/architecture.md §16);
+ * The custom types served by `Schema::__callStatic()` (`Schema::money()`), registered by name at boot. Static on purpose, like Laravel's macros: one of the allowed global states (docs/architecture.md §16);
  * `flush()` empties it (tests).
  */
 final class TypeRegistry

@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Exceptions;
 use RuntimeException;
 
 /**
- * An input value the upgrade rejects (model.md D63): a `ConversionException` of a converter or an `up:` closure, or a
+ * An input value the upgrade rejects: a `ConversionException` of a converter or an `up:` closure, or a
  * `ValueException` (a value the rules let through and its type refuses). Thrown by the upgrader; the Laravel layer turns
  * it into a validation error on `$key`. Named constructors only.
  */

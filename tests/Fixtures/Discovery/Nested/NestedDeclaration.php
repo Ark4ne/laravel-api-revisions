@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Ark4ne\ApiRevisions\Schema\Schema;
 
 /**
- * A declaring class found in a subdirectory of a discovery path (US 5.3).
+ * A declaring class found in a subdirectory of a discovery path.
  */
 final class NestedDeclaration implements Revisioned
 {

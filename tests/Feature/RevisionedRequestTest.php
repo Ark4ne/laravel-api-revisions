@@ -23,7 +23,7 @@ use Test\Fixtures\Requests\ListOrdersRequest;
 use Test\Fixtures\Requests\StoreOrderRequest;
 
 /**
- * A `FormRequest` validated in the client's revision and upgraded to the head (model.md §7, D63).
+ * A `FormRequest` validated in the client's revision and upgraded to the head.
  */
 final class RevisionedRequestTest extends FeatureTestCase
 {

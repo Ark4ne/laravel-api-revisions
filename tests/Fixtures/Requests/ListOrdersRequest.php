@@ -15,7 +15,7 @@ use Test\Fixtures\ApiRevision;
 
 /**
  * A request with query parameters only, which keeps the default body and hook, and an `after` hook of its own that
- * fails on `limit=13` (model.md D63).
+ * fails on `limit=13`.
  */
 final class ListOrdersRequest extends FormRequest implements Revisioned
 {

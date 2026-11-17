@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Revisions\Meta;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 
 /**
- * The revisions of the reference scenario (docs/specs/model.md §2). Cases are declared out of order on purpose:
+ * The revisions of the reference scenario. Cases are declared out of order on purpose:
  * `order()` is the only authority.
  */
 enum ApiRevision: string implements Revision

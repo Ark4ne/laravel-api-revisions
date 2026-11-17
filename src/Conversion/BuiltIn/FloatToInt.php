@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Support\Floats;
 
 /**
  * float → int, the PHP cast (truncated toward zero): lossy. A float outside the int range throws
- * `ConversionException` (model.md D44).
+ * `ConversionException`.
  */
 final class FloatToInt implements Converter
 {

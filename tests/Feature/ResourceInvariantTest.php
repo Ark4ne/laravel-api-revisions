@@ -34,12 +34,12 @@ use Test\Fixtures\Resources\WrapperResource;
 /**
  * The invariant of `ProjectionInvariantTest` for the `RevisionedResource` fixtures: rendered with every conditional
  * field present, a resource gives exactly the names of its shape at every revision, nested resources included. The
- * JSON Schema half comes with the export (US 10.1).
+ * JSON Schema half comes with the export.
  */
 final class ResourceInvariantTest extends FeatureTestCase
 {
     /**
-     * Native conditions and plain values render keys out of the shape by design (model.md D61); a broken declaration
+     * Native conditions and plain values render keys out of the shape by design; a broken declaration
      * does not compile; an empty rendering misses its shape on purpose (the contract test rejects it).
      */
     private const array EXCLUDED = [
@@ -100,7 +100,7 @@ final class ResourceInvariantTest extends FeatureTestCase
     }
 
     /**
-     * US 12.8 (model.md D86): a collection of distinct subjects, rendered through one plan, renders what each item renders
+     * A collection of distinct subjects, rendered through one plan, renders what each item renders
      * alone (fresh models on each side: a render may load a relation).
      *
      * @param class-string<JsonResource> $class

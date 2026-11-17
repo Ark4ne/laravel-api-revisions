@@ -100,8 +100,8 @@ final class Schema
     }
 
     /**
-     * Another `Revisioned` class, projected at the same revision with its own shape (model.md D20): the shape of its
-     * declaration of the same kind (model.md D49). `DefinitionException::notRevisioned()` for any other class.
+     * Another `Revisioned` class, projected at the same revision with its own shape: the shape of its
+     * declaration of the same kind. `DefinitionException::notRevisioned()` for any other class.
      *
      * @param class-string<Revisioned> $class
      * @param string|Closure|null $source see `string()`; its value is the subject of `$class`
@@ -125,7 +125,7 @@ final class Schema
     /**
      * A group added in `$revision` (included): every member exists from it, unless it declares a newer `since()`
      * itself; an older one throws `DefinitionException::sinceOlderThanGroup()`. `$default` is the default of every
-     * member that declares none (model.md §4.3, §7.3). Returns the array, to spread with its string keys.
+     * member that declares none (§7.3). Returns the array, to spread with its string keys.
      *
      * @param array<string, Descriptor<mixed>> $fields
      *
@@ -138,7 +138,7 @@ final class Schema
 
     /**
      * A group removed after `$revision` (included): every member exists up to it, unless it declares an older
-     * `until()` itself; a newer one throws `DefinitionException::untilNewerThanGroup()` (model.md D24).
+     * `until()` itself; a newer one throws `DefinitionException::untilNewerThanGroup()`.
      *
      * @param array<string, Descriptor<mixed>> $fields
      *

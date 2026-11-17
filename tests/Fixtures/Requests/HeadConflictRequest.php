@@ -13,7 +13,7 @@ use Test\Fixtures\ApiRevision;
 
 /**
  * A request whose body and query parameters share the head key `status`, the query one named `state` up to
- * `Winter25`: their heads would collide for every client (model.md D63).
+ * `Winter25`: their heads would collide for every client.
  */
 final class HeadConflictRequest extends FormRequest implements Revisioned
 {

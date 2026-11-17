@@ -15,8 +15,8 @@ use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Enums\OrderStatus;
 
 /**
- * The request of the reference scenario (model.md §7): a body whose fields change over the revisions, a hook splitting
- * `name` at `Atlas`, and query parameters renamed too (D63).
+ * The request of the reference scenario: a body whose fields change over the revisions, a hook splitting
+ * `name` at `Atlas`, and query parameters renamed too.
  */
 final class StoreOrderRequest extends FormRequest implements Revisioned
 {

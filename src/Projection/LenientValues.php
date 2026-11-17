@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Exceptions\ValueException;
 use Closure;
 
 /**
- * Value errors render their fallback and go to a reporter: production never breaks on drifting data (model.md D19).
+ * Value errors render their fallback and go to a reporter: production never breaks on drifting data.
  */
 final readonly class LenientValues implements ValueErrorHandler
 {

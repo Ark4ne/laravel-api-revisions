@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Conversion\Converters;
 
 /**
  * Implemented by a custom type (a `Descriptor` registered in the `TypeRegistry`) whose values convert automatically
- * to or from other types (model.md §5): `TypeRegistry::converters()` adds its conversions to the registry the shapes
+ * to or from other types: `TypeRegistry::converters()` adds its conversions to the registry the shapes
  * are planned against.
  */
 interface DeclaresConversions

@@ -26,7 +26,7 @@ use PHPUnit\Framework\Assert;
 use stdClass;
 
 /**
- * Helpers for the `TestCase` of an application (model.md D28), as Laravel's `InteractsWithDatabase`: used on a Laravel
+ * Helpers for the `TestCase` of an application, as Laravel's `InteractsWithDatabase`: used on a Laravel
  * test case, whose `$app` holds the application.
  *
  * @property \Illuminate\Contracts\Foundation\Application|null $app
@@ -51,7 +51,7 @@ trait InteractsWithRevisions
 
     /**
      * Sends `$revision` with the next requests of the test, as the first resolver of the chain that can carry it reads
-     * it (model.md D72): a header, the route parameter of path mode (`URL::defaults()`, for `route()`), or the query.
+     * it: a header, the route parameter of path mode (`URL::defaults()`, for `route()`), or the query.
      */
     public function withRevision(Revision $revision): static
     {
@@ -83,8 +83,7 @@ trait InteractsWithRevisions
     }
 
     /**
-     * Projects the response of `$class` on `$subject` at each revision (every one it exists in by default, model.md
-     * D81) and fails unless each projection matches the schema of its revision, objects closed (model.md D72).
+     * Projects the response of `$class` on `$subject` at each revision (every one it exists in by default) and fails unless each projection matches the schema of its revision, objects closed.
      *
      * @param class-string<Revisioned> $class
      * @param list<Revision>|null $revisions

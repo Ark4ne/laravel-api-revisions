@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Foundation\Application;
 
 /**
- * `revision:prune` (model.md D73): what retiring the oldest revision makes dead in the discovered classes, each
+ * `revision:prune`: what retiring the oldest revision makes dead in the discovered classes, each
  * declaration with its file (relative to the application) and line. Informative: it always succeeds, a class that
  * does not build is skipped with a warning (`revision:check` reports it).
  */

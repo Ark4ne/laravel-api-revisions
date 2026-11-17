@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A custom resolver (US 8.2): the revision an account is pinned to, found by its bearer token, as Stripe pins an
+ * A custom resolver: the revision an account is pinned to, found by its bearer token, as Stripe pins an
  * account to the revision of its first call. Its option `accounts` maps a token to a revision value; it varies on
  * `Authorization`.
  */

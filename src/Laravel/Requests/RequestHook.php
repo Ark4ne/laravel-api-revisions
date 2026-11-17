@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Upgrade\UpgradesInput;
 use Closure;
 
 /**
- * The `protected upgrade()` hook of a `RevisionedRequest` as the `UpgradesInput` of the upgrader (model.md §7.1).
+ * The `protected upgrade()` hook of a `RevisionedRequest` as the `UpgradesInput` of the upgrader.
  *
  * @internal
  */

@@ -17,7 +17,7 @@ use Illuminate\Console\Command;
 use Throwable;
 
 /**
- * `revision:lock` (model.md §9, D11, D21, D69): writes the snapshot of every revision but the head that has no lock
+ * `revision:lock`: writes the snapshot of every revision but the head that has no lock
  * yet, never rewriting a published one; `--revision=` (a backed value) (re)writes that one, the head included. The
  * shapes are compiled anew (never the compiled shapes file).
  */
@@ -37,7 +37,7 @@ final class LockCommand extends Command
     public function handle(RevisionsConfig $config, Configuration $configuration, ClassFinder $finder, Lock $lock): int
     {
         if (!$config->revisioned) {
-            // no enum configured (D80): the one implicit revision is the head, never locked
+            // no enum configured: the one implicit revision is the head, never locked
             $this->components->info('No revision enum configured: nothing to lock.');
 
             return self::SUCCESS;
@@ -70,7 +70,7 @@ final class LockCommand extends Command
                 $lock->write($snapshot);
             }
         } catch (Throwable $error) {
-            // a declaration the check reports (`revision:check`, D66), or a lock file that cannot be written
+            // a declaration the check reports (`revision:check`), or a lock file that cannot be written
             $this->components->error($error->getMessage());
 
             return self::FAILURE;

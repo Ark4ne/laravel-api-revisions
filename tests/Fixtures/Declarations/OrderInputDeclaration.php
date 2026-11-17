@@ -13,7 +13,7 @@ use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Enums\OrderStatus;
 
 /**
- * The order request body of the reference scenario (model.md §7) without Laravel: the fields of `StoreOrderRequest`
+ * The order request body of the reference scenario without Laravel: the fields of `StoreOrderRequest`
  * that change over the revisions, and its hook splitting `name` at `Atlas`.
  */
 final class OrderInputDeclaration implements Revisioned, UpgradesInput

@@ -9,13 +9,12 @@ use LogicException;
 use Throwable;
 
 /**
- * A programming error in a declaration. Named constructors only. Each carries the code the check reports it under
- * (model.md §9, D39): its own (`lifetime-inverted`…), else `definition-error`.
+ * A programming error in a declaration. Named constructors only. Each carries the code the check reports it under: its own (`lifetime-inverted`…), else `definition-error`.
  */
 final class DefinitionException extends LogicException implements RevisionsException
 {
     /**
-     * @param string $checkCode the code of model.md §9 the check reports it under
+     * @param string $checkCode the diagnostic code the check reports it under
      * @param string|null $field the field it concerns, when the check reports it on one (`component-conflict`)
      */
     private function __construct(
@@ -103,7 +102,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * A class compiled at a revision its lifetime (`HasLifetime`, model.md D81) does not cover: it has no shape there.
+     * A class compiled at a revision its lifetime (`HasLifetime`) does not cover: it has no shape there.
      */
     public static function classAbsent(string $class, BackedEnum $revision): self
     {
@@ -111,8 +110,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * A visible `Schema::resource()` field of `$class` nesting `$nested` at a revision `$nested` does not exist in
-     * (model.md D81).
+     * A visible `Schema::resource()` field of `$class` nesting `$nested` at a revision `$nested` does not exist in.
      */
     public static function nestedAbsent(string $class, string $nested, BackedEnum $revision): self
     {
@@ -155,7 +153,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * A member of a `Schema::until()` group declaring a newer `until()` than the group (model.md D24).
+     * A member of a `Schema::until()` group declaring a newer `until()` than the group.
      */
     public static function untilNewerThanGroup(string $key, BackedEnum $member, BackedEnum $group): self
     {
@@ -231,7 +229,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
 
     /**
      * A name a request declares both in its body and in its query parameters at one revision: Laravel validates them
-     * merged, the body hiding the query (model.md D63).
+     * merged, the body hiding the query.
      */
     public static function declaredTwice(string $class, string $name, BackedEnum $revision): self
     {
@@ -245,7 +243,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * Validation rules asked of a response shape: only a request shape (up) is validated (model.md §7.1).
+     * Validation rules asked of a response shape: only a request shape (up) is validated.
      */
     public static function rulesOfAResponse(string $class): self
     {
@@ -253,7 +251,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * A response shape (down) given to the upgrader, which upgrades request shapes (up) only (model.md D27).
+     * A response shape (down) given to the upgrader, which upgrades request shapes (up) only.
      */
     public static function notAnUpShape(string $class): self
     {
@@ -269,7 +267,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * The subject read while compiling: a declaration reading it eagerly, or a source run (model.md §6.1).
+     * The subject read while compiling: a declaration reading it eagerly, or a source run.
      */
     public static function subjectReadAtCompilation(string $class, string $access): self
     {
@@ -277,7 +275,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * `toArray()` of the resource `$class` failed on the empty subject of the compilation (model.md D61): a plain value
+     * `toArray()` of the resource `$class` failed on the empty subject of the compilation: a plain value
      * reading its subject is evaluated there, every read giving `null`.
      */
     public static function failedDescribing(string $class, Throwable $error): self
@@ -344,7 +342,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
 
     /**
      * A `was(schema:)` declaring its own source, lifetime, history or default: older values derive from the head value
-     * through the down chain (model.md §6.4).
+     * through the down chain.
      */
     public static function sourceInHistory(BackedEnum $revision): self
     {
@@ -409,7 +407,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * Two uses of the component `$component` with different bodies in one document (model.md D70): `$field` (a head
+     * Two uses of the component `$component` with different bodies in one document: `$field` (a head
      * key, dotted below the top level) is the second one.
      */
     public static function componentConflict(string $component, string $field, string $kind, string $revision): self
@@ -423,7 +421,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
 
     /**
      * A descriptor macro registered under a name `Descriptor` cannot serve: not a method name, or one of its own
-     * methods (model.md D87).
+     * methods.
      */
     public static function invalidMacroName(string $name): self
     {
@@ -439,7 +437,7 @@ final class DefinitionException extends LogicException implements RevisionsExcep
     }
 
     /**
-     * A descriptor macro that does not return an instance of the receiver's class (model.md D87).
+     * A descriptor macro that does not return an instance of the receiver's class.
      */
     public static function invalidMacroResult(string $name, string $class, string $result): self
     {

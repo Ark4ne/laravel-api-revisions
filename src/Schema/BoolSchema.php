@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 
 /**
- * A boolean: accepts booleans, `0` / `1` and `'0'` / `'1'` (model.md §6.3).
+ * A boolean: accepts booleans, `0` / `1` and `'0'` / `'1'`.
  *
  * @extends Descriptor<bool>
  */

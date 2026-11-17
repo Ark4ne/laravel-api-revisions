@@ -49,23 +49,23 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Registers the library in a Laravel application (auto-discovered, model.md §8, §10): `config/revisions.php` merged and
+ * Registers the library in a Laravel application (auto-discovered): `config/revisions.php` merged and
  * publishable (`revisions-config`), read lazily as a `RevisionsConfig`; the core `Configuration` and the `Shapes`
  * compiled with it, one per application, reading the compiled file of `revision:cache` first; the `RevisionScope` of
  * the running context as a `scoped` binding (reset on every request, Octane included; the scope provider reads the
- * current container), its base the configured fixed default (D31); the `ValueErrorHandler` from `strict_values`, a
+ * current container), its base the configured fixed default; the `ValueErrorHandler` from `strict_values`, a
  * lenient one reporting each error once per class and field and request; the `ResolverChain` of `resolvers` and
  * `default` (`scoped`: a resolver may read request services); the `Projector` of `RevisionedResource` (`scoped`, with
  * the `EloquentSourceReader`, the `Shapes` and the `ValueErrorHandler`); the `RuleCompiler` and the `Upgrader` of the
  * request shapes (one per application, `RevisionedRequest`); in the console, the commands `revision:cache` /
  * `revision:clear`, run by `optimize` / `optimize:clear`; the payload hook of the jobs marked `CapturesRevision`
- * (`CapturedRevisionHandler`, D64); the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
- * macro and the other commands are added by their stories (US 8.4 onwards).
+ * (`CapturedRevisionHandler`); the middleware alias `revision` (`ResolveRevision`), unless the application defines one. The route
+ * macro and the other commands are added by their stories.
  */
 final class RevisionsServiceProvider extends ServiceProvider
 {
     /**
-     * The container tag of the `Checking\Check`s a package or an application contributes (model.md D83): resolved
+     * The container tag of the `Checking\Check`s a package or an application contributes: resolved
      * through the container, run after the built-in checks by `revision:check` and `assertRevisionsAreConsistent()`.
      */
     public const string CHECKS = 'revisions.checks';
@@ -174,7 +174,7 @@ final class RevisionsServiceProvider extends ServiceProvider
                 $app = ContainerInstance::getInstance();
                 $config = $app->make(RevisionsConfig::class);
 
-                // no enum configured (D80): there is no revision to capture
+                // no enum configured: there is no revision to capture
                 return $config->revisioned ? $app->make(RevisionScope::class)->current($config->enum) : null;
             },
         ));
@@ -187,7 +187,7 @@ final class RevisionsServiceProvider extends ServiceProvider
     }
 
     /**
-     * The checks tagged `CHECKS` (model.md D83), built by the container in tag order; `ConfigurationException::notACheck()`
+     * The checks tagged `CHECKS`, built by the container in tag order; `ConfigurationException::notACheck()`
      * for a tagged service that is not one.
      *
      * @return list<Check>

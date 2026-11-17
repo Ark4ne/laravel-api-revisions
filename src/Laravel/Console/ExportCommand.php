@@ -15,7 +15,7 @@ use Illuminate\Console\Command;
 use ReflectionClass;
 
 /**
- * `revision:export` (model.md §11, D67): the JSON Schema of every discovered class, for each of its declaration kinds,
+ * `revision:export`: the JSON Schema of every discovered class, for each of its declaration kinds,
  * at every revision, printed as `{revision: {class: {kind: schema}}}`; `--revision=` (a backed value) and `--class=`
  * narrow it, and the schema alone is printed when one revision, one class and a single kind remain.
  */
@@ -74,7 +74,7 @@ final class ExportCommand extends Command
     }
 
     /**
-     * One document for one revision, class and kind; else every class at every revision it exists in (model.md D81),
+     * One document for one revision, class and kind; else every class at every revision it exists in,
      * by revision, class and kind (one class asked at one revision it does not exist in fails earlier).
      *
      * @param list<Revision> $revisions

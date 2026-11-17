@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Exceptions;
 use RuntimeException;
 
 /**
- * The compiled shapes file of `revision:cache` (model.md §10) that cannot be written or read. Named constructors only.
+ * The compiled shapes file of `revision:cache` that cannot be written or read. Named constructors only.
  */
 final class CacheException extends RuntimeException implements RevisionsException
 {

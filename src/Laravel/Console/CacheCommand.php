@@ -13,7 +13,7 @@ use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Illuminate\Console\Command;
 
 /**
- * `revision:cache` (model.md §10): compiles every declaration kind of every discovered class at every revision of the
+ * `revision:cache`: compiles every declaration kind of every discovered class at every revision of the
  * enum and writes the compiled shapes file (`cache_path`), run by `php artisan optimize`. A declaration that does not
  * compile, or a `discovery.classes` entry that is not a concrete `Revisioned` class, fails the command and leaves the previous file.
  */

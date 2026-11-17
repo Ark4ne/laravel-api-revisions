@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Laravel\Queue;
 
 /**
- * Marks a queued job that runs in the revision of its dispatch (model.md §10, D64): the revision current when the job
+ * Marks a queued job that runs in the revision of its dispatch: the revision current when the job
  * is pushed is stored in its payload, and the job (`handle()`, its middleware, `failed()`) runs inside `using()` of
  * it, wherever and whenever a worker picks it up. Opt-in: a job without it runs in the base revision of the worker
  * (the configured fixed default, else the head). A job sending a client a resource (a webhook, a notification it

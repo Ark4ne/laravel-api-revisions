@@ -8,7 +8,7 @@ use BackedEnum;
 use RuntimeException;
 
 /**
- * A value of the subject the projection cannot render (model.md §6.3): refused by its type, `null` on a non-nullable
+ * A value of the subject the projection cannot render: refused by its type, `null` on a non-nullable
  * field, or failing a conversion. Names the class, the field and the revision, and the value's type, never the value
  * itself. Named constructors only.
  */

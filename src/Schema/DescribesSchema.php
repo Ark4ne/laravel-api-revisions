@@ -6,7 +6,7 @@ namespace Ark4ne\ApiRevisions\Schema;
 
 /**
  * Implemented by a validation rule object that knows its JSON Schema: its keywords enrich the export of the field it
- * is declared on (model.md §3), whatever the descriptor.
+ * is declared on, whatever the descriptor.
  */
 interface DescribesSchema
 {

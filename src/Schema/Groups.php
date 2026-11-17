@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Support\Undefined;
 use Closure;
 
 /**
- * Applies a group's `since` or `until` to its members (model.md §4.3, §4.4 rule 1, D24), behind `Schema::since()` /
+ * Applies a group's `since` or `until` to its members (§4.4 rule 1), behind `Schema::since()` /
  * `Schema::until()`. A member's own narrower bound and own default win; a wider one throws.
  *
  * @internal

@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Checking\Check;
 use Ark4ne\ApiRevisions\Checking\CheckContext;
 
 /**
- * An error per case of the revision enum listed more than once in `order()` (model.md §9).
+ * An error per case of the revision enum listed more than once in `order()`.
  */
 final readonly class OrderDuplicateCase implements Check
 {

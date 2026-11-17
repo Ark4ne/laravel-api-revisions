@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Export;
 
 /**
- * The ECMA `pattern` of a PCRE written with its delimiters, as `StringSchema::pattern()` takes it (model.md D68): the
+ * The ECMA `pattern` of a PCRE written with its delimiters, as `StringSchema::pattern()` takes it: the
  * body between its delimiters (bracket pairs included) when its flags are none, `u` or `D`; `null` otherwise.
  *
- * Public contract for tools (docs/architecture.md §4, model.md D92): the `pattern` `JsonSchemaExporter` writes for a
+ * Public contract for tools (docs/architecture.md §4): the `pattern` `JsonSchemaExporter` writes for a
  * string pattern (`null`: a `$comment` `PCRE …` instead).
  */
 final class RegexPattern

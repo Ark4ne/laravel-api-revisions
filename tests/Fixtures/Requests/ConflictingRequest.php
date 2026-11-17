@@ -12,7 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A request declaring `status` in its body and, up to `Winter25`, in its query parameters (model.md D63); it keeps the
+ * A request declaring `status` in its body and, up to `Winter25`, in its query parameters; it keeps the
  * default hook.
  */
 final class ConflictingRequest extends FormRequest implements Revisioned

@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 
 /**
- * A plain value declared instead of a descriptor (`'x' => $this->x` in a resource, model.md §6.6, D61): wrapped by
+ * A plain value declared instead of a descriptor (`'x' => $this->x` in a resource): wrapped by
  * the bridge of a declaring class so that it compiles and projects like a field. A nullable `any` whose source gives
  * the value captured, rendered as it is in every revision; reported by the check (`eager-value`). Never declared by
  * hand: declare a descriptor.
@@ -40,7 +40,7 @@ final class EagerSchema extends Descriptor
 
     /**
      * Always: a plain value may come from a native condition met on the subject of the compilation and missing on
-     * another, or be left out of `toArray()` by a PHP `if`; the render then omits it (model.md D61).
+     * another, or be left out of `toArray()` by a PHP `if`; the render then omits it.
      */
     public function isConditional(): bool
     {

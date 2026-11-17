@@ -14,7 +14,7 @@ use Opis\JsonSchema\Validator;
 use PHPUnit\Framework\Assert;
 
 /**
- * Asserts that a JSON document is the response of a class at a revision (model.md D72): validated against its export
+ * Asserts that a JSON document is the response of a class at a revision: validated against its export
  * with closed objects, a list item by item. Needs `opis/json-schema` (a `LogicException` names it otherwise).
  */
 final readonly class RevisionSchema

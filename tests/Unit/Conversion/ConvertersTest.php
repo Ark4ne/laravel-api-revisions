@@ -32,7 +32,7 @@ use Test\Fixtures\Enums\Priority;
 use Test\TestCase;
 
 /**
- * The table of model.md §5, row by row and per direction.
+ * The table of the built-in conversions, row by row and per direction.
  */
 final class ConvertersTest extends TestCase
 {
@@ -109,7 +109,7 @@ final class ConvertersTest extends TestCase
     }
 
     /**
-     * Every automatic pair of model.md §5: from, to, value, expected, lossless.
+     * Every automatic pair of the built-in conversions: from, to, value, expected, lossless.
      *
      * @return iterable<string, array{TypeDefinition, TypeDefinition, mixed, mixed, bool}>
      */

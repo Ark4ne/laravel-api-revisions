@@ -9,8 +9,8 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 
 /**
- * The compiled shapes file written by `revision:cache` (model.md §10, D56): a PHP file returning, by
- * `class@kind@revision`, the serialized `Shape` (closure-free, D45). An array of strings, so OPcache keeps it in shared
+ * The compiled shapes file written by `revision:cache`: a PHP file returning, by
+ * `class@kind@revision`, the serialized `Shape` (closure-free). An array of strings, so OPcache keeps it in shared
  * memory and a shape is unserialized only when first asked. Read by `Shapes` before compiling. Immutable.
  */
 final readonly class CompiledShapes
@@ -55,7 +55,7 @@ final readonly class CompiledShapes
         }
         unset($shapes[self::FORMAT_KEY]);
 
-        // the entries are checked when read (`get()`): loading never walks the file (model.md D85)
+        // the entries are checked when read (`get()`): loading never walks the file
         return new self($shapes, $path);
     }
 
@@ -103,7 +103,7 @@ final readonly class CompiledShapes
     /**
      * The compiled shape of the declaration `$kind` of `$class` at `$revision`, `null` when not in the file;
      * `CacheException::invalidFile()` when its entry is not a serialized shape. One array read and one `unserialize()`,
-     * which loads the classes of the shape model only, never the declaring class nor a descriptor (model.md D85).
+     * which loads the classes of the shape model only, never the declaring class nor a descriptor.
      *
      * @param class-string $class
      */
@@ -124,7 +124,7 @@ final readonly class CompiledShapes
     }
 
     /**
-     * The number of entries of the file, each counted as a compiled shape (an entry is checked when read, D85).
+     * The number of entries of the file, each counted as a compiled shape (an entry is checked when read).
      */
     public function count(): int
     {

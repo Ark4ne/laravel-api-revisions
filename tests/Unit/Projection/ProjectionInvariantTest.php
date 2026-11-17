@@ -40,7 +40,7 @@ use Test\TestCase;
 
 /**
  * The invariant of docs/architecture.md §7: for every fixture at every revision, the projected keys, recursively, are
- * the names of the `Shape`, and the projection validates against the exported JSON Schema of its revision (US 10.1).
+ * the names of the `Shape`, and the projection validates against the exported JSON Schema of its revision.
  */
 final class ProjectionInvariantTest extends TestCase
 {
@@ -144,7 +144,7 @@ final class ProjectionInvariantTest extends TestCase
     private static function assertNested(Shapes $shapes, FieldDefinition $field, mixed $value, string $path): void
     {
         if ($field->schemaChange !== null) {
-            // a `was(schema:)` in force: its conversion gives the value, its type describes it (US 10.1 validates it)
+            // a `was(schema:)` in force: its conversion gives the value, its type describes it (the export validates it)
             return;
         }
         if ($field->children !== null) {

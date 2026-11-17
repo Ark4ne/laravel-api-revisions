@@ -9,8 +9,7 @@ use Ark4ne\ApiRevisions\Checking\CheckContext;
 
 /**
  * A warning per Laravel native condition (`MissingValue`, `MergeValue`) a `RevisionedResource` returns from
- * `toArray()` at compilation: honoured at render, but outside the shape, the export and the lock (model.md §9, D61,
- * D65). Declare `->when()` / `->whenLoaded()` on a descriptor instead.
+ * `toArray()` at compilation: honoured at render, but outside the shape, the export and the lock. Declare `->when()` / `->whenLoaded()` on a descriptor instead.
  */
 final readonly class NativeCondition implements Check
 {

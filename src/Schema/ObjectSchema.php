@@ -12,10 +12,10 @@ use stdClass;
 
 /**
  * An object: named children, nested freely, each with its own source and history. Its value is the subject of its
- * children (model.md §6.1): the value of its source, or the parent's subject without one (`Source::parent()`).
+ * children: the value of its source, or the parent's subject without one (`Source::parent()`).
  * `normalize()` only checks that subject (an array or an object); the projection then projects every child through
- * its own pipeline, and the object's `down:` and `serialize()` receive the projected children (model.md D34); its
- * `when()` runs before, on the subject (D93). Serialized as a JSON object, even when empty.
+ * its own pipeline, and the object's `down:` and `serialize()` receive the projected children; its
+ * `when()` runs before, on the subject. Serialized as a JSON object, even when empty.
  *
  * @extends Descriptor<array<mixed>|object> its value is the subject of its children
  */
@@ -53,7 +53,7 @@ final class ObjectSchema extends Descriptor
     }
 
     /**
-     * Exports this object as the component `$name`, referenced from every use in a document (model.md D70);
+     * Exports this object as the component `$name`, referenced from every use in a document;
      * `DefinitionException::invalidComponentName()` for an empty name.
      */
     public function component(string $name): static
@@ -97,7 +97,7 @@ final class ObjectSchema extends Descriptor
     }
 
     /**
-     * The serialized children (`array<string, mixed>`) as they are, an empty object as `stdClass` (model.md D34).
+     * The serialized children (`array<string, mixed>`) as they are, an empty object as `stdClass`.
      */
     public function serialize(mixed $value): mixed
     {

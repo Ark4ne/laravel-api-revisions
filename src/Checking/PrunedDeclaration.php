@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Checking;
 
 /**
- * A declaration retiring the oldest revision makes dead (model.md D73), with what to do with it.
+ * A declaration retiring the oldest revision makes dead, with what to do with it.
  */
 enum PrunedDeclaration: string
 {

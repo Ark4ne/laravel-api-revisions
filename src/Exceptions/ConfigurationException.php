@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Exceptions;
 use InvalidArgumentException;
 
 /**
- * An invalid `config/revisions.php` (model.md §8). Named constructors only.
+ * An invalid `config/revisions.php`. Named constructors only.
  */
 final class ConfigurationException extends InvalidArgumentException implements RevisionsException
 {
@@ -39,7 +39,7 @@ final class ConfigurationException extends InvalidArgumentException implements R
     }
 
     /**
-     * A service tagged `revisions.checks` (model.md D83) that does not implement `Checking\Check`.
+     * A service tagged `revisions.checks` that does not implement `Checking\Check`.
      */
     public static function notACheck(string $type): self
     {
@@ -47,7 +47,7 @@ final class ConfigurationException extends InvalidArgumentException implements R
     }
 
     /**
-     * `Route::revisioned()` declared while no revision enum is configured (model.md D80): there is no revision to read.
+     * `Route::revisioned()` declared while no revision enum is configured: there is no revision to read.
      */
     public static function pathModeWithoutEnum(): self
     {

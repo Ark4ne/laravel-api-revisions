@@ -69,7 +69,7 @@ final readonly class Source
     }
 
     /**
-     * The subject of the parent: an object without source groups fields read on the parent's subject (model.md §6.1).
+     * The subject of the parent: an object without source groups fields read on the parent's subject.
      */
     public static function parent(): self
     {

@@ -19,7 +19,7 @@ use Illuminate\Support\ValidatedInput;
 use Illuminate\Validation\Validator;
 
 /**
- * Makes a `FormRequest` revisioned (model.md §7, D63): it declares its head body in `body()` and its head query
+ * Makes a `FormRequest` revisioned: it declares its head body in `body()` and its head query
  * parameters in `queryParameters()` (`query()` is `Request::query()`); `rules()` validates the input in the client's
  * revision, under the names the client knows; once the rules pass, the input is upgraded to the head, and `validated()`
  * / `safe()` return it. A value the upgrade rejects fails the validation on the client's key. The `protected upgrade()`
@@ -89,7 +89,7 @@ trait RevisionedRequest
     }
 
     /**
-     * The hook of the body (model.md §7.1): reshapes what the `was()` cannot express, once per step `X → $to`.
+     * The hook of the body: reshapes what the `was()` cannot express, once per step `X → $to`.
      *
      * @param array<string, mixed> $input the body after the renames and conversions of the step, under the names of `$to`
      *
@@ -101,7 +101,7 @@ trait RevisionedRequest
     }
 
     /**
-     * The rules of the body and query shapes at the current revision (model.md D62).
+     * The rules of the body and query shapes at the current revision.
      *
      * @return array<string, list<mixed>>
      */
@@ -187,7 +187,7 @@ trait RevisionedRequest
     /**
      * Upgrades the validated input to the head when the validation passed: the query parameters (by their names at
      * the revision) and the body each in its shape, the hook on the body only; a rejected value fails the validation
-     * on its key, with the reason given or the message of the `in` rule (model.md D63).
+     * on its key, with the reason given or the message of the `in` rule.
      */
     private function revisionedUpgrade(Validator $validator): void
     {

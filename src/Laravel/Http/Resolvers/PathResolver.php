@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Illuminate\Http\Request;
 
 /**
- * The revision named by the route parameter `$parameter` (`revision` by default, the prefix of path mode, US 8.4):
+ * The revision named by the route parameter `$parameter` (`revision` by default, the prefix of path mode):
  * none outside a route or without the parameter, `UnknownRevisionException` when it names no revision of the
  * configured enum.
  */

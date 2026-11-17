@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Checking\Check;
 use Ark4ne\ApiRevisions\Checking\CheckContext;
 
 /**
- * A check contributed by a consumer (model.md D83): a top-level field may not take a reserved name, at any revision.
+ * A check contributed by a consumer: a top-level field may not take a reserved name, at any revision.
  */
 final readonly class ReservedNameCheck implements Check
 {

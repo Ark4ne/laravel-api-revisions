@@ -9,8 +9,7 @@ use Ark4ne\ApiRevisions\Checking\CheckContext;
 use Ark4ne\ApiRevisions\Checking\Fields;
 
 /**
- * A warning per extra `since()` or `until()` call on a descriptor, naming the revision it replaced (model.md §4.4 rule 5,
- * D38).
+ * A warning per extra `since()` or `until()` call on a descriptor, naming the revision it replaced ().
  */
 final readonly class BoundRepeated implements Check
 {

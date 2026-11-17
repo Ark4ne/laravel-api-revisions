@@ -10,9 +10,9 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 
 /**
  * A list: accepts any `iterable` (arrays, generators, collections), normalized to a `list` of its elements (keys
- * dropped). Each element is then the subject of the items descriptor (model.md §6.1): the projection runs every item
- * through its own pipeline, and the list's `down:` and `serialize()` receive the projected items (model.md D34); its `when()`
- * runs before, on the subject (D93).
+ * dropped). Each element is then the subject of the items descriptor: the projection runs every item
+ * through its own pipeline, and the list's `down:` and `serialize()` receive the projected items; its `when()`
+ * runs before, on the subject.
  *
  * @extends Descriptor<list<mixed>>
  */

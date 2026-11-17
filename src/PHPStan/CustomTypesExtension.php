@@ -19,7 +19,7 @@ use PHPStan\Type\ObjectType;
 /**
  * Declares on `Schema` the static methods of the custom types the application maps in its PHPStan configuration
  * (`apiRevisions.types`, extension.neon): `Schema::money(...)` takes the constructor's parameters of its class and
- * returns that class. An unmapped name stays an undefined method (US 2.7). Limit: a generic descriptor is returned
+ * returns that class. An unmapped name stays an undefined method. Limit: a generic descriptor is returned
  * as its raw class (its template types are not resolved).
  */
 final class CustomTypesExtension implements MethodsClassReflectionExtension

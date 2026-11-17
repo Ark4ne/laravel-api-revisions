@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Ark4ne\ApiRevisions\Schema\Schema;
 
 /**
- * A body nesting, deep in an object and a list, a class that declares no body (model.md D49).
+ * A body nesting, deep in an object and a list, a class that declares no body.
  */
 final class MisnestedDeclaration implements Revisioned
 {

@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Support\Floats;
 
 /**
  * float → int by `round()`, `floor()` or `ceil()` (built by `Cast`). An int, or any value of another type, passes
- * through unchanged; a float outside the int range throws `ConversionException` (model.md D44). Explicit and lossy.
+ * through unchanged; a float outside the int range throws `ConversionException`. Explicit and lossy.
  */
 final readonly class Rounding implements ExplicitConverter
 {

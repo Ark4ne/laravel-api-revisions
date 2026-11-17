@@ -11,7 +11,7 @@ use PHPStan\Testing\PHPStanTestCase;
 use PHPStan\Type\VerbosityLevel;
 
 /**
- * The route macro of path mode, declared to PHPStan on the router and its facade (US 8.4); the package's own analysis
+ * The route macro of path mode, declared to PHPStan on the router and its facade; the package's own analysis
  * of `tests/Feature/PathModeTest.php` (`$router->revisioned()`) runs it too.
  */
 final class RevisionedRouteExtensionTest extends PHPStanTestCase

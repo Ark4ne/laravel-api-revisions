@@ -10,15 +10,15 @@ use ReflectionProperty;
 use stdClass;
 
 /**
- * The core `SourceReader` (model.md §6.2): arrays and `ArrayAccess` by offset, objects by public property (never
- * through `get_object_vars()`, model.md D88), then `__get()`. A key the subject does not have reads `null`; `null` in a
+ * The core `SourceReader`: arrays and `ArrayAccess` by offset, objects by public property (never
+ * through `get_object_vars()`), then `__get()`. A key the subject does not have reads `null`; `null` in a
  * path stops it. The errors of the subject itself (a strict mode refusing a missing attribute) are never hidden: no
  * `isset()` before `__get()`. A relation is a key: `loaded()` is `has()`.
  */
 final class PlainSourceReader implements SourceReader
 {
     /**
-     * The properties each class read declares (model.md D88): a public non-static one by its reflection, any other as
+     * The properties each class read declares: a public non-static one by its reflection, any other as
      * `false`. Per instance: it depends only on the code, and the reader is built once per projector.
      *
      * @var array<class-string, array<string, ReflectionProperty|false>>
@@ -127,7 +127,7 @@ final class PlainSourceReader implements SourceReader
 
     /**
      * Whether `$key` is a public property the subject holds, exactly as `get_object_vars()` from outside lists it, its
-     * value set in `$value` (model.md D88). Without building the object's property table on the common paths: an
+     * value set in `$value`. Without building the object's property table on the common paths: an
      * initialized declared public property, read directly; a name no class declares, through `property_exists()` on a
      * plain class. Every other case asks `get_object_vars()` (rare: a property not initialized, unset or lazy, a
      * non-public, static or virtual one, a class with an internal parent).

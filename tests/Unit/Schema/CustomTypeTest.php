@@ -17,7 +17,7 @@ use Test\Fixtures\Rules\PostcodeRule;
 use Test\TestCase;
 
 /**
- * A custom type carries its type, its rules and its value rules wherever it is used (model.md §3), observed on the
+ * A custom type carries its type, its rules and its value rules wherever it is used, observed on the
  * `MoneySchema` fixture.
  */
 final class CustomTypeTest extends TestCase

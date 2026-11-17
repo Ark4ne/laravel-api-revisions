@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Projection\SourceReader;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The `SourceReader` of the Laravel layer (Decorator, model.md §6.2, D61): on an Eloquent model, a key is held when it
+ * The `SourceReader` of the Laravel layer (Decorator): on an Eloquent model, a key is held when it
  * is an attribute present in `getAttributes()` or a loaded relation, `peek()` gives that attribute (cast as usual) or
  * relation, `loaded()` asks `relationLoaded()`: none of them triggers a lazy load, an accessor-only computation or a
  * strict-mode error. Reading a key goes through `__get()` as in the core (attributes, casts and accessors apply). Any

@@ -10,8 +10,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use JsonSerializable;
 
 /**
- * The collection of a `RevisionedResource` (`::collection()`, model.md D77, D86): one render runs `toArray()` once, on
- * a template instance, and projects every item through one plan; a declaration a plan cannot hold (D78, D86) resolves
+ * The collection of a `RevisionedResource` (`::collection()`): one render runs `toArray()` once, on
+ * a template instance, and projects every item through one plan; a declaration a plan cannot hold resolves
  * each item, as `AnonymousResourceCollection` does. Pagination, wrapping, `additional()` and `preserveKeys()` are those of
  * `AnonymousResourceCollection`.
  */

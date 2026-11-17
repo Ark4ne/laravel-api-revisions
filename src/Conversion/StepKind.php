@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Conversion;
 
 /**
- * How a step of a `ConversionChain` converts (spike finding F6: an enum, never a string).
+ * How a step of a `ConversionChain` converts (an enum, never a string).
  */
 enum StepKind: string
 {

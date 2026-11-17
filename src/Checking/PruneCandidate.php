@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
- * One declaration made dead by retiring the oldest revision (model.md D73), located when reflection can tell.
+ * One declaration made dead by retiring the oldest revision, located when reflection can tell.
  */
 final readonly class PruneCandidate
 {

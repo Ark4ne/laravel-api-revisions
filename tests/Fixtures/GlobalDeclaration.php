@@ -8,7 +8,7 @@ namespace {
     use Ark4ne\ApiRevisions\Schema\Schema;
 
     /**
-     * A declaring class in the global namespace block (US 5.3): discovered without a leading backslash.
+     * A declaring class in the global namespace block: discovered without a leading backslash.
      */
     final class GlobalDeclaration implements Revisioned
     {

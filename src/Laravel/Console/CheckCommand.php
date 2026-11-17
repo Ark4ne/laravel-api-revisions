@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Support\Diagnostic;
 use Illuminate\Console\Command;
 
 /**
- * `revision:check` (model.md §9): runs the check on the revision enum and every discovered class (`discovery.paths`
+ * `revision:check`: runs the check on the revision enum and every discovered class (`discovery.paths`
  * plus `discovery.classes`) and prints its diagnostics, a table by default, JSON with `--format=json`; fails when one
  * is an error. `--list` prints the discovered classes only, so a forgotten path is visible (a JSON list with
  * `--format=json`). An invalid discovery entry fails the command with its reason. The classes are found by the

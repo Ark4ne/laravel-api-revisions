@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Upgrade;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 
 /**
- * The hook of a request (model.md §7.1): reshapes what the `was()` cannot express, once per step `X → $to`, after the
+ * The hook of a request: reshapes what the `was()` cannot express, once per step `X → $to`, after the
  * renames and conversions of the step and before the defaults of the fields added in `$to`.
  */
 interface UpgradesInput

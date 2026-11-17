@@ -19,7 +19,7 @@ use Test\Fixtures\ListedClasses;
 use Test\TemporaryDirectory;
 
 /**
- * The checker the provider binds, on a subset of the classes (US 12.13, model.md D91): the built-in and tagged checks
+ * The checker the provider binds, on a subset of the classes: the built-in and tagged checks
  * run, and the lock mismatch compares the classes given but does not report the others gone.
  */
 final class CheckerForClassesTest extends FeatureTestCase

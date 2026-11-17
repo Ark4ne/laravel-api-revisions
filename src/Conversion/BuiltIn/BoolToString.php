@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Conversion\BuiltIn;
 use Ark4ne\ApiRevisions\Conversion\Converter;
 
 /**
- * bool → string: `'1'` / `'0'` (model.md D40).
+ * bool → string: `'1'` / `'0'`.
  */
 final class BoolToString implements Converter
 {

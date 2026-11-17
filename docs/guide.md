@@ -1,7 +1,6 @@
 # Guide
 
-This guide covers every feature of `ark4ne/laravel-api-revisions`. The [README](../README.md) is the short tour. The
-decided behaviour, with the reasons behind it, is in [`docs/specs/model.md`](specs/model.md).
+This guide covers every feature of `ark4ne/laravel-api-revisions`. The [README](../README.md) is the short tour.
 
 - [Concepts](#concepts)
 - [The revision enum](#the-revision-enum)

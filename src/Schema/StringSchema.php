@@ -10,8 +10,7 @@ use Ark4ne\ApiRevisions\Support\Floats;
 use Stringable;
 
 /**
- * A string: accepts strings, ints, finite floats (written without precision loss) and `Stringable` objects
- * (model.md §6.3).
+ * A string: accepts strings, ints, finite floats (written without precision loss) and `Stringable` objects.
  *
  * @extends Descriptor<string>
  */

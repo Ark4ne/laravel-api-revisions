@@ -15,10 +15,10 @@ use Ark4ne\ApiRevisions\Schema\HasLifetime;
 use Throwable;
 
 /**
- * `lock-mismatch` (model.md §9, D69): the structure of a class at a locked revision differs from its lock — per
+ * `lock-mismatch`: the structure of a class at a locked revision differs from its lock — per
  * top-level field added, removed or changed, per other keyword, per class or kind added or removed (a class absent at
- * a revision by its lifetime, model.md D81, is compared only when the snapshot holds it). On the enum: the
- * locked classes no longer discovered (not on a subset of the classes, D91), and the lock files that cannot be read. The snapshots are read once per run,
+ * a revision by its lifetime, is compared only when the snapshot holds it). On the enum: the
+ * locked classes no longer discovered (not on a subset of the classes), and the lock files that cannot be read. The snapshots are read once per run,
  * on the enum (checked first by every run).
  */
 final class LockMismatch implements Check
@@ -56,7 +56,7 @@ final class LockMismatch implements Check
             try {
                 $this->compareClass($context, $revision, $snapshot);
             } catch (Throwable) {
-                // a nested resource that does not build: reported by its own build (D66)
+                // a nested resource that does not build: reported by its own build
                 continue;
             }
         }
@@ -84,7 +84,7 @@ final class LockMismatch implements Check
             }
             $this->snapshots[] = $snapshot;
             if ($context->subset) {
-                // some classes only (Checker::forClasses(), D91): one not given is not gone
+                // some classes only (Checker::forClasses()): one not given is not gone
                 continue;
             }
             foreach (array_diff(array_keys($snapshot->classes), $context->classes) as $class) {
@@ -95,7 +95,7 @@ final class LockMismatch implements Check
 
     /**
      * Compares every kind of the checked class at `$revision` with its snapshot. A class or a kind the snapshot does
-     * not hold is reported only when it has fields at `$revision` (D69).
+     * not hold is reported only when it has fields at `$revision`.
      */
     private function compareClass(CheckContext $context, Revision $revision, LockedRevision $snapshot): void
     {

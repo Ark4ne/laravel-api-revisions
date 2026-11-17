@@ -11,7 +11,7 @@ use IteratorAggregate;
 use Traversable;
 
 /**
- * The subject of a `RevisionedResource` during compilation (Null Object, model.md D61): unlike the core `Probe`, it
+ * The subject of a `RevisionedResource` during compilation (Null Object): unlike the core `Probe`, it
  * never throws, every read gives `null`, so that the plain values and native conditions of `toArray()` evaluate (an
  * eager value is typed, not run: a nullable `any`). As an Eloquent model it has no attribute and no relation loaded:
  * the native `whenHas()`, `whenLoaded()` and `whenCounted()` are missing.

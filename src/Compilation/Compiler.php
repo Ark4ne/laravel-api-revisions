@@ -17,8 +17,8 @@ use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 
 /**
  * Compiles a declaring class into the shape of one revision (docs/architecture.md §7): builds the class on a `Probe`,
- * reads its head descriptors, resolves the configured defaults (`Descriptor::configured()`, model.md D29) and calls
- * the `ShapeSelector` with the direction of the declaration kind (D27). Runs no source.
+ * reads its head descriptors, resolves the configured defaults (`Descriptor::configured()`) and calls
+ * the `ShapeSelector` with the direction of the declaration kind. Runs no source.
  */
 final readonly class Compiler
 {
@@ -37,7 +37,7 @@ final readonly class Compiler
      * `DefinitionException::notRevisioned()` for a class not implementing `Revisioned`, `undeclaredKind()` for a kind
      * it does not declare, `invalidDeclaration()` for an entry that is not a descriptor under a string key,
      * `subjectReadAtCompilation()` when the declaration reads its subject, `classAbsent()` at a revision the lifetime
-     * of the class (`HasLifetime`, model.md D81) does not cover, `nestedAbsent()` for a visible field nesting a class
+     * of the class (`HasLifetime`) does not cover, `nestedAbsent()` for a visible field nesting a class
      * absent at `$revision`.
      *
      * @param class-string $class
@@ -100,7 +100,7 @@ final readonly class Compiler
 
     /**
      * Every resource nested in `$type` (its items and children included) declares `$kind`: its shape is the one of the
-     * same declaration kind (model.md D49) and exists at `$revision` (model.md D81); a type of a custom descriptor may
+     * same declaration kind and exists at `$revision`; a type of a custom descriptor may
      * reference any class, so it is `Revisioned` too. Checked on the reference only: the nested class is not compiled
      * here, so cycles compile.
      *

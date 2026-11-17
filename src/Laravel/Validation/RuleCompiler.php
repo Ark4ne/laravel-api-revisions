@@ -32,7 +32,7 @@ use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Illuminate\Validation\Rules\In;
 
 /**
- * The Laravel validation rules of a request shape (model.md §7.1 step 2, D62; **Visitor** over the types of the
+ * The Laravel validation rules of a request shape (**Visitor** over the types of the
  * shape): one entry per field visible at the revision, under its **name at that revision** (dotted for the children
  * of an object or a nested resource, `.*` for the items of a list), in this order: `sometimes` / `required` /
  * `nullable` as declared, the rules of its type at the revision (`RuleMapper` of its `Kind`), those its first up
@@ -47,7 +47,7 @@ final readonly class RuleCompiler
     private array $mappers;
 
     /**
-     * @param Shapes $shapes the shapes of the nested resources (model.md D49)
+     * @param Shapes $shapes the shapes of the nested resources
      * @param Converters|null $converters the registry the up chains are bound to; `TypeRegistry::converters()` by
      *                                    default
      * @param array<string, RuleMapper> $mappers by `Kind` value, replacing the default mapper of that kind; another
@@ -91,7 +91,7 @@ final readonly class RuleCompiler
      * The rules of the visible fields of one level (the request, an object's children, a nested resource).
      *
      * @param string|null $guard the path of the nearest parent the client may leave out or send `null`: a `required`
-     *                           below it becomes `required_unless:` it `,null` (D62)
+     *                           below it becomes `required_unless:` it `,null`
      * @param array<string, Descriptor<mixed>> $descriptors
      * @param array<string, list<mixed>> $rules
      */
@@ -140,8 +140,8 @@ final readonly class RuleCompiler
 
     /**
      * The children, items or resource of the schema of a `was()` in force at the revision: a schema has no history nor
-     * lifetime of its own (model.md §6.4), so its parts are named by their key and typed by `$type`, the type of the
-     * field at the revision (the follow-up of US 6.2: never the head's `children`).
+     * lifetime of its own, so its parts are named by their key and typed by `$type`, the type of the
+     * field at the revision (never the head's `children`).
      *
      * @param Descriptor<mixed> $descriptor
      * @param array<string, list<mixed>> $rules
@@ -174,8 +174,7 @@ final readonly class RuleCompiler
     }
 
     /**
-     * The rules of the nested resource `$resource`: its shape of the same declaration kind at `$revision` (model.md
-     * D49), its descriptors described without subject.
+     * The rules of the nested resource `$resource`: its shape of the same declaration kind at `$revision`, its descriptors described without subject.
      *
      * @param class-string<Revisioned> $resource
      * @param array<string, list<mixed>> $rules
@@ -203,7 +202,7 @@ final readonly class RuleCompiler
     }
 
     /**
-     * `sometimes`, `required`, `nullable` as declared (D62: Laravel decides what they mean together); below a parent
+     * `sometimes`, `required`, `nullable` as declared (Laravel decides what they mean together); below a parent
      * the client may leave out or send `null`, `required_unless:<parent>,null` instead of `required`: required as soon
      * as the parent is sent and not `null`, an empty one included (`required_with` would take `{}` for absent).
      *
@@ -236,7 +235,7 @@ final readonly class RuleCompiler
 
     /**
      * The rules the first up conversion of the field needs, the one the client's value goes through
-     * (`Converter::extraRules()`; the values of an enum it converts to, model.md §5). An explicit `up:` decides itself.
+     * (`Converter::extraRules()`; the values of an enum it converts to). An explicit `up:` decides itself.
      *
      * @return list<mixed>
      */

@@ -12,7 +12,7 @@ use Ark4ne\ApiRevisions\Schema\Descriptor;
 use Ark4ne\ApiRevisions\Schema\InvalidValue;
 
 /**
- * A custom type whose fragment names the related type, as a JSON:API relationship does (model.md D82): its values are
+ * A custom type whose fragment names the related type, as a JSON:API relationship does: its values are
  * the same whatever the related type, so it declares the identity of its fragments.
  *
  * @extends Descriptor<array<array-key, mixed>>

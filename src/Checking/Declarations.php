@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
- * The discovered declaring classes with their declaration kinds (model.md D84): what a generator reads to know which
+ * The discovered declaring classes with their declaration kinds: what a generator reads to know which
  * documents to export. Public contract, under semver from 1.0 (architecture.md §4).
  */
 final readonly class Declarations
@@ -33,7 +33,7 @@ final readonly class Declarations
     }
 
     /**
-     * The classes existing at `$revision` (model.md D81), in the finder's order, with their declaration kinds.
+     * The classes existing at `$revision`, in the finder's order, with their declaration kinds.
      *
      * @return array<class-string<Revisioned>, non-empty-list<DeclarationKind>>
      */

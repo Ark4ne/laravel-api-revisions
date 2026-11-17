@@ -46,7 +46,7 @@ use SplFileInfo;
 use Test\TestCase;
 
 /**
- * The agent skill shipped in `skills/laravel-api-revisions/` (US 11.2). Its reference must name every public entry
+ * The agent skill shipped in `skills/laravel-api-revisions/`. Its reference must name every public entry
  * point of the package, derived from the code so that a new one fails here until it is documented:
  *
  * - the static helpers of `Schema`, `Cast` and `TypeRegistry`;

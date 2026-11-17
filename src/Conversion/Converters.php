@@ -25,7 +25,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Closure;
 
 /**
- * The registry of automatic conversions, keyed by `(from, to, Direction)` (model.md §5), a side being a `Kind` or, for a
+ * The registry of automatic conversions, keyed by `(from, to, Direction)`, a side being a `Kind` or, for a
  * custom type, its name (every custom type is `Kind::Custom`). A factory builds
  * the converter for the two types (an enum target needs its class), or returns `null` when the pair does not convert
  * automatically for those types. Immutable: `register()` returns a new registry.
@@ -43,7 +43,7 @@ final class Converters
     private array $identities = [];
 
     /**
-     * The built-in conversions of model.md §5 (D25, D40, D41, D90), in both directions.
+     * The built-in conversions, in both directions.
      */
     public static function builtIn(): self
     {
@@ -72,7 +72,7 @@ final class Converters
             }
         }
 
-        // lossless down (the day a response falls back to), lossy up (the time a client sent dropped), D90
+        // lossless down (the day a response falls back to), lossy up (the time a client sent dropped)
         return $registry
             ->register(Kind::DateTime, Kind::Date, Direction::Down, $always(new DateTimeToDate()))
             ->register(Kind::DateTime, Kind::Date, Direction::Up, $always(new DateTimeToDate(lossless: false)));
@@ -99,7 +99,7 @@ final class Converters
     }
 
     /**
-     * Declares that the values of the custom type `$name` do not depend on its fragment (model.md D82): two types of
+     * Declares that the values of the custom type `$name` do not depend on its fragment: two types of
      * that name differing only by their fragment plan no conversion step, in both directions. An empty name throws
      * `DefinitionException::invalidConversionSide()`.
      */

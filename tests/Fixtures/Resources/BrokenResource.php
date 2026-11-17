@@ -11,7 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Test\Fixtures\Eloquent\Order;
 
 /**
- * A plain value that is not null-safe: it fails on the empty subject of the compilation (model.md D61).
+ * A plain value that is not null-safe: it fails on the empty subject of the compilation.
  *
  * @mixin Order
  */

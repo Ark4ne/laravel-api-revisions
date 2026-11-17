@@ -12,7 +12,7 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A resource type added in `spring-26` (model.md D81): it does not exist for older clients.
+ * A resource type added in `spring-26`: it does not exist for older clients.
  */
 final class PodcastDeclaration implements Revisioned, HasLifetime
 {

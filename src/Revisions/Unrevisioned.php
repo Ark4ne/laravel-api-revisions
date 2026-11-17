@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Closure;
 
 /**
- * The one revision of an application that configures no revision enum (`revisions.enum` left `null`, model.md D80):
+ * The one revision of an application that configures no revision enum (`revisions.enum` left `null`):
  * its head, so resources, requests and commands work through the library with no history possible. The package uses
  * no trait (docs/architecture.md §2): the methods of `IsRevision` are written out.
  */

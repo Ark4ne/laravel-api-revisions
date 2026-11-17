@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Schema\ObjectSchema;
 use Ark4ne\ApiRevisions\Schema\Schema;
 
 /**
- * The object every fixture shares as the component `Address` (model.md D70): its `zip` exists since Spring26.
+ * The object every fixture shares as the component `Address`: its `zip` exists since Spring26.
  */
 final class Address
 {

@@ -9,16 +9,16 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 
 /**
- * The fields of a class (or of an object's children) at one revision, in one direction (model.md §4.5, D27): built
+ * The fields of a class (or of an object's children) at one revision, in one direction: built
  * only by the `ShapeSelector`, read by the projector, the upgrader, the rules, the export, the check and the lock.
- * Immutable, closure-free, serializable (model.md D45).
+ * Immutable, closure-free, serializable.
  */
 final readonly class Shape
 {
     /**
      * @param array<string, FieldDefinition> $fields the fields visible at `$revision`, by head key, in head order
      * @param array<string, FieldDefinition> $added up only: the fields added after `$revision`, by head key, each at
-     *                                              its `since` revision, where its default is written (model.md D23)
+     *                                              its `since` revision, where its default is written
      * @param list<Collision> $collisions the names written by more than one visible field
      * @param class-string|null $class the declaring class, set by the `Compiler` (`null` for an object's children)
      * @param DeclarationKind|null $kind the declaration compiled, set by the `Compiler`

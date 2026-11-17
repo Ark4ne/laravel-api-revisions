@@ -16,7 +16,7 @@ use Ark4ne\ApiRevisions\Revisions\Unrevisioned;
 use ReflectionClass;
 
 /**
- * `config/revisions.php` validated (model.md §8): the revision enum, the options of the Laravel layer and the core
+ * `config/revisions.php` validated: the revision enum, the options of the Laravel layer and the core
  * `Configuration` built from it. Immutable.
  */
 final readonly class RevisionsConfig
@@ -32,8 +32,7 @@ final readonly class RevisionsConfig
      * @param list<string> $discoveryClasses
      * @param non-empty-string $cachePath
      * @param non-empty-string $lockPath
-     * @param bool $revisioned whether the application configured its enum: `false` for the implicit `Unrevisioned`
-     *                         (model.md D80), invisible to clients
+     * @param bool $revisioned whether the application configured its enum: `false` for the implicit `Unrevisioned`, invisible to clients
      */
     private function __construct(
         public string $enum,
@@ -51,7 +50,7 @@ final readonly class RevisionsConfig
     /**
      * The configuration, every key checked: a missing key takes the default of `config/revisions.php` (relative paths,
      * no discovery path); a wrong one throws `ConfigurationException`. Without `enum`, the implicit `Unrevisioned`
-     * and no resolver (model.md D80).
+     * and no resolver.
      *
      * @param array<array-key, mixed> $config the `revisions` configuration
      * @param bool $debug `app.debug`: the value errors are strict when `strict_values` is `null`
@@ -99,7 +98,7 @@ final readonly class RevisionsConfig
 
     /**
      * The revision outside a request: the default when it is a fixed revision, `null` (the head) for a resolver
-     * class (model.md D31).
+     * class.
      */
     public function fixedDefault(): ?Revision
     {
@@ -177,7 +176,7 @@ final readonly class RevisionsConfig
     }
 
     /**
-     * The default without configured enum (model.md D80): `latest` or `oldest`, the one implicit revision either way.
+     * The default without configured enum: `latest` or `oldest`, the one implicit revision either way.
      */
     private static function unrevisionedDefault(mixed $default): Revision
     {

@@ -14,7 +14,7 @@ use PHPStan\Type\Generic\TemplateTypeMap;
 use PHPStan\Type\VoidType;
 
 /**
- * Declares the route macro of path mode (US 8.4): `$router->revisioned($routes)` on the `Router` and
+ * Declares the route macro of path mode: `$router->revisioned($routes)` on the `Router` and
  * `Route::revisioned($routes)` on its facade, `$routes` typed as the last parameter of `RevisionedRoutes::group()`.
  */
 final class RevisionedRouteExtension implements MethodsClassReflectionExtension

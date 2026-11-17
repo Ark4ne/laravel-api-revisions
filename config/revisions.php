@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * ark4ne/laravel-api-revisions (docs/specs/model.md §8). Publish with:
+ * ark4ne/laravel-api-revisions. Publish with:
  * php artisan vendor:publish --tag=revisions-config
  */
 return [
@@ -28,7 +28,7 @@ return [
     /*
      * The revision when no resolver gives one: 'latest' (the head), 'oldest', a backed value of the enum, or a
      * resolver class. Outside a request (jobs, console), a fixed revision is the current one; a resolver class gives
-     * the head (model.md D31). Without enum, only 'latest' or 'oldest' (both the implicit revision).
+     * the head. Without enum, only 'latest' or 'oldest' (both the implicit revision).
      */
     'default' => 'latest',
 
@@ -39,18 +39,18 @@ return [
 
     /*
      * What a required()->since(R) field declared without default: receives for clients older than R: 'error'
-     * (nothing, reported by revision:check) or 'null' (model.md §7.3, D47).
+     * (nothing, reported by revision:check) or 'null'.
      */
     'missing_default' => 'error',
 
     /*
      * Value errors (a value its type refuses, a failed conversion, a null on a non-nullable field): thrown (true), or
-     * cast and reported once per class and field (false); null follows app.debug (model.md §6.3, D19, D53).
+     * cast and reported once per class and field (false); null follows app.debug.
      */
     'strict_values' => null,
 
     /*
-     * The formats of Schema::date() and Schema::dateTime() declared without format() (model.md D29).
+     * The formats of Schema::date() and Schema::dateTime() declared without format().
      */
     'date_format' => 'Y-m-d',
     'date_time_format' => 'Y-m-d\TH:i:sP',

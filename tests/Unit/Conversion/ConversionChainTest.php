@@ -27,7 +27,7 @@ use Test\TestCase;
 final class ConversionChainTest extends TestCase
 {
     /**
-     * `total` of model.md §4.2: int at the head, a string `was(Winter25)` with closures (index 0), a float
+     * `total` of the reference scenario: int at the head, a string `was(Winter25)` with closures (index 0), a float
      * `was(Genesis)` converted automatically (index 1).
      */
     public function test_a_down_chain_converts_from_the_head_to_the_oldest_shape(): void

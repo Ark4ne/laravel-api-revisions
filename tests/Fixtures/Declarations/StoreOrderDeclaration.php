@@ -11,7 +11,7 @@ use Test\Fixtures\ApiRevision;
 use Test\Fixtures\Enums\OrderStatus;
 
 /**
- * A request of the reference scenario without Laravel, declaring a body and a query (model.md §7, D48), built without
+ * A request of the reference scenario without Laravel, declaring a body and a query, built without
  * subject as a `FormRequest` is.
  */
 final class StoreOrderDeclaration implements Revisioned

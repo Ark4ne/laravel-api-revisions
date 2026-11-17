@@ -10,8 +10,8 @@ use Ark4ne\ApiRevisions\Checking\Fields;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 
 /**
- * An error per name written by two fields of one shape at a revision (model.md §4.4 rule 4), and per name a request
- * declares both in its body and in its query at a revision (Laravel validates them merged, D63).
+ * An error per name written by two fields of one shape at a revision, and per name a request
+ * declares both in its body and in its query at a revision (Laravel validates them merged).
  */
 final readonly class NameCollision implements Check
 {

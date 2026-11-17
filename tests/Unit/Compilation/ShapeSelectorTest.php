@@ -30,7 +30,7 @@ use Test\TestCase;
 final class ShapeSelectorTest extends TestCase
 {
     /**
-     * The order of model.md §4.2 and §4.3: the reference scenario.
+     * The order of the reference scenario.
      *
      * @return array<string, Descriptor<mixed>>
      */

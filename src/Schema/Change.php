@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Conversion\ExplicitConverter;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 
 /**
- * One `was()`: up to `$revision` included, the field differed from the next newer shape (model.md §4.2). An argument
+ * One `was()`: up to `$revision` included, the field differed from the next newer shape. An argument
  * left `null` keeps the value of that newer shape. Never a source: older values derive from the head value (§6.4).
  * Built by `Descriptor::was()`, which checks its arguments; read by the compiler.
  *

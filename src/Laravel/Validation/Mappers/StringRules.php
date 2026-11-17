@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Laravel\Validation\RuleMapper;
 
 /**
- * `string`, `min:` / `max:` (length), `regex:` from the pattern, and the rule of a known JSON Schema format (D62):
+ * `string`, `min:` / `max:` (length), `regex:` from the pattern, and the rule of a known JSON Schema format:
  * `email`, `uri` → `url`, `uuid`, `ipv4`, `ipv6`, `date` → `date_format:Y-m-d`, `date-time` → `date`; another format
  * gives none (export only).
  */

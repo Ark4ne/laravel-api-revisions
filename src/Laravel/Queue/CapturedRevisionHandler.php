@@ -15,7 +15,7 @@ use Illuminate\Queue\CallQueuedHandler;
 use Throwable;
 
 /**
- * The handler of a queued job marked `CapturesRevision` (D64): `capture()` (a payload hook registered by the provider)
+ * The handler of a queued job marked `CapturesRevision`: `capture()` (a payload hook registered by the provider)
  * stores the backed value of the revision of the dispatch in the payload and names this handler in place of
  * Laravel's `CallQueuedHandler`; `call()` and `failed()` then run Laravel's handler inside `using()` of that revision
  * (Execute Around: nothing outlives the job, the `sync` queue included). A stored value the enum no longer knows
@@ -40,7 +40,7 @@ final readonly class CapturedRevisionHandler
      * The entries a payload hook adds to the payload of `$payload['data']['command']`: none unless it is a job marked
      * `CapturesRevision` handled by Laravel's `CallQueuedHandler`; else the backed value of the revision `$current`
      * gives (called only then: a job not marked never reads the configuration) and this handler; none either when it
-     * gives `null` (no enum configured, model.md D80).
+     * gives `null` (no enum configured).
      *
      * @param array<array-key, mixed> $payload
      * @param Closure(): ?Revision $current
@@ -67,11 +67,11 @@ final readonly class CapturedRevisionHandler
      * @param array<array-key, mixed> $data
      *
      * @throws UnknownRevisionException when the stored revision is no longer a case of the enum (never without enum
-     *                                   configured: the job runs in the implicit revision, model.md D80)
+     *                                   configured: the job runs in the implicit revision)
      */
     public function call(Job $job, array $data): void
     {
-        // no enum configured any more (D80): a revision captured before runs in the one implicit revision
+        // no enum configured any more: a revision captured before runs in the one implicit revision
         $revision = $this->config->revisioned ? RevisionValue::parse($this->config->enum, $job->payload()[self::KEY] ?? null) : null;
         if ($revision === null) {
             $this->handler->call($job, $data);

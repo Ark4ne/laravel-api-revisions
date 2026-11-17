@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Projection;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 
 /**
- * What the projection does with a value it cannot render (model.md §6.3, D19, D53): throw it (`StrictValues`), or
+ * What the projection does with a value it cannot render: throw it (`StrictValues`), or
  * render a fallback and report it (`LenientValues`). Chosen from `Configuration::$strictValues`.
  */
 interface ValueErrorHandler

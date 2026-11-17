@@ -13,8 +13,8 @@ use ReflectionNamedType;
 
 /**
  * A case of a backed enum: accepts the case or its backed value (for an int-backed enum, what `IntSchema` accepts:
- * `'3'`, `3.0`), serialized as its backed value. Its type exports the values (model.md §3, §6.3). A refused value
- * keeps its backed value as cast (`'2'` → `2` for an int-backed enum; lenient mode renders it, model.md §6.3).
+ * `'3'`, `3.0`), serialized as its backed value. Its type exports the values (§6.3). A refused value
+ * keeps its backed value as cast (`'2'` → `2` for an int-backed enum; lenient mode renders it).
  *
  * @template TEnum of BackedEnum
  *

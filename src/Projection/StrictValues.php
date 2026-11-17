@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Projection;
 use Ark4ne\ApiRevisions\Exceptions\ValueException;
 
 /**
- * Value errors throw: development, tests (model.md D19).
+ * Value errors throw: development, tests.
  */
 final readonly class StrictValues implements ValueErrorHandler
 {

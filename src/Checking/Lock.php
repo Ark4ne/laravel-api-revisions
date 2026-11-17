@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Schema\ClassLifetime;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
- * The lock of the published revisions (model.md §9, D11, D69): one `<value>.json` per locked revision under
+ * The lock of the published revisions: one `<value>.json` per locked revision under
  * `$directory`, committed. Captures, writes and reads snapshots; the checks `lock-mismatch` and `lock-order-changed`
  * compare them with the declarations.
  */
@@ -70,7 +70,7 @@ final readonly class Lock
 
     /**
      * The snapshot of `$revision`: the structure of every declaration kind of every class in `$classes` existing at
-     * `$revision` (model.md D81), exported by `$exporter`, and the revision before it.
+     * `$revision`, exported by `$exporter`, and the revision before it.
      *
      * @param list<class-string<Revisioned>> $classes
      */
@@ -91,7 +91,7 @@ final readonly class Lock
     }
 
     /**
-     * The structure of an exported document (D69): without its root `$comment` (the revision `meta()`) nor the
+     * The structure of an exported document: without its root `$comment` (the revision `meta()`) nor the
      * documentation keywords of any schema it holds (a property named `title` stays), its keys sorted (lists keep their
      * order).
      *

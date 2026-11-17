@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A declaring class found under a discovery path (US 5.3): a response and a request body.
+ * A declaring class found under a discovery path: a response and a request body.
  */
 final class DiscoveredDeclaration implements Revisioned
 {

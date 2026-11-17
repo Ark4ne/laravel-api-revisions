@@ -11,7 +11,7 @@ use IteratorAggregate;
 use Traversable;
 
 /**
- * The subject of a class during compilation (Null Object, model.md §6.1 "describe mode"): it holds nothing and throws
+ * The subject of a class during compilation (Null Object, "describe mode"): it holds nothing and throws
  * `DefinitionException::subjectReadAtCompilation()` on any access, so a declaration reading its subject eagerly, or a
  * source run during compilation, is caught at once.
  *

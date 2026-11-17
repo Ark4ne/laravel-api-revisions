@@ -10,7 +10,7 @@ use Closure;
 use Illuminate\Routing\Router;
 
 /**
- * Path mode (model.md §8, D60): the body of the route macro `Route::revisioned($routes)`. Groups `$routes` under the
+ * Path mode: the body of the route macro `Route::revisioned($routes)`. Groups `$routes` under the
  * prefix `{parameter}`, the `parameter` of the configured `PathResolver` (`ConfigurationException` without one),
  * constrained to the backed values of the enum, with the `revision` middleware (Laravel runs a middleware once per
  * route, so a group already holding it is fine).

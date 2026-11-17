@@ -12,7 +12,7 @@ use Test\Fixtures\ApiRevision;
 
 /**
  * An order line sent in a request body, nested as a resource: its quantity was a string an `up:` closure rejects when
- * it holds no digits (model.md D63).
+ * it holds no digits.
  */
 final class LineDeclaration implements Revisioned
 {

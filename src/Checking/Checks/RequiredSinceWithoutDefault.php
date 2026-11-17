@@ -11,8 +11,7 @@ use Ark4ne\ApiRevisions\Definition\Direction;
 use Ark4ne\ApiRevisions\Support\Undefined;
 
 /**
- * An error per `required()` field of a request added after the oldest revision without default for the older clients
- * (model.md §7.3); none under `missing_default: null`, which gives them `null` (D47).
+ * An error per `required()` field of a request added after the oldest revision without default for the older clients; none under `missing_default: null`, which gives them `null`.
  */
 final readonly class RequiredSinceWithoutDefault implements Check
 {

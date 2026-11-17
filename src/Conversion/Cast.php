@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Conversion;
 
 /**
- * The explicit casts (model.md §5), for a `down:` / `up:` whose automatic cast is not the one the clients need
+ * The explicit casts, for a `down:` / `up:` whose automatic cast is not the one the clients need
  * (`float → int` truncates; `Cast::round()` rounds): `->was(Rev::X, schema: Schema::int(), down: Cast::round())`.
  */
 final class Cast

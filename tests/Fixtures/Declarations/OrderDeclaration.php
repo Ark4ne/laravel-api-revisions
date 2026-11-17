@@ -14,7 +14,7 @@ use Test\Fixtures\Enums\OrderStatus;
 use Test\Fixtures\Order;
 
 /**
- * The order response of the reference scenario (model.md §4.2, §4.3) without Laravel: a class built on its subject,
+ * The order response of the reference scenario (§4.3) without Laravel: a class built on its subject,
  * as a `JsonResource` is, declaring lazy descriptors only.
  */
 final readonly class OrderDeclaration implements Revisioned

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Export;
 
 /**
- * What a revision changes on one field (model.md D71).
+ * What a revision changes on one field.
  */
 enum ChangeKind: string
 {

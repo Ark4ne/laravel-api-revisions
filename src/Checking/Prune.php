@@ -12,7 +12,7 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Throwable;
 
 /**
- * What retiring the oldest revision `P` of `$revisions` makes dead (model.md D73): per class and declaration kind, by
+ * What retiring the oldest revision `P` of `$revisions` makes dead: per class and declaration kind, by
  * head key path, an `until(P)` (the field, its children and history then left out), a `was(P)`, a `since(P)`.
  */
 final readonly class Prune
@@ -44,7 +44,7 @@ final readonly class Prune
                 }
                 array_push($candidates, ...$found);
             } catch (Throwable $error) {
-                // the declarations are application code: whatever they throw is reported, the other classes go on (D66)
+                // the declarations are application code: whatever they throw is reported, the other classes go on
                 $failures[$class] = $error->getMessage();
             }
         }

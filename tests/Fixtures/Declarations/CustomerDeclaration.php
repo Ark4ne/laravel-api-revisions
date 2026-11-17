@@ -11,7 +11,7 @@ use Test\Fixtures\ApiRevision;
 
 /**
  * The customer of an order, nested in `OrderDeclaration` (a response) and in `StoreOrderDeclaration` (a body) with its
- * own history; its response lists its orders back (a cycle, model.md D20, D49).
+ * own history; its response lists its orders back (a cycle).
  */
 final class CustomerDeclaration implements Revisioned
 {

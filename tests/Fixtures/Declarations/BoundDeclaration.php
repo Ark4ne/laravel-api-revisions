@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 
 /**
  * A response whose closure reads the instance (`$this->resource`), as a `JsonResource` does: built on its subject by the
- * bridge (model.md D50).
+ * bridge.
  */
 final readonly class BoundDeclaration implements Revisioned
 {

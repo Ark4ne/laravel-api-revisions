@@ -11,7 +11,7 @@ use DateTimeImmutable;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A request resource nested in another (model.md D49) whose field converts up: a date sent as a free string before
+ * A request resource nested in another whose field converts up: a date sent as a free string before
  * `Spring26`.
  */
 final class ContactDeclaration implements Revisioned

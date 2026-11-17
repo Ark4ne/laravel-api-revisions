@@ -30,12 +30,12 @@ use Ark4ne\ApiRevisions\Schema\TypeRegistry;
 use Ark4ne\ApiRevisions\Support\Undefined;
 
 /**
- * Upgrades a validated input of the revision of a request shape to the head (model.md §7.1, docs/architecture.md §9),
+ * Upgrades a validated input of the revision of a request shape to the head (docs/architecture.md §9),
  * step by step `X → X->next()`: the renames and `up` conversions of the `was(X)`, read from a snapshot of the step (a
  * value normalized to the type of `X` first), then the hook, then the defaults of the fields added in `X->next()`, then
  * the fields retired after `X` are dropped. Absent keys stay absent, an explicit `null` is renamed but never converted
  * nor replaced by a default; keys the shape does not know are kept. The values converted or defaulted are serialized
- * back to raw values by the head descriptor (model.md D26). Pure: it never validates.
+ * back to raw values by the head descriptor. Pure: it never validates.
  */
 final readonly class Upgrader
 {
@@ -43,7 +43,7 @@ final readonly class Upgrader
      * @param Configuration $configuration the one the shapes were compiled with: it configures the descriptor that
      *                                     serializes
      * @param Converters|null $converters the registry the chains are bound to; `TypeRegistry::converters()` by default
-     * @param Shapes|null $shapes the shapes of the nested resources (model.md D49); one compiling with `$configuration`
+     * @param Shapes|null $shapes the shapes of the nested resources; one compiling with `$configuration`
      *                            and `$converters` by default
      */
     public function __construct(
@@ -58,7 +58,7 @@ final readonly class Upgrader
 
     /**
      * The input of `$from->revision` in the shape of the head. A value its type at `X` refuses, or a conversion
-     * rejects, throws an `InvalidInputException` on the client's key (model.md D63); a conversion missing its
+     * rejects, throws an `InvalidInputException` on the client's key; a conversion missing its
      * `ConversionException`.
      *
      * @param Shape $from a request shape (direction up)
@@ -89,7 +89,7 @@ final readonly class Upgrader
      * One step `$revision → $next` on one level (the request, an object's children, a resource): the values of the
      * fields retired after `$revision` set aside; every field existing at both revisions read from a snapshot of the
      * level, renamed and converted (or its children and items upgraded), all old names removed before the new ones are
-     * written (spike F1); the retired values put back under the names no newer field took; the hook (the request only);
+     * written; the retired values put back under the names no newer field took; the hook (the request only);
      * the defaults of the fields added in `$next`; the retired values dropped.
      *
      * @param array<string, Descriptor<mixed>> $descriptors
@@ -160,7 +160,7 @@ final readonly class Upgrader
         }
         foreach ($shape->added as $key => $field) {
             $name = $field->name;
-            // a retired value still under the name is no value of the field (model.md D54)
+            // a retired value still under the name is no value of the field
             if ($field->lifetime->since === $next && !Undefined::is($field->default)
                 && (!array_key_exists($name, $input) || ($retired[$name] ?? false))) {
                 $input[$name] = $field->default;
@@ -177,7 +177,7 @@ final readonly class Upgrader
 
     /**
      * The value of one field (or item) after the step: converted when its chain has a step at the `was($revision)`
-     * (a composite then as its `up` returns it, model.md D52), else the children, items or resource of a composite
+     * (a composite then as its `up` returns it), else the children, items or resource of a composite
      * upgraded where its head descriptor is in force; any other value as it is. With the mark of what was converted.
      *
      * @param Descriptor<mixed> $descriptor the head descriptor
@@ -185,7 +185,7 @@ final readonly class Upgrader
      * @param mixed $mark what was converted in it before this step: `true`, the marks of its children or items, or `null`
      * @param string|null $path the client's key of the value: its names at the client's revision, dotted; `null` for a
      *                          value the client never sent (a default, a field added later): its rejection is a
-     *                          declaration error (model.md D63)
+     *                          declaration error
      *
      * @return array{mixed, mixed} the value, and its mark
      */
@@ -206,7 +206,7 @@ final readonly class Upgrader
         }
         $version = $field->versionAt($revision);
         if ($version !== null && $field->chain->stepOf($version->change) !== null) {
-            // a composite converted is serialized whole: its children may be typed (model.md D55)
+            // a composite converted is serialized whole: its children may be typed
             return [$this->convert($field, $version, $descriptor, $value, $snapshot, $run->converters, $class, $path), true];
         }
         if (!is_array($value) || RevisionOrder::compare($field->headAt, $revision) > 0) {
@@ -257,8 +257,8 @@ final readonly class Upgrader
 
     /**
      * The value normalized to the type in force at the revision of `$version`, then through the step crossing its
-     * `was()`, which receives the snapshot of the step (model.md §7.1, D26). A value the type refuses, or the step
-     * rejects, throws an `InvalidInputException` on `$path` (model.md D63); a step without converter, or a value the
+     * `was()`, which receives the snapshot of the step. A value the type refuses, or the step
+     * rejects, throws an `InvalidInputException` on `$path`; a step without converter, or a value the
      * client never sent (`$path` null), its own exception.
      *
      * @param Descriptor<mixed> $descriptor the head descriptor

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Fixtures\Enums;
 
 /**
- * A string-backed enum whose values are digits: an int reads as one of them (model.md D41).
+ * A string-backed enum whose values are digits: an int reads as one of them.
  */
 enum StatusCode: string
 {

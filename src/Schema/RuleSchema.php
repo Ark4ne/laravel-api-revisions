@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 
 /**
- * The escape hatch: a field typed only by its validation rules, of kind `Any` (model.md §3). Its value is rendered as
+ * The escape hatch: a field typed only by its validation rules, of kind `Any`. Its value is rendered as
  * it is (scalars, arrays, `JsonSerializable`); its export is `any`, enriched by `describe()` and by its rules
  * implementing `DescribesSchema`.
  *

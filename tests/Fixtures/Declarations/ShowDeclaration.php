@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 use Test\Fixtures\ApiRevision;
 
 /**
- * A resource nesting `PodcastDeclaration` from the revision the podcast exists in (model.md D81).
+ * A resource nesting `PodcastDeclaration` from the revision the podcast exists in.
  */
 final class ShowDeclaration implements Revisioned
 {

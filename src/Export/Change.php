@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Export;
 
 /**
- * One change a revision makes on one field against the revision before it (model.md D71). Immutable.
+ * One change a revision makes on one field against the revision before it. Immutable.
  */
 final readonly class Change
 {
     /**
      * @param string $path the path of the field at the revision (at the revision before it when removed), dotted
      *                     through object children and list items (`lines.*.sku`); `''` for the class itself, added or
-     *                     removed by its lifetime (model.md D81)
+     *                     removed by its lifetime
      * @param string|null $previousPath its path at the revision before, for a rename
      * @param array<string, mixed>|null $before the keywords of its type before, for a type change
      * @param array<string, mixed>|null $after the keywords of its type at the revision, for a type change

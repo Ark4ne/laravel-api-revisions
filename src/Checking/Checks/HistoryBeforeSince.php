@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Checking\Fields;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 
 /**
- * An error per `was()` older than the `since` of its field: a dead declaration (model.md §4.4 rule 3).
+ * An error per `was()` older than the `since` of its field: a dead declaration.
  */
 final readonly class HistoryBeforeSince implements Check
 {

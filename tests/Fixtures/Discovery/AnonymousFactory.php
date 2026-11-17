@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
- * A class naming `Foo::class` and building an anonymous `Revisioned` class: neither is discovered (US 5.3).
+ * A class naming `Foo::class` and building an anonymous `Revisioned` class: neither is discovered.
  */
 final class AnonymousFactory
 {

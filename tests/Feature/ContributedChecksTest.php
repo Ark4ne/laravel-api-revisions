@@ -21,7 +21,7 @@ use Test\Fixtures\Checks\SecondCheck;
 use Test\Fixtures\Declarations\CheckedDeclaration;
 
 /**
- * Checks a package contributes by tagging them `RevisionsServiceProvider::CHECKS` (US 12.5, model.md D83): run by
+ * Checks a package contributes by tagging them `RevisionsServiceProvider::CHECKS`: run by
  * `revision:check` and `assertRevisionsAreConsistent()`, resolved through the container.
  */
 final class ContributedChecksTest extends FeatureTestCase

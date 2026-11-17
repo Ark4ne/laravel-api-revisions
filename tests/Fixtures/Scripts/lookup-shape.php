@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * Run by `CompiledShapesTest` in a fresh process (US 12.7, R8): looks up one shape of `OrderDeclaration` at
+ * Run by `CompiledShapesTest` in a fresh process: looks up one shape of `OrderDeclaration` at
  * `Winter25` from the compiled file given as argument, and prints as JSON the classes the load and the lookup
  * declared.
  *

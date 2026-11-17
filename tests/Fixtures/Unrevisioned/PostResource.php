@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A resource of an application that configures no revision enum (model.md D80): its head only, no history.
+ * A resource of an application that configures no revision enum: its head only, no history.
  */
 final class PostResource extends JsonResource implements Revisioned
 {

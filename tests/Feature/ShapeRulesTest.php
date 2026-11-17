@@ -18,7 +18,7 @@ use Test\Fixtures\Declarations\OrderInputDeclaration;
 use Test\Fixtures\Declarations\StoreOrderDeclaration;
 
 /**
- * The rules of a request shape run by Laravel's validator: errors under the names the client knows (model.md §7.1).
+ * The rules of a request shape run by Laravel's validator: errors under the names the client knows.
  */
 final class ShapeRulesTest extends FeatureTestCase
 {

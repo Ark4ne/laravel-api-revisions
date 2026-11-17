@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Revisions\IsRevision;
 use Ark4ne\ApiRevisions\Revisions\Revision;
 
 /**
- * An int-backed revision enum, whose backed values do not follow the order (spike finding F4).
+ * An int-backed revision enum, whose backed values do not follow the order.
  */
 enum IntRevision: int implements Revision
 {

@@ -18,7 +18,7 @@ use Test\Fixtures\Declarations\StandIn;
 use Test\TemporaryDirectory;
 
 /**
- * A consumer's class implementing `Revisioned` itself (US 12.1, model.md D75) goes through the whole tooling of the
+ * A consumer's class implementing `Revisioned` itself goes through the whole tooling of the
  * Laravel layer: the check, the lock, the export, the changelog, the cache and the testing helpers.
  */
 final class ConsumerDeclarationTest extends FeatureTestCase

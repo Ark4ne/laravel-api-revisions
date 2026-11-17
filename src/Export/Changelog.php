@@ -14,7 +14,7 @@ use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
- * The changelog of the revisions (model.md §11, D71): for each revision, what it changes on each class and declaration
+ * The changelog of the revisions: for each revision, what it changes on each class and declaration
  * kind against the revision before it — fields matched by their head key path, so a rename is known from the history,
  * never guessed — rendered in Markdown with the revisions' `meta()`.
  */
@@ -29,7 +29,7 @@ final readonly class Changelog
 
     /**
      * What `$revision` changes on the declaration `$kind` of `$class` against the revision before it; none for the
-     * oldest. A class whose lifetime (`HasLifetime`, model.md D81) starts at `$revision` is one change `Added` of path
+     * oldest. A class whose lifetime (`HasLifetime`) starts at `$revision` is one change `Added` of path
      * `''`, one ending at the revision before is one change `Removed` of path `''`; none where it exists on neither side.
      *
      * @param class-string<Revisioned> $class
@@ -150,7 +150,7 @@ final readonly class Changelog
     }
 
     /**
-     * The keywords its type gives (D71); `$shallow`: without what is walked below it (`properties`, `required`,
+     * The keywords its type gives; `$shallow`: without what is walked below it (`properties`, `required`,
      * `items`).
      *
      * @return array<string, mixed>

@@ -7,7 +7,7 @@ namespace Test\Fixtures;
 use AllowDynamicProperties;
 
 /**
- * A subject whose properties cover every case `PlainSourceReader` tells apart (model.md D88): a public one, one holding
+ * A subject whose properties cover every case `PlainSourceReader` tells apart: a public one, one holding
  * `null`, an uninitialized typed one, an unset one, a static one, non-public ones and dynamic ones; every other key is
  * served by its magic methods, which record their calls.
  */

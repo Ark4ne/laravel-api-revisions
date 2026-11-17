@@ -8,7 +8,7 @@ use Closure;
 
 /**
  * The single invoker of every closure the library calls: a source, `down:` and `up:` with one
- * signature, `($value, $subject)` (model.md §3, D18); a condition with `($subject, $attribute)` (D93). A closure may declare fewer parameters: PHP ignores the extra arguments.
+ * signature, `($value, $subject)`; a condition with `($subject, $attribute)`. A closure may declare fewer parameters: PHP ignores the extra arguments.
  * A first-class callable of an internal function (`strlen(...)`) is strict about its arguments: wrap it in a closure.
  *
  * @internal
@@ -25,7 +25,7 @@ final class Invoke
     }
 
     /**
-     * A condition (`when()`, `unless()`): `($subject, $attribute)`, before the value is read (model.md D93).
+     * A condition (`when()`, `unless()`): `($subject, $attribute)`, before the value is read.
      *
      * @param Closure $closure declaring any prefix of `($subject, $attribute)`
      */

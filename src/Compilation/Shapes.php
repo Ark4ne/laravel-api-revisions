@@ -9,8 +9,7 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 
 /**
- * The repository of compiled shapes: each `(class, declaration kind, revision)` is compiled once by its `Compiler`
- * (model.md D48), then served from memory. One instance per application (a singleton of the Laravel layer), so two
+ * The repository of compiled shapes: each `(class, declaration kind, revision)` is compiled once by its `Compiler`, then served from memory. One instance per application (a singleton of the Laravel layer), so two
  * configurations never share a shape; `flush()` forgets them (tests, Octane workers reloading code). Custom types are
  * registered at boot, before any `for()`: a cached shape keeps the conversions known when it was compiled. The shapes
  * of the compiled file (`revision:cache`, `CompiledShapes`) are read before compiling.

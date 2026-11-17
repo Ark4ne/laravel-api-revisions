@@ -81,8 +81,7 @@ abstract class Descriptor
     }
 
     /**
-     * A macro of `DescriptorMacros` (`->whenInFields('title')`), run on this descriptor with the arguments given
-     * (model.md D87); `DefinitionException::unknownMacro()` otherwise.
+     * A macro of `DescriptorMacros` (`->whenInFields('title')`), run on this descriptor with the arguments given; `DefinitionException::unknownMacro()` otherwise.
      *
      * @param array<array-key, mixed> $arguments
      */
@@ -92,7 +91,7 @@ abstract class Descriptor
     }
 
     /**
-     * The PHP value of the type from what the source read (model.md §6.3), or the refusal: never throws. `null` never
+     * The PHP value of the type from what the source read, or the refusal: never throws. `null` never
      * reaches it (the pipeline handles it first); given anyway, it is refused.
      *
      * @return TValue|InvalidValue
@@ -101,7 +100,7 @@ abstract class Descriptor
 
     /**
      * The JSON-ready value of a normalized value (a `TValue`). Scalars serialize as they are; a composite receives its
-     * items or children already projected and serialized (model.md D34).
+     * items or children already projected and serialized.
      */
     public function serialize(mixed $value): mixed
     {
@@ -137,8 +136,7 @@ abstract class Descriptor
     }
 
     /**
-     * This descriptor with its own configured defaults resolved (a date without `format()` takes the configured format,
-     * model.md D29); nothing to resolve by default. A composite or custom type holding descriptors resolves them with
+     * This descriptor with its own configured defaults resolved (a date without `format()` takes the configured format); nothing to resolve by default. A composite or custom type holding descriptors resolves them with
      * their `configured()`. Called through `configured()`, and alone by the projector before serializing (once per
      * field per render): keep it cheap, and never let `serialize()` rely on the history being configured.
      */
@@ -149,7 +147,7 @@ abstract class Descriptor
 
     /**
      * A copy with the configured defaults resolved: its own (`configure()`) and those of the schemas of its `was()`.
-     * Called by the compiler, once per declaration (model.md D29).
+     * Called by the compiler, once per declaration.
      */
     final public function configured(Configuration $configuration): static
     {
@@ -230,7 +228,7 @@ abstract class Descriptor
 
     /**
      * Keeps the field only when the closure returns `true`: called with `($subject, $attribute)` after the presences and
-     * **before** the source is read (model.md D93): a field refused is never read, normalized, projected nor converted.
+     * **before** the source is read: a field refused is never read, normalized, projected nor converted.
      * `$subject` is the subject of the level (the model a resource wraps, an object's value for its children, the
      * element of a list), `$attribute` the key read (the source key or path, else the declared key); a closure may
      * declare fewer parameters. Several conditions must all pass. The field becomes conditional (optional in the
@@ -245,7 +243,7 @@ abstract class Descriptor
     }
 
     /**
-     * Keeps the field only when the closure returns `false`: the negation of `when()`, called alike (model.md D93).
+     * Keeps the field only when the closure returns `false`: the negation of `when()`, called alike.
      */
     public function unless(Closure $condition): static
     {
@@ -254,7 +252,7 @@ abstract class Descriptor
 
     /**
      * Keeps the field only when the subject has the key (dotted paths allowed; its own key by default, resolved by the
-     * projection, model.md D37), checked before the source. The field becomes conditional (optional in the export).
+     * projection), checked before the source. The field becomes conditional (optional in the export).
      */
     public function whenHas(?string $key = null): static
     {
@@ -266,7 +264,7 @@ abstract class Descriptor
 
     /**
      * Keeps the field only when the relation `$relation` (dotted for a nested one) is loaded on the subject, checked
-     * before the source: the source never triggers a lazy load (model.md §6.4, D61). On a subject without relations,
+     * before the source: the source never triggers a lazy load. On a subject without relations,
      * `whenHas($relation)`. The field becomes conditional (optional in the export).
      */
     public function whenLoaded(string $relation): static
@@ -302,8 +300,7 @@ abstract class Descriptor
     }
 
     /**
-     * The field exists from `$revision` included (model.md §4.1). `$default` is what an older client is deemed to send
-     * (model.md §7.3); none by default. A second call replaces the first, its default included, and is recorded
+     * The field exists from `$revision` included. `$default` is what an older client is deemed to send; none by default. A second call replaces the first, its default included, and is recorded
      * (`repeatedBounds()`).
      */
     public function since(Revision $revision, mixed $default = new Undefined()): static
@@ -319,7 +316,7 @@ abstract class Descriptor
     }
 
     /**
-     * The field exists up to `$revision` included, removed in `$revision->next()` (model.md §4.1). A second call
+     * The field exists up to `$revision` included, removed in `$revision->next()`. A second call
      * replaces the first and is recorded (`repeatedBounds()`).
      */
     public function until(Revision $revision): static
@@ -354,7 +351,7 @@ abstract class Descriptor
 
     /**
      * Up to `$revision` included, the field had another `name`, another type (`schema`, its source never read), or
-     * both, than in the next newer shape (model.md §4.2); `down` / `up` convert between the two when the automatic
+     * both, than in the next newer shape; `down` / `up` convert between the two when the automatic
      * conversion is not the one wanted: a closure `($value, $subject)` (kept as a `ClosureConverter`) or a `Cast`.
      * Ordered by revision whatever the call order. Throws `DefinitionException::invalidHistory()` on the head, on a
      * revision already changed or for an empty name, `DefinitionException::sourceInHistory()` for a `schema` with a
@@ -441,7 +438,7 @@ abstract class Descriptor
 
     /**
      * The bounds set more than once, one entry per extra call, in call order, with the revision it replaced (reported
-     * by the check, model.md §4.4 rule 5).
+     * by the check).
      *
      * @return list<array{bound: 'since'|'until', replaced: Revision}>
      */

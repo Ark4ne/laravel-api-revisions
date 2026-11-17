@@ -12,7 +12,7 @@ use Test\Fixtures\ApiRevision;
 use Test\TestCase;
 
 /**
- * Groups, through `Schema::since()` / `Schema::until()` (model.md §4.3, §4.4, D24).
+ * Groups, through `Schema::since()` / `Schema::until()` (§4.4).
  */
 final class GroupsTest extends TestCase
 {

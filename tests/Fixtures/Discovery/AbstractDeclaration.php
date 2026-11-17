@@ -7,6 +7,6 @@ namespace Test\Fixtures\Discovery;
 use Ark4ne\ApiRevisions\Schema\Revisioned;
 
 /**
- * An abstract class implementing `Revisioned`: never discovered (US 5.3).
+ * An abstract class implementing `Revisioned`: never discovered.
  */
 abstract class AbstractDeclaration implements Revisioned {}

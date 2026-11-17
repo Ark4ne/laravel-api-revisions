@@ -19,8 +19,7 @@ use PHPUnit\Framework\Assert;
 use stdClass;
 
 /**
- * Registers the `TestResponse` macro `assertMatchesRevisionSchema(string $class, ?Revision $revision = null)`
- * (model.md D28, D72) over the application of the running test: registered again by every test.
+ * Registers the `TestResponse` macro `assertMatchesRevisionSchema(string $class, ?Revision $revision = null)` over the application of the running test: registered again by every test.
  */
 final class TestResponseMacros
 {
@@ -47,7 +46,7 @@ final class TestResponseMacros
     {
         $config = $app->make(RevisionsConfig::class);
         if ($revision === null && !$config->revisioned) {
-            // no enum configured (D80): no revision header, the one implicit revision
+            // no enum configured: no revision header, the one implicit revision
             $revision = RevisionOrder::latest($config->enum);
         }
         if ($revision === null) {

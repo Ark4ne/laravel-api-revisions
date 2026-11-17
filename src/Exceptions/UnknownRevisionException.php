@@ -7,8 +7,7 @@ namespace Ark4ne\ApiRevisions\Exceptions;
 use RuntimeException;
 
 /**
- * A revision asked by a client (a header, a query parameter, a path segment) that the API does not know (model.md
- * §8): rendered **400** by the Laravel layer (US 8.3), with the accepted values. Named constructors only.
+ * A revision asked by a client (a header, a query parameter, a path segment) that the API does not know: rendered **400** by the Laravel layer, with the accepted values. Named constructors only.
  */
 final class UnknownRevisionException extends RuntimeException implements RevisionsException
 {

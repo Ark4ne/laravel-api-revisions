@@ -10,8 +10,7 @@ use Ark4ne\ApiRevisions\Checking\Fields;
 use Ark4ne\ApiRevisions\Conversion\StepKind;
 
 /**
- * An error per conversion step neither automatic nor declared, in the direction of the declaration kind (model.md §5,
- * D27), once per field and `was()`.
+ * An error per conversion step neither automatic nor declared, in the direction of the declaration kind, once per field and `was()`.
  */
 final readonly class ConversionMissing implements Check
 {

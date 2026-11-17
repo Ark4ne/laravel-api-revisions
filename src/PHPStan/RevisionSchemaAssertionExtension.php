@@ -14,7 +14,7 @@ use PHPStan\Type\Generic\TemplateTypeMap;
 use PHPStan\Type\StaticType;
 
 /**
- * Declares the `TestResponse` macro of the test helpers (US 10.4, model.md D72):
+ * Declares the `TestResponse` macro of the test helpers:
  * `$response->assertMatchesRevisionSchema($class, $revision = null)`, its parameters read from
  * `Testing\TestResponseMacros::assert()`, returning the response.
  */

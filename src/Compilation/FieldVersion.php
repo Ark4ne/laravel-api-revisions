@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 
 /**
  * The shape of a field up to one `was()` revision included, every omitted argument inherited from the next newer
- * shape (model.md §4.2): what the upgrader renames from on the step `revision → revision->next()`.
+ * shape: what the upgrader renames from on the step `revision → revision->next()`.
  */
 final readonly class FieldVersion
 {

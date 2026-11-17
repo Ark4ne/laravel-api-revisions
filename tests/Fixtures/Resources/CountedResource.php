@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Test\Fixtures\Eloquent\Order;
 
 /**
- * A resource counting its `toArray()` calls (model.md D86), whose closures read `$this->resource` and the request; it
+ * A resource counting its `toArray()` calls, whose closures read `$this->resource` and the request; it
  * opts out of the plan while `$perSubject` is set.
  *
  * @property Order $resource

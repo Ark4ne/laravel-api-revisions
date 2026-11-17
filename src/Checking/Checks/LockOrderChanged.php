@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 use Ark4ne\ApiRevisions\Exceptions\LockException;
 
 /**
- * `lock-order-changed` (model.md §9, D69), on the enum: a locked revision whose previous revision in `order()` is not
+ * `lock-order-changed`, on the enum: a locked revision whose previous revision in `order()` is not
  * the one recorded in its lock (moved, a revision inserted before it or removed), or which is no longer a case.
  */
 final readonly class LockOrderChanged implements Check

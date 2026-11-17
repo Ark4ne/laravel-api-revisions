@@ -16,7 +16,7 @@ use Illuminate\Console\Command;
 use Throwable;
 
 /**
- * `revision:changelog` (model.md §11, D71): the Markdown changelog of every discovered class, from the revision after
+ * `revision:changelog`: the Markdown changelog of every discovered class, from the revision after
  * `--from` (the oldest by default, excluded) to `--to` (the head by default, included), newest first.
  */
 final class ChangelogCommand extends Command
@@ -37,7 +37,7 @@ final class ChangelogCommand extends Command
     {
         $order = $config->enum::order();
         if (count($order) === 1 && $this->option('from') === null && $this->option('to') === null) {
-            // one revision (an enum of one case, or none configured, D80): there is no change to list
+            // one revision (an enum of one case, or none configured): there is no change to list
             $this->components->info('One revision only: no change to list.');
 
             return self::SUCCESS;
@@ -55,7 +55,7 @@ final class ChangelogCommand extends Command
         try {
             $markdown = (new Changelog(new Shapes(new Compiler($configuration))))->markdown($finder->find(), $from, $to);
         } catch (Throwable $error) {
-            // the declarations are application code: whatever they throw is reported as `revision:check` does (D66)
+            // the declarations are application code: whatever they throw is reported as `revision:check` does
             $this->components->error($error->getMessage());
 
             return self::FAILURE;

@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Definition\Kind;
 use BackedEnum;
 
 /**
- * backed enum → string or int, through its backed value (model.md D41).
+ * backed enum → string or int, through its backed value.
  */
 final class EnumToBacked implements Converter
 {

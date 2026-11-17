@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Support\Invoke;
 use Closure;
 
 /**
- * A user closure `($value, $subject)` given as `down:` or `up:` (model.md §5), called through `Support\Invoke`.
+ * A user closure `($value, $subject)` given as `down:` or `up:`, called through `Support\Invoke`.
  * Explicit; its loss is unknown, so it declares itself lossy, and it adds no rule.
  */
 final readonly class ClosureConverter implements ExplicitConverter

@@ -23,7 +23,7 @@ use Test\Fixtures\Resources\ReachingResource;
 
 /**
  * A collection of a `RevisionedResource` runs `toArray()` once per render on a template instance and projects every
- * item through one plan (US 12.8, model.md D77, D78, D86).
+ * item through one plan.
  */
 final class RevisionedResourceCollectionTest extends FeatureTestCase
 {
@@ -103,10 +103,10 @@ final class RevisionedResourceCollectionTest extends FeatureTestCase
      */
     public static function perSubject(): iterable
     {
-        // plain values and native conditions (model.md D78)
+        // plain values and native conditions
         yield 'native conditions' => [NativeResource::class, [['Lamp', null, true], ['Desk', null, false]]];
         yield 'a plain value' => [ReachingResource::class, [['Lamp', null, null], ['Desk', null, null]]];
-        // a key the template's declaration lacks: a structure decided in plain PHP (model.md D86)
+        // a key the template's declaration lacks: a structure decided in plain PHP
         yield 'a key the template lacks' => [NoteResource::class, [['Lamp', null, null], ['Desk', 'fragile', null]]];
     }
 

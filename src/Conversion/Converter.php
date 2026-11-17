@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Conversion;
 
 /**
- * Converts a normalized value of one type to the value of another (model.md §5). Strategy of the registry
- * `Converters`. Only a `ClosureConverter` reads the subject (the one closure signature `($value, $subject)`, model.md
- * D18); built-ins and casts ignore it.
+ * Converts a normalized value of one type to the value of another. Strategy of the registry
+ * `Converters`. Only a `ClosureConverter` reads the subject (the one closure signature `($value, $subject)`); built-ins and casts ignore it.
  */
 interface Converter
 {
@@ -21,7 +20,7 @@ interface Converter
 
     /**
      * Whether every value converts without loss of information; a lossy-capable automatic conversion without closure
-     * gets a `conversion-lossy` warning (model.md D25).
+     * gets a `conversion-lossy` warning.
      */
     public function lossless(): bool;
 

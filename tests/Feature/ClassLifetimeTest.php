@@ -20,7 +20,7 @@ use Test\Fixtures\Declarations\ShowDeclaration;
 use Test\TemporaryDirectory;
 
 /**
- * A class added in `spring-26` (US 12.3, model.md D81) goes through the tooling of the Laravel layer only at the
+ * A class added in `spring-26` goes through the tooling of the Laravel layer only at the
  * revisions it exists in: the check, the lock, the export, the changelog, the cache and the testing helpers.
  */
 final class ClassLifetimeTest extends FeatureTestCase

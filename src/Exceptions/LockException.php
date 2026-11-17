@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Exceptions;
 use RuntimeException;
 
 /**
- * A lock file of `revision:lock` (model.md §9, D11, D69) that cannot be written or read. Named constructors only.
+ * A lock file of `revision:lock` that cannot be written or read. Named constructors only.
  */
 final class LockException extends RuntimeException implements RevisionsException
 {

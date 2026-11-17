@@ -466,7 +466,7 @@ final class JsonSchemaExporterTest extends TestCase
 
     public function test_a_component_under_the_head_and_under_a_was_schema_at_one_revision_is_a_conflict(): void
     {
-        // presence where the head is in force, typed only under the was() schema (D70)
+        // presence where the head is in force, typed only under the was() schema
         $street = static fn(): ObjectSchema => Schema::object(['street' => Schema::string()])->component('Street');
         $this->expectExceptionObject(DefinitionException::componentConflict('Street', 'from', 'response', 'winter-25'));
 

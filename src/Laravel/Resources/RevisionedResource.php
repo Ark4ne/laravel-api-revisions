@@ -24,7 +24,7 @@ use JsonSerializable;
 use Throwable;
 
 /**
- * Makes a `JsonResource` revisioned (model.md §6.6, D61): its `toArray()` returns descriptors, `resolve()` projects
+ * Makes a `JsonResource` revisioned: its `toArray()` returns descriptors, `resolve()` projects
  * them on `$this->resource` at the current revision and leaves the rest of `JsonResource` (`with()`, `additional()`,
  * wrapping, collections, pagination) unchanged. Implements the `Revisioned` bridge: the class declares a response.
  *
@@ -47,7 +47,7 @@ trait RevisionedResource
     }
 
     /**
-     * Whether a collection of this resource runs `toArray()` per item rather than once per render (model.md D86): `true`
+     * Whether a collection of this resource runs `toArray()` per item rather than once per render: `true`
      * for a `toArray()` whose structure depends on its subject in plain PHP (an `if`, a ternary choosing the
      * descriptor). `false` by default.
      */
@@ -57,7 +57,7 @@ trait RevisionedResource
     }
 
     /**
-     * A collection of this resource renders its items through one plan (model.md D86).
+     * A collection of this resource renders its items through one plan.
      *
      * @param mixed $resource
      */
@@ -103,7 +103,7 @@ trait RevisionedResource
 
     /**
      * The keys of the native conditions `toArray()` returns at compilation (a `MergeValue`, a `MissingValue` or a resource
-     * built on one), in its order: what the check reports (`native-condition`, model.md D65).
+     * built on one), in its order: what the check reports (`native-condition`).
      *
      * @return list<array-key>
      *
@@ -123,11 +123,10 @@ trait RevisionedResource
     }
 
     /**
-     * The items of a collection of this resource at the current revision, by their keys, through one plan (model.md
-     * D77, D86): `toArray()` run once on a template instance built on the first subject, whose `resource` is then set
+     * The items of a collection of this resource at the current revision, by their keys, through one plan: `toArray()` run once on a template instance built on the first subject, whose `resource` is then set
      * to each subject. `null` when the declaration cannot be held by a plan — the class opts out
-     * (`revisionedPerSubject()`), reports a native condition (D65), or the template's declaration holds a plain value or a
-     * native condition or lacks a key of the shape (D78) —: the collection then resolves each item.
+     * (`revisionedPerSubject()`), reports a native condition, or the template's declaration holds a plain value or a
+     * native condition or lacks a key of the shape —: the collection then resolves each item.
      *
      * @param array<array-key, static> $items resources of this class
      *
@@ -224,7 +223,7 @@ trait RevisionedResource
         try {
             return $this->revisionedData(new Request());
         } catch (DefinitionException $error) {
-            // a declaration error of a descriptor, with its own check code (model.md D39)
+            // a declaration error of a descriptor, with its own check code
             throw $error;
         } catch (Throwable $error) {
             throw DefinitionException::failedDescribing(static::class, $error);
@@ -283,7 +282,7 @@ trait RevisionedResource
     }
 
     /**
-     * `$value` with every `Arrayable` (an `any` value, a plain value) as its array (model.md §6.6).
+     * `$value` with every `Arrayable` (an `any` value, a plain value) as its array.
      */
     private static function revisionedArrayable(mixed $value): mixed
     {

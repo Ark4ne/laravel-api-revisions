@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Compilation;
 
 /**
- * Two or more fields of one shape written under the same name at its revision (model.md §4.4 rule 4): recorded on the
- * `Shape`, never thrown, reported by the check (US 9.2).
+ * Two or more fields of one shape written under the same name at its revision: recorded on the
+ * `Shape`, never thrown, reported by the check.
  */
 final readonly class Collision
 {

@@ -11,13 +11,13 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 
 /**
- * One field of a class at one revision, decided by the `ShapeSelector` (model.md §4.5): its name and type at that
+ * One field of a class at one revision, decided by the `ShapeSelector`: its name and type at that
  * revision, its presence, and its conversion chain in the direction of the shape. Immutable, closure-free (the chain is
  * unbound), serializable: the closures and the rules are re-read from the fresh descriptors through the references it
  * keeps (`schemaChange`, the `change` of each step).
  *
  * The value at the revision (type, `nullable`) comes from the descriptor in force there, the head or the schema of a
- * `was()`; the presence (`required`, `sometimes`, `conditional`, `default`, `lifetime`) from the head (model.md D46).
+ * `was()`; the presence (`required`, `sometimes`, `conditional`, `default`, `lifetime`) from the head.
  */
 final readonly class FieldDefinition
 {
@@ -30,11 +30,11 @@ final readonly class FieldDefinition
      * @param list<FieldVersion> $versions its shape at every `was()` from the head down to `$revision`, newest first
      * @param ConversionChain $chain from the head to `$revision` (down), from `$revision` to the head (up)
      * @param FieldDefinition|null $items the items of a head list at `$headAt`, whatever schema a `was()` puts in force
-     *                                  (model.md D52; that one is `$type`)
+     *                                  (that one is `$type`)
      * @param Shape|null $children the children of a head object at `$headAt`, whatever schema a `was()` puts in force
      * @param Revision|null $headAt where the head descriptor is still in force: `$revision`, or the revision after its
      *                              newest `was(schema:)` at or after `$revision`; its items, children and nested
-     *                              resource are read there, the conversions of the `was()` start from there (D52)
+     *                              resource are read there, the conversions of the `was()` start from there
      *
      * @internal built by `ShapeSelector`
      */

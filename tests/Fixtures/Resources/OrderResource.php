@@ -15,7 +15,7 @@ use Test\Fixtures\Eloquent\Order;
 use Test\Fixtures\Enums\OrderStatus;
 
 /**
- * The `OrderResource` of the reference scenario (model.md §4.2, §4.3, §6) on an Eloquent `Order`.
+ * The `OrderResource` of the reference scenario (§4.3, §6) on an Eloquent `Order`.
  *
  * @mixin Order
  *

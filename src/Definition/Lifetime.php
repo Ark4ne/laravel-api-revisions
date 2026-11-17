@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Revisions\Revision;
 use Ark4ne\ApiRevisions\Revisions\RevisionOrder;
 
 /**
- * The revisions a field exists in: from `since` included to `until` included (model.md §4.1, D1); `null` is unbounded.
+ * The revisions a field exists in: from `since` included to `until` included; `null` is unbounded.
  */
 final readonly class Lifetime
 {

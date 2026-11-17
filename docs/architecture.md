@@ -3,8 +3,8 @@
 This document sets the concepts and patterns of `ark4ne/laravel-api-revisions`. They follow those of
 `ark4ne/laravel-json-api` 2.x and `ark4ne/laravel-openapi-generator` (models for the architecture and the tooling,
 never dependencies). Every contribution follows them; a deviation is discussed and recorded here **before** it is
-coded. The behaviour (what the library does) is specified in [`specs/model.md`](specs/model.md); this document says
-**how the code is organised**.
+coded. The behaviour (what the library does) is described in the [guide](guide.md); this document says **how the code
+is organised**.
 
 **Guiding idea:** the class **declares** the head, the shape of each revision is **compiled once**, the projector
 **walks down**, the upgrader **walks up**, the exporter **describes**. No layer does the work of another: a descriptor
@@ -54,14 +54,14 @@ Support ← Configuration ← Revisions ← Definition ← Conversion ← Schema
 | Revisions | `src/Revisions/` | `Revision` contract, `IsRevision` trait, `#[Meta]`, `RevisionOrder`, `RevisionScope` (ambient context), `Unrevisioned` (the implicit revision without configured enum) |
 | Definition | `src/Definition/` | Public immutable type-level model: `TypeDefinition`, `Kind`, `Lifetime`, `Direction` |
 | Conversion | `src/Conversion/` | `Converter` contract, `Converters` registry, built-in converters, `Cast`, `ConversionChain` |
-| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescriptorMacros`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `HasLifetime`, `ClassLifetime` (its one reader, `model.md` D81), `EagerSchema` (a plain value wrapped by a bridge) |
-| Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free, `model.md` D45), `Shapes` (memo repository), `CompiledShapes` (file cache) |
+| Schema | `src/Schema/` | `Schema` factory, `Descriptor` and its typed subclasses, `Source`, `InvalidValue`, `Change` (one `was()`), `History`, `TypeRegistry`, `DescriptorMacros`, `DescribesSchema`, `DeclaresConversions`, `Presence`, `DeclarationKind`, `Groups` (`@internal`), `Revisioned`, `HasLifetime`, `ClassLifetime` (its one reader), `EagerSchema` (a plain value wrapped by a bridge) |
+| Compilation | `src/Compilation/` | `Probe`, `Compiler`, `ShapeSelector` (the central pure function), its result `Shape`, `FieldDefinition`, `FieldVersion`, `Collision` (public, closure-free), `Shapes` (memo repository), `CompiledShapes` (file cache) |
 | Projection | `src/Projection/` | `Projector`, `ProjectionPlan` (`PlannedField`), `SourceReader` (`PlainSourceReader`), `ValueErrorHandler` (`StrictValues`, `LenientValues`) |
 | Upgrade | `src/Upgrade/` | `Upgrader`, `UpgradesInput` hook contract, `UpgradeRun` (`@internal`: what one upgrade carries down its levels) |
 | Export | `src/Export/` | `SchemaVisitor` contract, `JsonSchemaExporter`, `Components` (`$ref`), `Changelog` |
-| Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract, `Declarations` (discovered classes with their kinds, D84) |
+| Checking | `src/Checking/` | `Check` contract, one class per rule, `Checker`, `Lock`, `Prune` (`PruneReport`, `PruneCandidate`, `PrunedDeclaration`, `DeclarationLocator`), `ClassFinder` contract, `Declarations` (discovered classes with their kinds) |
 | Laravel | `src/Laravel/` | Service provider, configuration loading, middleware, resolvers, route macro, rule generation, `RevisionedRequest` / `RevisionedResource` traits (`Requests\RequestHook`, `Resources\EloquentSourceReader`, `Resources\DescribeSubject`, `Resources\RevisionedResourceCollection`), commands, queue capture (`Queue\CapturesRevision`, `Queue\CapturedRevisionHandler`), the check rules reading Laravel (`Checking\NativeCondition`) |
-| Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (US 9.3: `assertRevisionsAreConsistent()`, reading the application's `$app`; US 10.4: `withRevision()`, `assertRendersAtEveryRevision()`, `setUpInteractsWithRevisions()` registering the macro), `TestResponseMacros` (`assertMatchesRevisionSchema()`), `RevisionSchema` (validation against the closed export, opis) — model.md D72 |
+| Testing | `src/Testing/` | Assertions and `TestResponse` helpers for application test suites: `InteractsWithRevisions` (`assertRevisionsAreConsistent()`, reading the application's `$app`; `withRevision()`, `assertRendersAtEveryRevision()`, `setUpInteractsWithRevisions()` registering the macro), `TestResponseMacros` (`assertMatchesRevisionSchema()`), `RevisionSchema` (validation against the closed export, opis) |
 | PHPStan (tooling, outside the layers) | `src/PHPStan/` + `extension.neon` | The PHPStan extensions: the custom types (`CustomTypesExtension`), the descriptor macros (`DescriptorMacrosExtension`, reading the signature of each mapped static method), the route macro (`RevisionedRouteExtension`, reading the signature of `Laravel\Routing\RevisionedRoutes::group()`) and the `TestResponse` macro (`RevisionSchemaAssertionExtension`, reading `Testing\TestResponseMacros::assert()`), their methods built as `DeclaredMethod`; loaded only by PHPStan, never at run time (phpat: no layer depends on it nor on `PHPStan\*`); depends on `Schema`, `RevisionedRoutes`, `TestResponseMacros` and PHPStan only; throws PHPStan's `ShouldNotHappenException`, outside the package's exception hierarchy |
 | Exceptions | `src/Exceptions/` | Single exception hierarchy |
 
@@ -86,13 +86,13 @@ Context** (`RevisionScope`).
   argument is that case. So `RevisionOrder::previous()`, `next()`, `between()` return `Revision`, and `IsRevision`
   narrows to `self` in its PHPDoc. `tests/Types/RevisionTypes.php` asserts what applications see.
 - `#[Meta]` is read by `MetaReader::of()` (reflection, memoized per case); `Meta` checks its `Y-m-d` days in its
-  constructor and the reader rethrows `DefinitionException::invalidMeta()` naming the case. Informative only (D21).
+  constructor and the reader rethrows `DefinitionException::invalidMeta()` naming the case. Informative only.
 - `RevisionScope` is the **only** holder of the current revision: a stack for `using()` (Execute Around, restored in
   `finally`) above a base revision. The core reaches it through `RevisionScope::provider()`, a closure set **at
   boot** (configuration, not state; replaceable, `null` restores the default); the default provider is a process-local scope for non-Laravel use; the Laravel
   layer provides the `scoped` container binding (reset per request under Octane). API: `RevisionScope::get()`,
   `setBase(?Revision)` (the middleware), `current(class)` (head of `class` when nothing is set; the Laravel provider sets the configured
-  fixed default outside a request, D31; a revision of
+  fixed default outside a request; a revision of
   another enum throws `foreignRevision()`), `using(revision, callback)`; `provider(null)` restores a new process-local scope
   (tests: `tests/TestCase` and `tests/FeatureTestCase` reset it after every test).
 
@@ -104,28 +104,28 @@ the lock and external tools (`laravel-json-api`, `laravel-openapi-generator`). P
 **Named Constructor**.
 
 - `Shape` and `FieldDefinition` are the same kind of public model, but live in `Compilation` (§7): a field carries its
-  conversion chain, and `Conversion` sits right of `Definition` (`model.md` D45).
+  conversion chain, and `Conversion` sits right of `Definition`.
 - `TypeDefinition`: a `Kind` (`String`, `Int`, `Float`, `Bool`, `Date`, `DateTime`, `Enum`, `List`, `Object`,
   `Custom`, `Any`), its constraints (`min`, `max`, `format`, `pattern`, `enum` class with its `backing` kind and
   `values`, `items`, `children`; `format` is a PHP date format for dates), its description, examples, deprecation.
 - `Lifetime`: `since`, `until`; `covers(Revision): bool`.
 - `final readonly`, private constructor, named constructors, `with*()` replacing setters, `add*()` appenders.
 
-**Public contract for tools** (US 12.6, `model.md` D84; semver from 1.0: a breaking change to any item below is a
+**Public contract for tools** (semver from 1.0: a breaking change to any item below is a
 major version). What a generator (`laravel-openapi-generator`, X2) or another consumer reads:
 
 | Item | Contract |
 | --- | --- |
 | Definition model | `TypeDefinition`, `Kind`, `Lifetime`, `Direction`, with `Compilation\Shape` and `Compilation\FieldDefinition` (§7), read only: their constructors and `Shape::of()` are `@internal` |
 | `Export\JsonSchemaExporter` | `export(class, kind, revision)`: one JSON Schema document (draft 2020-12, `$defs` for nested resources and components); `objects()` for `json_encode()` |
-| `revision:export` | `{revision value: {class: {kind value: schema}}}`, only the revisions a class exists in (D81); the schema alone when one revision, one class and one kind remain |
+| `revision:export` | `{revision value: {class: {kind value: schema}}}`, only the revisions a class exists in; the schema alone when one revision, one class and one kind remain |
 | `Export\Changelog` | `changes(class, kind, revision)`: `list<Change>` (`kind`: `ChangeKind`; `path` at the revision, dotted, `''` for the class itself; `previousPath`; `before` / `after`; `describe()`); `markdown(classes, from, to)` |
-| `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject (US 12.8, D86); `keys` holds head keys or dotted paths of head keys, `*` for the items of a list (US 12.11, D89); `project(shape, descriptors, subject)` |
+| `Projection\Projector` | `plan(shape, descriptors, ?keys)`: a `ProjectionPlan`, `run(subject)` per subject; `keys` holds head keys or dotted paths of head keys, `*` for the items of a list; `project(shape, descriptors, subject)` |
 | `Checking\ClassFinder` | `find()`: the discovered classes; `revision:check --list` prints them as a JSON list |
-| `Schema\DescriptorMacros` | `register(name, Closure)`: the closure called `($descriptor, ...$arguments)`, returning an instance of the receiver's class; `has(name)`; served by `Descriptor::__call()`; PHPStan `apiRevisions.macros` (US 12.9, D87) |
-| `Checking\Checker` | `forClasses(finder)`: the bound checker on a subset of the classes, `CheckContext::$subset` true (US 12.13, D91); `run()`: `Diagnostics` |
-| `Export\RegexPattern`, `Export\DatePattern` | `of(pcre)` / `of(format)`: the ECMA `pattern` `JsonSchemaExporter` writes for a string pattern (`null`: a `$comment` instead) / a date format JSON Schema does not name (`Y-m-d`, RFC 3339 and RFC 3339 extended export `format`); a field's own `schema()` keywords override them (US 12.14, D92) |
-| `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it (D81). Built from a `ClassFinder`, resolved by the container |
+| `Schema\DescriptorMacros` | `register(name, Closure)`: the closure called `($descriptor, ...$arguments)`, returning an instance of the receiver's class; `has(name)`; served by `Descriptor::__call()`; PHPStan `apiRevisions.macros` |
+| `Checking\Checker` | `forClasses(finder)`: the bound checker on a subset of the classes, `CheckContext::$subset` true; `run()`: `Diagnostics` |
+| `Export\RegexPattern`, `Export\DatePattern` | `of(pcre)` / `of(format)`: the ECMA `pattern` `JsonSchemaExporter` writes for a string pattern (`null`: a `$comment` instead) / a date format JSON Schema does not name (`Y-m-d`, RFC 3339 and RFC 3339 extended export `format`); a field's own `schema()` keywords override them |
+| `Checking\Declarations` | `declarations()`: `array<class, list<DeclarationKind>>` in the finder's order; `at(revision)`: those existing at it. Built from a `ClassFinder`, resolved by the container |
 
 Only the items of this table are the contract for tools. Anything marked `@internal`, a class or a member, may change in a minor version.
 
@@ -138,35 +138,35 @@ types, descriptor macros).
 - `Schema` is a `final` class of static factories; its `__callStatic()` serves the macros of the `TypeRegistry`
   (`Schema::money()`).
 - `Descriptor` is the abstract root: source, modifiers, conditions, rules, `History` (lifetime + ordered `Change`s).
-  Its `__call()` serves the macros of `DescriptorMacros` (`model.md` D87): an unbound closure
+  Its `__call()` serves the macros of `DescriptorMacros`: an unbound closure
   `($descriptor, ...$arguments)` built with the public modifiers, returning an instance of the receiver's class
   (checked); a public method of the subclass wins over a macro of its name.
   Every concrete descriptor is `final`, except the documented extension base `Descriptor` itself.
 - `Source` is a value object: `Source::key('title')` (dotted paths allowed), `Source::closure($fn)`,
-  `Source::declaredKey()`. **Every closure the library calls has one signature, `($value, $subject)`** (`model.md`
-  §3): sources, conditions, `down:` / `up:` converters. One invoker (`Support\Invoke::value()`) calls them all. Their
-  PHPDoc type is a plain `Closure`: `Closure(mixed, mixed)` would refuse `fn (int $cents, Order $order)`. A `Change` (`was()`) never holds a source (`model.md` §6.4).
+  `Source::declaredKey()`. **Value closures have one signature, `($value, $subject)`**: sources, `down:` / `up:`
+  converters, through `Support\Invoke::value()`; conditions (`when()`, `unless()`) take `($subject, $attribute)`,
+  through `Support\Invoke::condition()`. Their
+  PHPDoc type is a plain `Closure`: `Closure(mixed, mixed)` would refuse `fn (int $cents, Order $order)`. A `Change` (`was()`) never holds a source.
   The only descriptor carrying a captured value is `EagerSchema` (a closure source returning it, nullable `any`, always
-  conditional), built only by the bridge of a declaring class for a plain value (`RevisionedResource`, `model.md` D61).
+  conditional), built only by the bridge of a declaring class for a plain value (`RevisionedResource`).
 - Configured defaults reach a descriptor through the final `configured(Configuration): static`, called by the
   compiler on every head descriptor: it applies the overridable `configure()` (a date without `format()` takes the
-  configured format, `model.md` D29) and configures the schemas of its `was()` (`History::configured()`). A composite
+  configured format) and configures the schemas of its `was()` (`History::configured()`). A composite
   or custom type configures the descriptors it holds with their `configured()`. A descriptor never reads
   configuration itself.
 - A descriptor builds its `TypeDefinition` (`toType()`); it never builds a `Shape` (that is the compiler's job) and
   never reads a revision other than those declared in its `History`.
 - `ResourceSchema` (`Schema::resource()`) **references** another `Revisioned` class: its type is an `Object` kind
   whose `TypeDefinition::$resource` names the class (no children). The nested shape is the class's shape of the same
-  declaration kind at the same revision (`model.md` D49), resolved by whoever reads the field
+  declaration kind at the same revision, resolved by whoever reads the field
   (compiled for `($type->resource, $shape->kind, $field->revision)`, through `Shapes::for()`), never inlined: cycles compile.
 - Composites (`ListSchema`, `ObjectSchema`) normalize only their own value: a list to `list` of elements, an object
   to the subject of its children. Projecting each item and child is the projection's job (a descriptor never reads
-  the subject), after the composite's own `when()` (D93) and before its conversions
-  (`model.md` D34). `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
+  the subject), after the composite's own `when()` and before its conversions. `TValue` is covariant (`Descriptor<string>` is a `Descriptor<mixed>`),
   so `serialize()` takes a `mixed` and passes any other type through.
 - A descriptor owns the **value rules of its type**: `normalize(mixed): mixed` (subject data → PHP value of the type,
   or an `InvalidValue`, returned, never thrown: not named `ValueError`, which PHP already defines and `BackedEnum::from()`
-  throws) and `serialize(mixed): mixed` (PHP value → JSON-ready value), `model.md` §6.3. It never reads the
+  throws) and `serialize(mixed): mixed` (PHP value → JSON-ready value). It never reads the
   subject itself: that is the `SourceReader`'s job.
 - `DescribesSchema` (implemented by a rule object) and `Revisioned` (implemented by a declaring class) are the two
   contracts of this layer an application implements. `Revisioned` is static and per `DeclarationKind` (`Response`,
@@ -174,20 +174,20 @@ types, descriptor macros).
   bridge `describeRevisioned($kind, $subject)`, in which the class builds itself on its subject: the probe at
   compilation (`mixed`: the `Probe` lives in `Compilation`; a class may build on its own stand-in instead), the value
   of a nested resource at projection; called by the compiler, the projector, the upgrader and the consumers projecting
-  their own class; the Laravel traits implement it (`model.md` D48, D50, D79). `Descriptor::toType()` merges the keywords of every declared
+  their own class; the Laravel traits implement it. `Descriptor::toType()` merges the keywords of every declared
   rule implementing `DescribesSchema` into `TypeDefinition::$jsonSchema`, after those of `type()` (a later one wins),
-  and refuses keywords that are not JSON-ready (Definitions stay serializable); `model.md` D36.
+  and refuses keywords that are not JSON-ready (Definitions stay serializable).
 - `HasLifetime` (static `revisionedLifetime(): Lifetime`) is the optional contract of a `Revisioned` class that does
   not exist at every revision; `ClassLifetime::exists($class, $revision)` is the one place that reads it (any class
   without it: always). The compiler refuses an absent class (`DefinitionException::classAbsent()`) and a visible
   `Schema::resource()` field nesting one (`nestedAbsent()`, check code `resource-absent`); every tool iterating
   revisions (`CheckContext::order()`, `Lock::capture()`, `revision:cache`, `revision:export`, the changelog,
-  `assertRendersAtEveryRevision()`) skips the revisions a class does not exist in (`model.md` D81).
+  `assertRendersAtEveryRevision()`) skips the revisions a class does not exist in.
 - `Descriptor::inGroup()` is a public `@internal` entry point: it sets the lifetime and default a group resolved
-  without counting as a second call (`model.md` §4.4 rule 5). Only `Schema\Groups` calls it (disallowed calls).
+  without counting as a second call (the repeated-bound rule). Only `Schema\Groups` calls it (disallowed calls).
 - Conditions are **declared, never run** by the Schema layer: `when()` keeps the closure, `whenHas()` a `Presence`
   (a value: `null` for the field's own key, or a path). The projection evaluates presences before the source and
-  conditions after normalization (`model.md` §6.4); the Laravel layer adds `whenLoaded()` the same way.
+  conditions after normalization; the Laravel layer adds `whenLoaded()` the same way.
 
 ## 6. Conversions
 
@@ -198,37 +198,35 @@ Patterns: **Strategy** (`Converter`), **Registry** (`Converters`, keyed by `(fro
   converter receives a normalized value of its source type; any other value passes through unchanged.
 - `Converters` is an immutable instance (no static state of its own): `register(Kind|string $from, Kind|string $to, Direction, $factory)`
   stores a factory `(TypeDefinition $from, TypeDefinition $to): ?Converter`, so a converter is built for the two
-  types (`BackedToEnum` needs the enum class) or declined for them (`enum → int` of a string-backed enum, D41);
+  types (`BackedToEnum` needs the enum class) or declined for them (`enum → int` of a string-backed enum);
   `find(TypeDefinition, TypeDefinition, Direction)` resolves it; `keyOf()` (`int>float:down`, a custom type by its name:
   `custom(money)>float:down`) is what a chain stores. A custom type converts through the static
   `Schema\DeclaresConversions::conversions(Converters): Converters` of its class; `TypeRegistry::converters()` folds
   those of every registered type onto the built-in registry; without argument the result is kept in the
-  `TypeRegistry` until the next `register()` or `flush()` (a projection asks for it on every render, US 5.5); the
+  `TypeRegistry` until the next `register()` or `flush()` (a projection asks for it on every render); the
   compiler passes it to `ShapeSelector::at()`, which stays pure (built-in registry by default).
   `Kind::Custom` and an empty name are refused as sides (`DefinitionException::invalidConversionSide()`).
 - Built-ins are one class each under `Conversion\BuiltIn\` (`IntToFloat`, `NumericStringToFloat`, `EnumToBacked`,
-  `BackedToEnum`…), registered in `Converters::builtIn()` for both directions (D25: the same cast serves both).
+  `BackedToEnum`…), registered in `Converters::builtIn()` for both directions (the same cast serves both).
   `BackedToEnum` is the one converter that validates instead of passing a foreign value through: it throws
   `ConversionException`. `Cast::round()` / `floor()` / `ceil()` are named constructors of explicit converters.
 - A user closure (`down:` / `up:`) becomes a `ClosureConverter`, always considered explicit (so never `conversion-lossy`).
   `ExplicitConverter` marks the converters an author may give to `was()` (`ClosureConverter`, the `Rounding` of
   `Cast`); `Change` stores them, never a bare closure. Only a `ClosureConverter` reads the subject (the one closure
-  signature); built-ins and casts ignore it. A float → int conversion out of the int range throws (`Floats::toInt()`,
-  `model.md` D44).
-- Plans hold **one direction**, the one of the declaration kind (`model.md` D27): `down` for responses, `up` for
+  signature); built-ins and casts ignore it. A float → int conversion out of the int range throws (`Floats::toInt()`).
+- Plans hold **one direction**, the one of the declaration kind: `down` for responses, `up` for
   requests.
 - `ConversionChain` is planned step by step (`withStep($from, $to, $change, $explicit, $converters)`, in apply order)
   by the `ShapeSelector`, which alone decides the types of consecutive shapes. A step is `StepKind::Explicit` (the
   `was()` declares the direction: always a step), `Registered` (a registry key) or `Missing` (recorded, thrown by
   `apply()` only). Two types holding the same values (kind, enum class, custom name, items and children by key) add no
-  step: constraints, formats and documentation never convert a value; a custom type compares its fragment too (spike
-  F7), unless the registry declares its name an identity (`Converters::identity()`, `model.md` D82: its fragments
+  step: constraints, formats and documentation never convert a value; a custom type compares its fragment too, unless the registry declares its name an identity (`Converters::identity()`: its fragments
   vary by instance, its values do not; the exporter, through `Shapes::converters()`, then writes it in place instead
   of a component). `bind(Converters, $explicit)`
   re-finds the registered converters by their types and takes the explicit ones by `was` index (an array, not a
   `History`: `Conversion` sits left of `Schema`). Every step keeps its `was` index. `apply()` runs the whole chain
   (down side); the upgrader runs an up chain step by step (`stepOf()`), normalizing the value to each shape and passing
-  each step its snapshot (spike F3, `model.md` §7.1). A step serializes without its converter.
+  each step its snapshot. A step serializes without its converter.
 - `ConversionChain` is built once per `(field, revision, direction)` at compilation and only **references**
   converters, so it serializes; the closures are re-attached from the fresh descriptors at run time.
 - A conversion failure (`BackedEnum::from()` on an unknown value) throws `ConversionException`, turned into a
@@ -248,42 +246,41 @@ Patterns: **Null Object** (`Probe` stands for the subject), **Repository** (`Sha
   `ShapeSelector::at($descriptors, $revision, $direction, $converters, $configuration)` (the direction of the class's
   declaration kind, the application's converters, the configuration whose `missingDefault` the selector resolves); the
   `Shape` then names its class and kind (`Shape::of()`). Last, every resource nested in a field's type (items and
-  children included) must be `Revisioned` and declare the same kind (`model.md` D49): checked on the reference, the
+  children included) must be `Revisioned` and declare the same kind: checked on the reference, the
   nested class is never compiled there.
-- `ShapeSelector` is **the** pure function of the model (`specs/model.md` §4.5). Nothing else decides visibility,
+- `ShapeSelector` is **the** pure function of the model . Nothing else decides visibility,
   names or conversion plans. Every story touching shapes tests it, and an **invariant test** compares, for every
   fixture class and every revision, the projected keys with `Shape::names()`.
   `ShapeSelector::at($head, $revision, $direction, $converters, $configuration)` plans the direction of the
-  declaration kind only (`model.md` D27) and returns a `Shape`, public, immutable, closure-free and serializable:
+  declaration kind only and returns a `Shape`, public, immutable, closure-free and serializable:
   - `Shape`: `revision`, `direction`, `fields` (visible, by **head key**, head order), `added` (up only: the fields
-    added after the revision, each defined at its `since`, where its default is written, D23), `collisions` (a name
+    added after the revision, each defined at its `since`, where its default is written), `collisions` (a name
     written by two visible fields, recorded, never thrown); `names()`, `field()`.
   - `FieldDefinition`: `headKey`, `revision`, `name` and `type` at the revision (a composite's items and visible
     children resolved there, the children under their name there), `nullable` (from the descriptor in force: the
     head or a `was()` schema), `required`, `sometimes`, `conditional` (`Descriptor::isConditional()`), `default` (an `Undefined` without one;
-    `null` for a `required()->since()` field without one when `missingDefault` is `Null`, `model.md` D47),
-    `lifetime` (from the head, D46), `schemaChange` (the `was()` whose schema is in force, the reference to its fresh
+    `null` for a `required()->since()` field without one when `missingDefault` is `Null`),
+    `lifetime` (from the head), `schemaChange` (the `was()` whose schema is in force, the reference to its fresh
     descriptor: rules, closures), `versions` (a `FieldVersion` — revision, `was` index, name, type — per applicable
     `was()`, newest first: what the upgrader renames from), the unbound `ConversionChain`, `items` (a list: a
     `FieldDefinition` under the key `*`) and `children` (an object: a nested `Shape`, with its own `added` and
     `collisions`): those of the **head** composite at `headAt` (the revision, or the one after its newest
-    `was(schema:)`), whatever schema a `was()` puts in force (that one is the `type`, for rules and export; `model.md`
-    D52). Rules and export read the `type`, never `children` / `items`.
+    `was(schema:)`), whatever schema a `was()` puts in force (that one is the `type`, for rules and export). Rules and export read the `type`, never `children` / `items`.
   - Each `was()` at or after the revision applies, newest first, as a delta from the next newer shape. A chain step
     crosses the type of the newer shape at `X->next()` and of the older one at `X`; a composite's own chain only
     covers its own `was()`, and a `was()` without `schema:` converts only through an explicit converter: its children
     and items carry theirs. Two children under one name keep the first in the object's type; the nested `Shape`
     records the collision.
 - `Shapes` (`final`, built with its `Compiler`) `for($class, $kind, $revision)` compiles each `(class, kind, revision)`
-  once (one shape per declaration kind, `model.md` D48) and keeps it in the instance, never in static state: two
-  configurations never share a shape; the Laravel layer binds one instance (US 8.1), `flush()` forgets the shapes
+  once (one shape per declaration kind) and keeps it in the instance, never in static state: two
+  configurations never share a shape; the Laravel layer binds one instance, `flush()` forgets the shapes
   (tests, Octane). A compilation that throws stores nothing. Custom types are registered at boot, before
   any `for()`; a type registered later needs a `flush()`. `CompiledShapes` reads/writes the file of `revision:cache`
-  (`bootstrap/cache/revisions.php`, `model.md` D56): a `var_export` of **serialized** shapes by `class@kind@revision`,
+  (`bootstrap/cache/revisions.php`): a `var_export` of **serialized** shapes by `class@kind@revision`,
   an array of strings OPcache keeps in shared memory, each shape unserialized on its first `for()`, stamped with
   `CompiledShapes::FORMAT` (bump it whenever `Shape` or a class it holds changes: a file of another format is
   refused, never unserialized into a stale shape); written to a
-  temporary file then renamed (a reader never sees half a file). Since US 12.7 (`model.md` D85): `load()` checks the
+  temporary file then renamed (a reader never sees half a file). `load()` checks the
   array and its format only, each entry is checked when `get()` reads it, so a request pays the `require` and, per
   shape asked, one array read and one `unserialize()` that loads the shape model only, never the declaring class nor
   a descriptor (asserted in a fresh process by `CompiledShapesTest`, with `tests/Fixtures/Scripts/lookup-shape.php`).
@@ -299,56 +296,55 @@ Patterns: **Interpreter** (the `Shape` is the program, the descriptors give the 
 (the consumer places `key → value` where it wants).
 
 - `Projector::project(Shape $shape, array $descriptors, mixed $subject): array<string, mixed>` is
-  `plan($shape, $descriptors)->run($subject)`: one pipeline. Since US 12.8 (`model.md` D77, D86),
+  `plan($shape, $descriptors)->run($subject)`: one pipeline.
   `Projector::plan(Shape, descriptors, ?keys): ProjectionPlan` resolves per field, once per render, what depends only
   on the shape and the descriptors (`Projection\PlannedField`, `@internal`: presence paths, the source closure or
   path, the `when()` conditions, the chain bound to its converters, the serializer configured, the nested object and
   list plans); `ProjectionPlan::run($subject)` runs the pipeline below on each subject (**Interpreter** over the
-  plan). `keys` keeps those head keys, in the head order; since US 12.11 (`model.md` D89) a dotted path of head keys
+  plan). `keys` keeps those head keys, in the head order; a dotted path of head keys
   keeps a member of an object (`address.city`) or of each item of a list (`tags.*.name`), the plan of a member left
   out never built; a field converted as a whole at the revision (a chain or a `was(schema:)`), a list through a key, a
   resource or a scalar is kept whole. A plan holds the closures of its declaration: built per render, never cached
   across renders; only the `Shape` is cached per process. A nested resource is planned per value (its
   `describeRevisioned()` receives its subject). Descriptors missing a field kept throw when planning.
-- Per field, a fixed **Pipeline** (`model.md` §6.5): presence conditions → `when()` conditions
-  (`Invoke::condition($closure, $subject, $attribute)`, D93) → `SourceReader::read($source, $subject)` →
+- Per field, a fixed **Pipeline**: presence conditions → `when()` conditions
+  (`Invoke::condition($closure, $subject, $attribute)`) → `SourceReader::read($source, $subject)` →
   `Descriptor::normalize()` → `ConversionChain::apply()` (down, with the subject) → `Descriptor::serialize()`. A field
   refused by a condition is never read.
   Each step has one owner; no step is skipped or reordered for a type.
 - `Projector` (`final readonly`) is built with the `Configuration` the shapes were compiled with (the descriptor that
   serializes is `configure()`d with it, its own defaults only: serializing never reads the history, and a render
-  cannot afford `configured()` per field, US 5.5; the head, or the schema of the `was()` in force, `FieldDefinition::$schemaChange`),
+  cannot afford `configured()` per field; the head, or the schema of the `was()` in force, `FieldDefinition::$schemaChange`),
   the `Converters` the unbound chains are bound to (`TypeRegistry::converters()` by default; explicit steps take the
   `down:` of the fresh descriptors) and a `SourceReader`. Descriptors missing a field of the shape throw
   `DefinitionException::missingDescriptor()`. A `when()` passes only when it returns `true`.
-- `SourceReader` (**Strategy**, an interface since US 8.5: `PlainSourceReader` in the core, decorated by the Laravel
+- `SourceReader` (**Strategy**, an interface since `PlainSourceReader` in the core, decorated by the Laravel
   layer's `EloquentSourceReader`) reads keys and dotted paths on arrays, `ArrayAccess` and objects (public property, then `__get()`
   called directly; a public property found as `get_object_vars()` lists it but without building the object's
   property table on the common paths: the properties of each class listed once by reflection per reader, a dynamic one
-  through `property_exists()`, `get_object_vars()` for the rare cases, `model.md` D88; never after an `isset()`: the subject's own errors show, spike F11); a missing key reads `null`;
-  `has()` answers `whenHas()` (a `Presence` without key checks the source path, else the declared key, D37),
+  through `property_exists()`, `get_object_vars()` for the rare cases; never after an `isset()`: the subject's own errors show); a missing key reads `null`;
+  `has()` answers `whenHas()` (a `Presence` without key checks the source path, else the declared key),
   checking each segment before reading it, in the order of `read()` (array offset, public property, `__isset()`,
   `ArrayAccess`);
   closures are called with `($value, $subject)`, `$value` being the declared key read **without side effect**
   (`SourceReader::peek()`: an array offset or an initialized public property, never a magic getter nor an
   `ArrayAccess` call; the Laravel layer decorates it for Eloquent: attributes present, relations loaded).
   `loaded()` answers `whenLoaded()` (a `Presence` with `relation`): `has()` for a plain subject, `relationLoaded()`
-  per segment on an Eloquent model (`model.md` D61).
+  per segment on an Eloquent model.
 - **Nesting** changes the subject, never the pipeline: an object with a source projects its children on the source's
   value (without one, on the parent's subject: `Source::parent()`), a list on each item (an item without source is
-  the element itself; an item whose condition fails is dropped, `model.md` D51), `ResourceSchema` delegates to the
+  the element itself; an item whose condition fails is dropped), `ResourceSchema` delegates to the
   `Shape` of the other class at the same revision (`Shapes::for($class, Response, $field->headAt)`, a `Shapes` given to
   the projector or one compiling with its configuration) and to its descriptors built on the value
-  (`describeRevisioned()`, D50). For a composite, the head's children are projected **between** its `normalize()`
+  (`describeRevisioned()`). For a composite, the head's children are projected **between** its `normalize()`
   (which only checks the container) and its own down conversions, which therefore receive the projected,
-  serialized children (its `when()` ran before anything was read, D93); its `serialize()` receives them too (`model.md` D34, D52). An item is told by a flag, never by
+  serialized children (its `when()` ran before anything was read); its `serialize()` receives them too. An item is told by a flag, never by
   its `*` key: a closure source gets the element as `$value`. Descriptors that do not match the shape (a composite on
   one side only) throw `missingDescriptor()`.
 - **Value errors** go to a `ValueErrorHandler` (**Strategy**, `handle(ValueException $error, mixed $fallback): mixed`):
   `StrictValues` throws the `ValueException`; `LenientValues` hands it to its reporter (`Closure(ValueException): void`,
   optional) and returns the fallback: the cast of a refused value (rendered as it is: no chain nor serializer,
-  its `when()` already passed), `null` for a failed conversion or a non-nullable `null`, resolved or given by a `down:` (`model.md`
-  D53). The projector takes a handler, or builds one from
+  its `when()` already passed), `null` for a failed conversion or a non-nullable `null`, resolved or given by a `down:` . The projector takes a handler, or builds one from
   `Configuration::$strictValues` (`true` in the core). A `ValueException` exposes `class`, `field`, `revision` (the
   Laravel reporter reports once per class and field) and never holds the value in its message; its stack trace holds
   call arguments (the subject of an item) unless `zend.exception_ignore_args` is on, as in production `php.ini`.
@@ -370,15 +366,15 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   1. the values of the fields `until(X)` are set aside; every field existing at both revisions with a `was(X)`: its
      value read from a **snapshot** of the step under its name at `X`; when not `null` and the chain has a step there,
      normalized by the descriptor in force at `X` (`ValueException::refused()` on a refusal) and converted, the step
-     receiving `($value, $snapshot)`; all old names removed, then the new ones written (spike F1); the retired values
+     receiving `($value, $snapshot)`; all old names removed, then the new ones written; the retired values
      put back under the names no newer field took;
   2. `$hook->upgrade(X->next(), $input)`;
   3. the defaults of the `added` fields `since(X->next())`, under their name there, unless the key is present (even
      `null`) with a value that is not a retired one;
   4. the retired values still present are dropped (after the hook, which may consume them).
   Then the values converted or defaulted are serialized by their head descriptor (`configure()`d); the others stay as
-  sent. The result is in the head order, keys the shape does not know last (`model.md` D54).
-- **Nesting** (`model.md` D55): each step runs on every level in one pass (`Upgrader::level()` recursing through
+  sent. The result is in the head order, keys the shape does not know last.
+- **Nesting**: each step runs on every level in one pass (`Upgrader::level()` recursing through
   `value()`): an object's children (`FieldDefinition::$children`, compiled at `headAt`), each item of a list
   (`$items`), a nested resource (`Shapes::for($class, $kind of the request, $field->headAt)` and
   `describeRevisioned($kind, $value)`, a `Shapes` given to the upgrader or one compiling with its configuration). A
@@ -391,59 +387,58 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   type in force refuses, or a conversion rejects (`ConversionException` but `missing()`, a declaration error), throws
   `InvalidInputException::at($key, $cause)`, `$key` the client's key: the names at the client's revision
   (`UpgradeRun::$client`, `FieldDefinition::nameAt()`), dotted through children, item indexes and nested resources
-  (`model.md` D63; an index a hook reorders is no longer the client's).
+  (an index a hook reorders is no longer the client's).
 - The upgrader is pure: it does not validate and never mutates its input. The Laravel layer validates at `R` first,
   then upgrades.
 
 ## 10. Laravel bridge
 
-- **Without configured enum** (`model.md` D80): `RevisionsConfig` holds `Revisions\Unrevisioned` and
+- **Without configured enum**: `RevisionsConfig` holds `Revisions\Unrevisioned` and
   `$revisioned = false`; every component reading the request side of a revision checks that flag (the middleware passes
   through, the payload hook captures nothing, the captured-job handler ignores a stored revision, `revision:lock`
   locks nothing, path mode and `withRevision()` throw): the compilation, projection, upgrade and commands run unchanged
   on the one revision.
 - `Laravel\RevisionsServiceProvider`: configuration, `RevisionScope` provider, `scoped` binding, commands, route
-  macro, resolvers, middleware alias. Since US 8.1: `config/revisions.php` merged and publishable (tag
+  macro, resolvers, middleware alias. `config/revisions.php` merged and publishable (tag
   `revisions-config`); `Laravel\RevisionsConfig::fromArray($config, $debug)` (`final readonly`) validates every key
   lazily, on first use (`ConfigurationException`), and builds the core `Configuration` (`strict_values: null` follows
   `app.debug`); singletons `RevisionsConfig`, `Configuration` and `Shapes` (compiled with it: shapes depend on the code
-  only, so they survive Octane requests); `scoped` bindings `RevisionScope` (base: the configured fixed default, D31)
+  only, so they survive Octane requests); `scoped` bindings `RevisionScope` (base: the configured fixed default)
   and `ValueErrorHandler` (`StrictValues`, or `LenientValues` reporting to the `ExceptionHandler` once per class and
   field and request); `register()` points `RevisionScope::provider()` at the container of each call
   (`Container::getInstance()`: Octane runs each request in a clone of the application). Under Octane, add
   `RevisionsConfig::class` and `Shapes::class` to `octane.warm`: built lazily, a singleton first made during a request
   would live in that request's sandbox only.
 - `Laravel\Http\Resolvers\*` — **Chain of Responsibility** of `RevisionResolver`s built from the configuration.
-  Since US 8.2: `ResolverChain` (`scoped`, built by the provider: each `[class, options]` of `RevisionsConfig::$resolvers`
+  `ResolverChain` (`scoped`, built by the provider: each `[class, options]` of `RevisionsConfig::$resolvers`
   made by the container with its options as named arguments, then the `default`), `HeaderResolver`, `QueryResolver`,
-  `PathResolver` (built-in resolvers read one value through the `@internal` `RevisionValue::parse()`, `model.md`
-  D57). An unknown value throws `UnknownRevisionException` and stops the chain.
+  `PathResolver` (built-in resolvers read one value through the `@internal` `RevisionValue::parse()`). An unknown value throws `UnknownRevisionException` and stops the chain.
 - `Laravel\Http\ResolveRevision` — middleware (400 on unknown value, response headers, `Vary`, Deprecation / Sunset).
-  Since US 8.3 (`model.md` D58): alias `revision`, registered in `boot()`; resolved by the container on each request
+  Alias `revision`, registered in `boot()`; resolved by the container on each request
   (the scoped `ResolverChain` and `RevisionScope` injected); it answers the 400 itself from `UnknownRevisionException`
   (no exception renderer, nothing reported); the days of `#[Meta]` read in `app.timezone`.
-  `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn` (D59). Since US 8.4 (D60):
-  it forgets the route parameters of the chain's `PathResolver`s and sets them as URL defaults.
-- `Laravel\Resources\RevisionedResource` (since US 8.5, `model.md` D61) — overrides `JsonResource::resolve()` and, since US 12.8, `newCollection()`:
+  `Vary`: the headers of the resolvers implementing the optional `Laravel\Http\VariesOn`. It
+  forgets the route parameters of the chain's `PathResolver`s and sets them as URL defaults.
+- `Laravel\Resources\RevisionedResource` — overrides `JsonResource::resolve()` and `newCollection()`:
   projects the descriptors of `toArray()` with the container's `Projector` (`scoped`: `EloquentSourceReader`, the
   `Shapes`, the `ValueErrorHandler`) on the shape of `current()`, then walks the `filter()`ed `toArray()` to keep its
   order and its plain values / native conditions. Its bridge builds the resource on `DescribeSubject` (a permissive
   **Null Object**, `@internal`) with an empty `Request` at compilation (the shape never depends on the request served;
   a plain value failing there throws `DefinitionException::failedDescribing()`); at a nested render it adds a never-rendered field for each declared key
   missing (the declared keys memoized per class, `Support\Memo`). Its private helpers are prefixed `revisioned` (a
-  trait shares the namespace of the application's class). Since US 12.8 (`model.md` D86): `newCollection()` returns a
+  trait shares the namespace of the application's class). `newCollection()` returns a
   `Laravel\Resources\RevisionedResourceCollection` (`final`, extends `AnonymousResourceCollection`), whose
   `toArray()` hands its items to `revisionedResolveAll()` (`@internal`): `toArray()` run once on a **template**
   instance built on the first subject, one `ProjectionPlan`, then the template's `resource` set to each subject before
   its run, so closures capturing `$this` read the subject rendered. `null` sends the collection back to the per-item
-  `resolve()` (D78): the class opts out (`revisionedPerSubject()`), reports a native condition (memoized per class,
+  `resolve()`: the class opts out (`revisionedPerSubject()`), reports a native condition (memoized per class,
   `Support\Memo`), or the template's declaration holds a value that is not a descriptor or lacks a key of the
   shape.
 - `Laravel\Routing\RevisionedRoutes::group()` — the body of the route macro `revisioned`, registered on the `Router` in
   the provider's `boot()` (a macro closure is bound to the router, so it is not static); prefix, enum constraint and
   `revision` middleware.
 - `Laravel\Validation\RuleCompiler` — **Visitor** over `TypeDefinition`s; one `RuleMapper` per `Kind` (registry),
-  producing Laravel rules under the names of the revision. Since US 8.6 (`model.md` D62): `final readonly`, a
+  producing Laravel rules under the names of the revision. `final readonly`, a
   singleton of the provider built on the application's `Shapes`; `compile(Shape, descriptors)` walks the visible
   fields of an up shape (the `added` ones never), takes presence and nullability from the `FieldDefinition`, the type
   rules from the mapper of `$field->type` (the type at the revision), the conversion rules from the first step of the
@@ -453,11 +448,11 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   `describeRevisioned($kind, Probe)` for a nested resource. Mappers in `Laravel\Validation\Mappers\` (`StringRules`,
   `NumberRules`, `DateRules`, `EnumRules`, `ArrayRules`, `FixedRules`), each `final readonly`; the default one per kind is an
   exhaustive `match`, a mapper given replaces it (keys checked against `Kind`). The walk carries a guard, the nearest
-  parent the client may leave out (D62). The first conversion step is bound with `ConversionChain::bind()`, as the
+  parent the client may leave out. The first conversion step is bound with `ConversionChain::bind()`, as the
   projector and the upgrader do.
 - `Laravel\Requests\RevisionedRequest` and `Laravel\Resources\RevisionedResource` — traits **declared for
   applications**, used by no class of the package.
-  Since US 8.7 (`model.md` D63): `RevisionedRequest` declares `[RequestBody, RequestQuery]`; `describeRevisioned()`
+  `RevisionedRequest` declares `[RequestBody, RequestQuery]`; `describeRevisioned()`
   builds `new static()` (no input needed) and returns `body()` or `queryParameters()` (`query()` is Laravel's).
   `rules()` compiles both shapes of `current()` with the container's `RuleCompiler`, refusing a name both declare
   (`DefinitionException::declaredTwice()`). `getValidatorInstance()` registers the upgrade as the **last** `after`
@@ -468,14 +463,14 @@ Patterns: **Pipeline** (one step per revision transition, read from the `Shape`)
   `validated()` / `safe()` read the stored head (running the validation first when it has not run).
 - `Laravel\Console\*` — `revision:check`, `revision:lock`, `revision:cache`, `revision:clear`, `revision:export`,
   `revision:changelog`, `revision:prune`.
-  Since US 5.3: `revision:cache` (`CacheCommand`: discovered classes × `declarationKinds()` × `order()`, compiled
+  `revision:cache` (`CacheCommand`: discovered classes × `declarationKinds()` × `order()`, compiled
   with a fresh `Compiler`, never the cached file; a failure leaves the previous file) and `revision:clear`
   (`ClearCommand`), registered in the console only.
 - `Laravel\Discovery\PathClassFinder` — the concrete `Revisioned` classes declared in the PHP files under
   `discovery.paths` (read from their tokens, then autoloaded), plus `discovery.classes` (an entry that is not a
-  concrete `Revisioned` class throws `ConfigurationException`); used by `revision:cache`; implements the `ClassFinder` contract since US 9.1.
+  concrete `Revisioned` class throws `ConfigurationException`); used by `revision:cache`; implements the `ClassFinder` contract.
 - `Laravel\Queue\CapturesRevision` — the marker interface of a queued job running in the revision of its dispatch.
-  Since US 8.8 (`model.md` D64): opt-in, no trait. The provider registers a payload hook (`Queue::createPayloadUsing`,
+  Opt-in, no trait. The provider registers a payload hook (`Queue::createPayloadUsing`,
   static, reading the container of the dispatch) calling `Queue\CapturedRevisionHandler::capture()`: for a marked job
   handled by `CallQueuedHandler@call`, it stores the backed value of `current()` (`ark4ne:revision`) and names
   `CapturedRevisionHandler@call` instead. The handler (`@internal`, made by the container on every attempt) wraps
@@ -488,30 +483,30 @@ Patterns: **Visitor** (`SchemaVisitor` over a `Shape`), **Registry** (`Component
 
 - `JsonSchemaExporter` (draft 2020-12) is the reference visitor; the lock snapshot and the OpenAPI generator read its
   output. Other formats are new visitors, without touching the core.
-- Since US 10.1 (`model.md` D67): `SchemaVisitor::visit(Shape)` (the shape of a declaring class: `visit()` references its own nested resources as `'#'`,
+- `SchemaVisitor::visit(Shape)` (the shape of a declaring class: `visit()` references its own nested resources as `'#'`,
   so the shape of another class would leave a dangling `$ref`); the exporter reads the
   `Shape` only (fields at `R`, their presence and nullability; children and items from the field definitions where the
   head is in force, from the type at `R` where a `was()` schema is), never a descriptor; nested resources resolved
   through its `Shapes` into a flat `$defs` (same kind, same revision). One answer comes from outside the `Shape`: whether
-  a custom type declares its identity (`Shapes::converters()->isIdentity()`, D82), written then in place instead of a
+  a custom type declares its identity (`Shapes::converters()->isIdentity()`), written then in place instead of a
   component; a `revision:cache` is rebuilt when the registry changes, as for any planned conversion. `typeKeywords()` gives the keywords of a type
   before its rule keywords, read by the check `schema-override`. `Export\DatePattern` derives the
-  `pattern` of a numeric PHP date format, `Export\RegexPattern` the ECMA `pattern` of a PCRE (D68); both public
-  contract since US 12.14 (D92).
+  `pattern` of a numeric PHP date format, `Export\RegexPattern` the ECMA `pattern` of a PCRE; both public
+  contract.
   Exported by `revision:export` (`Laravel\Console\ExportCommand`).
-- Since US 10.2 (`model.md` D70): `Components` is the registry of one document's `$defs` (nested resources reserved
+- `Components` is the registry of one document's `$defs` (nested resources reserved
   then filled, components defined at first use; another body under a name, or a component named as a nested resource,
   throws `componentConflict()` naming the field: its head key path from the top level, or from the referencing field
   inside a nested resource, the names at `R` below a `was()` schema). The exporter
   threads it and that path through its walk; a component (`TypeDefinition::$component`, or a custom type's `$name`,
-  unless it declares its identity, D82)
+  unless it declares its identity)
   is defined with its typed keywords and replaced by its `$ref`, only inside a document (`typeKeywords()` stays
-  inline). Since US 10.4 (D72): `closed: true` adds `additionalProperties: false` to every declared object (the test
+  inline). `closed: true` adds `additionalProperties: false` to every declared object (the test
   assertions); `JsonSchemaExporter::objects()` turns a document into objects for `json_encode()` (an empty schema is
   `{}`, never `[]`), used by `revision:export`, the lock file and the assertions. The check `component-conflict` exports each kind at every revision, newest first: the first conflict of a
   document stops its export, so one conflict per document and revision is reported at a time.
 - `Changelog` diffs two consecutive `Shape`s of each class (added, removed, renamed — known from the `History`, never
-  guessed —, type changed) and renders Markdown with the revisions' `meta()`. Since US 10.3 (`model.md` D71): fields
+  guessed —, type changed) and renders Markdown with the revisions' `meta()`. Fields
   are matched per level by head key (`FieldDefinition::$headKey`), walked through `children` / `items` where the head
   is in force on both sides; a type is compared by `JsonSchemaExporter::typeKeywords()` (shallow — without
   `properties`, `required`, `items` — when walked), so the changelog, the export and the lock read the same keywords.
@@ -523,25 +518,24 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 **Snapshot** (`Lock`).
 
 - `Check::run(CheckContext): void` adds diagnostics; `Checker` runs the registered checks on every discovered class
-  and the enum. Since US 9.1: each check runs once on the enum (`CheckContext::$class` is `null`), then once per class
+  and the enum. Each check runs once on the enum (`CheckContext::$class` is `null`), then once per class
   of the `ClassFinder`, in its order; a check returns at once on a target it does not check. One `Shapes` over the
   checker's `Compiler` per run (never the compiled file), shared by the checks: a class is compiled once per run.
   `CheckContext::error()` / `warning()` fill the class (the enum when the target is the enum) and the revision.
-- Since US 9.2: before its checks, the `Checker` **builds** each class (`Compiler::describe()` for every kind, its
+- Before its checks, the `Checker` **builds** each class (`Compiler::describe()` for every kind, its
   shape at every revision): whatever it throws is one error under `DefinitionException::$checkCode` (each named
-  constructor whose error has a code of `model.md` §9 sets it), else `definition-error`, and the class is skipped (D39,
-  D66); an invalid `order()` stops the run after the enum. The checks walk a declaration through `Checking\Fields`
+  constructor whose error has a diagnostic code sets it), else `definition-error`, and the class is skipped ; an invalid `order()` stops the run after the enum. The checks walk a declaration through `Checking\Fields`
   (`@internal`: descriptors, visible fields and object shapes by their path of head keys, `customer.name`, `lines.*`;
   conversion steps once per kind, field and `was()`); a nested resource is never entered, its class is checked on its
   own. The rules of the core are listed by `Checker::builtIn()`; a rule needing Laravel lives in `Laravel\Checking\`
   (`NativeCondition`, reading `RevisionedResource::revisionedNativeConditions()`), added by the Laravel binding of the
   `Checker`.
-- Since US 9.3: the container binds `ClassFinder` (`PathClassFinder` over `discovery.paths` / `discovery.classes`) and
+- The container binds `ClassFinder` (`PathClassFinder` over `discovery.paths` / `discovery.classes`) and
   `Checker` (the enum, that finder, `Checker::builtIn()` plus `NativeCondition`, the lock checks, then the checks
-  tagged `RevisionsServiceProvider::CHECKS`, built by the container in tag order, `model.md` D83; a `Compiler` with the application's
+  tagged `RevisionsServiceProvider::CHECKS`, built by the container in tag order; a `Compiler` with the application's
   `Configuration`; custom types through `TypeRegistry::converters()`), each built anew (never the compiled shapes).
   `revision:check` (`--format=table|json`, `--list`) and `Testing\InteractsWithRevisions::assertRevisionsAreConsistent()`
-  resolve the `Checker`: errors fail, warnings alone pass. Since US 12.13 (`model.md` D91), `Checker::forClasses($finder)`
+  resolve the `Checker`: errors fail, warnings alone pass. `Checker::forClasses($finder)`
   is that checker on a subset of the classes (a consumer's own check command): every check runs, `CheckContext::$subset`
   says so, and `LockMismatch` then compares the classes given but reports no locked class gone.
   The codes of the errors thrown when declared are literals on `DefinitionException` (`Exceptions` cannot see
@@ -552,8 +546,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   concerns the whole class or every revision.
 - `ClassFinder` is a contract; the Laravel layer implements it over `discovery.paths` (classes implementing
   `Revisioned`) plus `discovery.classes`.
-- `Lock` writes and compares normalized snapshots (sorted keys) and the recorded `order()`. Since US 9.4 (`model.md`
-  D69): `Lock::capture()` exports every kind of every class through a `JsonSchemaExporter` and keeps its structure
+- `Lock` writes and compares normalized snapshots (sorted keys) and the recorded `order()`. `Lock::capture()` exports every kind of every class through a `JsonSchemaExporter` and keeps its structure
   (`Lock::normalize()`: documentation keywords and the root `$comment` dropped, keys sorted, lists in order); a
   `LockedRevision` (value, `previous`, schemas by class and kind) is one `<value>.json`. The checks `LockMismatch`
   and `LockOrderChanged` take the `Lock`, so they are not in `Checker::builtIn()`: the Laravel binding of the `Checker`
@@ -561,7 +554,7 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
   `CheckContext::export()`; the enum target sees the discovered classes (`CheckContext::$classes`). An unreadable lock
   file is one `lock-mismatch` on the enum, never thrown. `revision:lock` compiles anew (never the compiled shapes) and
   captures every snapshot before writing any.
-- `Prune` (US 10.5, `model.md` D73) walks the head descriptors (`Compiler::describe()`, through `Fields::descriptors()`)
+- `Prune` walks the head descriptors (`Compiler::describe()`, through `Fields::descriptors()`)
   for the `until` / `was` / `since` naming the oldest revision, never the shapes: a bound is a declaration, not a shape.
   It catches what a class throws (`PruneReport::$failures`) and goes on. `DeclarationLocator` reads the source by
   reflection and `PhpToken` only, never running a declaration: the methods it searches are given (the core knows only
@@ -577,21 +570,21 @@ Patterns: **Specification** (one `Check` class per rule), **Notification** (`Dia
 | Descriptor macro | `Closure ($descriptor, ...$arguments)` returning the receiver's class | `DescriptorMacros` (method on every `Descriptor`; PHPStan: `apiRevisions.macros`) |
 | Conversion | `Conversion\Converter` | `Converters` |
 | Export format | `Export\SchemaVisitor` | used directly |
-| Check rule | `Checking\Check` | `Checker::builtIn()`; from a package or an application: the container tag `RevisionsServiceProvider::CHECKS` (`model.md` D83) |
+| Check rule | `Checking\Check` | `Checker::builtIn()`; from a package or an application: the container tag `RevisionsServiceProvider::CHECKS` |
 | Resolver | `Laravel\Http\RevisionResolver` (+ `VariesOn` when it reads headers) | `config/revisions.php` |
 | Rule mapping | `Laravel\Validation\RuleMapper` | `RuleCompiler` |
 | Consumer | implements `Schema\Revisioned` itself (no Laravel trait), reads `Shape` + calls `Projector` / `Upgrader` | `discovery` (like any `Revisioned` class) |
 | Class lifetime | `Schema\HasLifetime` on a `Revisioned` class | read by `Schema\ClassLifetime` |
 | Value errors | `Projection\ValueErrorHandler` | `Configuration` (Laravel: reporter = `report()`) |
 
-**A consumer's own `Revisioned` class** (model.md D75, US 12.1) is a supported path: a library such as
+**A consumer's own `Revisioned` class** is a supported path: a library such as
 `laravel-json-api` implements `declarationKinds()` and `describeRevisioned()` itself, without `RevisionedResource`, and
 gets the compilation, the cache, the check, the lock, the export, the changelog and the testing helpers like any class.
 It may build its declaration on its own stand-in instead of the `Probe` it receives (it then loses the probe's
 detection of an eager read), but must run no source, closure or condition while declaring. A JSON:API resource is one
 response whose top level holds one `Schema::object()` per hook. `revision:prune` locates fields in the declaring
 methods only (`describeRevisioned`, `toArray`, `body`, `queryParameters`): a field of a consumer's own hook points at
-`describeRevisioned()` (D79). Fixture: `tests/Fixtures/Declarations/ArticleDeclaration.php`
+`describeRevisioned()`. Fixture: `tests/Fixtures/Declarations/ArticleDeclaration.php`
 (in the projection invariant test); Laravel tooling: `tests/Feature/ConsumerDeclarationTest.php`.
 
 ## 14. Errors
@@ -601,7 +594,7 @@ declarations), `ConversionException`, `ValueException` (a subject value the type
 `ConfigurationException` (`InvalidArgumentException`: an invalid `config/revisions.php`), `CacheException`
 (`RuntimeException`: the compiled shapes file unwritable or invalid),
 `UnknownRevisionException` (`RuntimeException`: unknown client value), `InvalidInputException` (`RuntimeException`:
-an input value the upgrade rejects, chaining its `ConversionException` or `ValueException`, D63), `LockException`. Named
+an input value the upgrade rejects, chaining its `ConversionException` or `ValueException`), `LockException`. Named
 constructors only (`DefinitionException::mixedRevisions()`); messages name the class, the field and the revision.
 
 `Exceptions` depends only on `Support` (phpat, PHPDoc included): an exception takes `\BackedEnum`, `\UnitEnum` or
@@ -620,7 +613,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | --- | --- |
 | Classes | `final` by default. Extensible base classes, listed in the architecture test: `Schema\Descriptor` |
 | Traits | None in `src/`, except those declared for applications: `Revisions\IsRevision`, `Laravel\Requests\RevisionedRequest`, `Laravel\Resources\RevisionedResource`, `Testing\InteractsWithRevisions` (used by no class of the package; list checked by `DeclaredTraitsTest`) |
-| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests, `model.md` D42), `Schema\DescriptorMacros` (descriptor macros registered at boot, no volatile data; `flush()` for tests, `model.md` D87), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container), the queue payload hook (`Queue::createPayloadUsing`, registered at boot, reading the container of the dispatch; reset by Laravel's test lifecycle), the `assertMatchesRevisionSchema` `TestResponse` macro (registered again by `InteractsWithRevisions::setUpInteractsWithRevisions()` before each test, capturing that test's application) |
+| Global state | No singleton, no mutable static property. Allowed: `Support\Memo` (pure memos of what depends only on the code, flushable), `RevisionScope::provider()` (set at boot; replaceable, `null` restores the default), `Schema\TypeRegistry` (custom types registered at boot and the default `Converters` derived from them, rebuilt after `register()` / `flush()`; `flush()` for tests), `Schema\DescriptorMacros` (descriptor macros registered at boot, no volatile data; `flush()` for tests), the `revisioned` router macro (Laravel's `Macroable`, registered at boot, reading the router's container), the queue payload hook (`Queue::createPayloadUsing`, registered at boot, reading the container of the dispatch; reset by Laravel's test lifecycle), the `assertMatchesRevisionSchema` `TestResponse` macro (registered again by `InteractsWithRevisions::setUpInteractsWithRevisions()` before each test, capturing that test's application) |
 | Facades and helpers | Only in `src/Laravel/` (`src/Testing/` resolves from the test case's `$app` only) |
 | Core purity | No `Illuminate\*` left of `Laravel` |
 | Types | `declare(strict_types=1)`, every signature typed, PHPStan max; `mixed` only for free values, documented |
@@ -635,7 +628,7 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
   application of `tests/Fixtures/`), `tests/Architecture` (phpat, run by PHPStan), `tests/Types` (generics asserted
   with `assertType()`, analysed, never run), `tests/Benchmark`.
 - **Reference scenario:** the `ApiRevision` enum (`Genesis`, `Winter25`, `Spring26`, `Atlas`), `OrderResource` and
-  `StoreOrderRequest` of `specs/model.md` live in `tests/Fixtures/` and are used by every Feature test.
+  `StoreOrderRequest` live in `tests/Fixtures/` and are used by every Feature test.
 - **Invariant test:** for every fixture class and every revision, projection keys = `Shape` names, and every projected
   document validates against the exported JSON Schema of its revision.
 - **Expected files** (`tests/Feature/<Scenario>/expected/*.json`) are rewritten by `composer fixtures:update` and
@@ -668,16 +661,16 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 
 1. `src/Conversion/BuiltIn/<From>To<To>.php` implementing `Converter`; `lossless()` honest for every value it accepts.
 2. Register a factory for it in `Converters::builtIn()` (both directions unless the model says otherwise; the factory
-   may decline a pair of types); update `specs/model.md` §5.
+   may decline a pair of types); update the conversions of `docs/guide.md` and the skill reference.
 3. Unit tests: values at the edges, the lossy cases reported by `conversion-lossy`.
 
 ### Add a check rule
 
 1. `src/Checking/Checks/<Rule>.php` implementing `Check`, its `CODE` constant; list it in `Checker::builtIn()` (a rule
    reading Laravel: `src/Laravel/Checking/`; a package or an application tags its own rule
-   `RevisionsServiceProvider::CHECKS` instead, D83). A rule already enforced when declared is a `DefinitionException` named
+   `RevisionsServiceProvider::CHECKS` instead). A rule already enforced when declared is a `DefinitionException` named
    constructor carrying the code (`checkCode:`), not a class.
-2. Add the code to `specs/model.md` §9.
+2. Add the code to the table of `skills/laravel-api-revisions/reference.md`.
 3. Unit test: one passing and one failing declaration; the diagnostic names class, field, revision.
 
 ## 19. Automatic safeguards
@@ -693,4 +686,4 @@ Laravel version are used. CI matrix: PHP 8.3 / 8.4 / 8.5 × Laravel 12 / 13, low
 | JSON Schema validation of projected documents | Every Feature output matches the export of its revision |
 | Coverage ≥ 90 % (`bin/coverage-check.php`) | Tested lines |
 | Infection (MSI ≥ 80 %) | Test quality; a change generating no mutant is not measured (`ignoreMsiWithNoMutations`) |
-| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of a collection of 1 000 orders at the head and the oldest revision (a `RevisionedResource` collection in a bare container holding the services the provider binds, shapes compiled once; since US 8.5, one plan per render since US 12.8) as **ratios** to a collection of a plain `JsonResource`; since US 12.7, the `lookup` scenario (a compiled file of the reference declarations loaded, then every shape read twice through a fresh `Shapes`) as a ratio to the `require` and `unserialize()` of the same entries (class loading is guarded by the fresh-process test of `CompiledShapesTest`, not by the benchmark): scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |
+| Benchmark gate (`bin/benchmark.php`, `composer benchmark`) | Projection time and memory of a collection of 1 000 orders at the head and the oldest revision (a `RevisionedResource` collection in a bare container holding the services the provider binds, shapes compiled once, one plan per render) as **ratios** to a collection of a plain `JsonResource`, the `lookup` scenario (a compiled file of the reference declarations loaded, then every shape read twice through a fresh `Shapes`) as a ratio to the `require` and `unserialize()` of the same entries (class loading is guarded by the fresh-process test of `CompiledShapesTest`, not by the benchmark): scenarios interleaved in each run, median of the per-run time ratios, peak memory with the outputs held. Fails beyond `bin/benchmark/reference.json` by more than its tolerance (10 %), or on a reference scenario no longer measured; refuses to run under Xdebug. The reference is measured without Xdebug, as CI runs it; `--update` rewrites it (keeping the tolerance): review the diff |

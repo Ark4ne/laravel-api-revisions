@@ -10,7 +10,7 @@ use PHPStan\Testing\PHPStanTestCase;
 use PHPStan\Type\VerbosityLevel;
 
 /**
- * The `TestResponse` macro of the test helpers, declared to PHPStan (US 10.4); the package's own analysis of
+ * The `TestResponse` macro of the test helpers, declared to PHPStan; the package's own analysis of
  * `tests/Feature/TestingHelpersTest.php` runs it too.
  */
 final class RevisionSchemaAssertionExtensionTest extends PHPStanTestCase

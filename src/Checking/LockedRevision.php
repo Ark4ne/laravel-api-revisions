@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Exceptions\LockException;
 use Ark4ne\ApiRevisions\Export\JsonSchemaExporter;
 
 /**
- * The snapshot of one revision (model.md §9, D69): its backed value, the backed value of the revision before it in
+ * The snapshot of one revision: its backed value, the backed value of the revision before it in
  * `order()` when it was locked (`null` for the oldest), and the structural JSON Schema of every class, by class then
  * by declaration kind. Immutable.
  */

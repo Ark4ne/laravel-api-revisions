@@ -10,7 +10,7 @@ use Ark4ne\ApiRevisions\Schema\Schema;
 use Test\Fixtures\ApiRevision;
 
 /**
- * Requests declaring what retiring `Genesis` makes dead (model.md D73), among declarations it leaves alive. The query
+ * Requests declaring what retiring `Genesis` makes dead, among declarations it leaves alive. The query
  * declares a `name` first, without bound, so the locator must prefer the body's `name` naming `Genesis`; `meta.code`
  * comes before the top-level `code`, so the locator must not read a nested key for a top-level one.
  */

@@ -11,7 +11,7 @@ use DateTimeInterface;
 
 /**
  * Metadata of a revision, declared on its case: `#[Meta('Totals in cents', publishedAt: '2026-04-01')]`.
- * Informative only (docs, changelog, `Deprecation` / `Sunset` headers): it never drives behaviour (model.md D21).
+ * Informative only (docs, changelog, `Deprecation` / `Sunset` headers): it never drives behaviour.
  * Dates are `Y-m-d` days, checked when the attribute is read (`DefinitionException::invalidMetaDate()`).
  */
 #[Attribute(Attribute::TARGET_CLASS_CONSTANT)]

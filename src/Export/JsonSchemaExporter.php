@@ -15,10 +15,10 @@ use Ark4ne\ApiRevisions\Schema\DeclarationKind;
 use DateTimeInterface;
 
 /**
- * The JSON Schema (draft 2020-12) of a declaring class for one declaration kind at one revision (model.md §11, D67):
+ * The JSON Schema (draft 2020-12) of a declaring class for one declaration kind at one revision:
  * read from its `Shape` only, so the export, the projection, the validation and the lock agree by construction. Nested
  * resources go to `$defs`, read from the same `Shapes`; whether a custom type is written in place rather than as a
- * component is asked of their registry (`Shapes::converters()`, D82).
+ * component is asked of their registry (`Shapes::converters()`).
  *
  * @implements SchemaVisitor<array<string, mixed>>
  */
@@ -27,7 +27,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     public const string DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 
     /**
-     * The documentation keywords it writes, left out by the lock and the changelog (model.md D69, D71).
+     * The documentation keywords it writes, left out by the lock and the changelog.
      */
     public const array DOCUMENTATION = ['title', 'description', 'examples', 'deprecated'];
 
@@ -38,7 +38,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
 
     /**
      * @param bool $closed whether every declared object refuses other properties (`additionalProperties: false`): the
-     *                     test assertions validate so (model.md D72), the published export stays open (D67)
+     *                     test assertions validate so, the published export stays open
      */
     public function __construct(private Shapes $shapes = new Shapes(), private bool $closed = false) {}
 
@@ -77,7 +77,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     }
 
     /**
-     * `$schema` ready for `json_encode()`: its maps as objects, so an empty schema (`any`, D67) is written `{}`, never
+     * `$schema` ready for `json_encode()`: its maps as objects, so an empty schema (`any`) is written `{}`, never
      * `[]`; the value of a list keyword (`required`, `enum`, `anyOf`…) stays a list.
      *
      * @param array<array-key, mixed> $schema
@@ -99,8 +99,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
 
     /**
      * The keywords the type itself gives, `null` accepted when `$nullable`, before the keywords of its rules
-     * (`TypeDefinition::$jsonSchema`) and its documentation: what `schema-override` compares the rule keywords with
-     * (D36). A nested resource gives its `$ref`; a component stays inline (D70).
+     * (`TypeDefinition::$jsonSchema`) and its documentation: what `schema-override` compares the rule keywords with. A nested resource gives its `$ref`; a component stays inline.
      *
      * @return array<string, mixed>
      */
@@ -110,7 +109,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     }
 
     /**
-     * The object of the fields of `$shape`, each with its presence (D67).
+     * The object of the fields of `$shape`, each with its presence.
      *
      * @param string $prefix the path of the object in the document, `''` at the top level
      *
@@ -158,8 +157,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     }
 
     /**
-     * The typed keywords of `$type`; in a document (`$root`), a component is defined in `$components` and referenced
-     * (D70).
+     * The typed keywords of `$type`; in a document (`$root`), a component is defined in `$components` and referenced.
      *
      * @return array<string, mixed>
      */
@@ -202,7 +200,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
             return $keywords;
         }
         $component = match (true) {
-            // the fragments of a custom type declaring its identity vary by instance: written in place (D82)
+            // the fragments of a custom type declaring its identity vary by instance: written in place
             $type->kind === Kind::Custom => $type->name !== null && $this->shapes->converters()->isIdentity($type->name) ? null : $type->name,
             default => $type->resource === null ? $type->component : null,
         };
@@ -215,8 +213,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     }
 
     /**
-     * An object typed only: its children never required, nullable as their types say (the schema of a `was()` in force,
-     * D67, D68).
+     * An object typed only: its children never required, nullable as their types say (the schema of a `was()` in force).
      *
      * @return array<string, mixed>
      */
@@ -261,7 +258,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
 
     /**
      * Its presence aside, a field's schema: `null` accepted when nullable, its documentation, then the keywords of its
-     * rules, last (D36).
+     * rules, last.
      *
      * @param array<string, mixed> $keywords
      *
@@ -277,7 +274,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
     }
 
     /**
-     * `$keywords` accepting `null` when `$nullable`: added to a string `type` (and to its `enum`), else `anyOf` (D67).
+     * `$keywords` accepting `null` when `$nullable`: added to a string `type` (and to its `enum`), else `anyOf`.
      *
      * @param array<string, mixed> $keywords
      *
@@ -301,7 +298,7 @@ final readonly class JsonSchemaExporter implements SchemaVisitor
 
     /**
      * A date string in the PHP `$format`: the JSON Schema `$known` format for `$standard`, else a pattern derived from
-     * it when it has one, its PHP format in `$comment` (D67).
+     * it when it has one, its PHP format in `$comment`.
      *
      * @return array<string, mixed>
      */

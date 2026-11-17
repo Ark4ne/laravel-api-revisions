@@ -11,14 +11,14 @@ use DateTimeImmutable;
 use DateTimeInterface;
 
 /**
- * A date and time: serialized with its format, RFC 3339 unless configured (model.md D29). Accepts a `DateTimeInterface`, a non-empty string `DateTimeImmutable` parses, or an int timestamp (UTC).
+ * A date and time: serialized with its format, RFC 3339 unless configured. Accepts a `DateTimeInterface`, a non-empty string `DateTimeImmutable` parses, or an int timestamp (UTC).
  *
  * @extends Descriptor<DateTimeImmutable>
  */
 final class DateTimeSchema extends Descriptor
 {
     /**
-     * `null` until configured: the configured default (model.md D29).
+     * `null` until configured: the configured default.
      *
      * @var non-empty-string|null
      */

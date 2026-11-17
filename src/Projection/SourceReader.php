@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Projection;
 
 /**
- * How the projector reads a subject (model.md §6.2, Strategy): `PlainSourceReader` in the core, decorated by the
+ * How the projector reads a subject (Strategy): `PlainSourceReader` in the core, decorated by the
  * Laravel layer for Eloquent models (`EloquentSourceReader`: `peek()` and the presences without lazy load). A key the
  * subject does not have reads `null`; the errors of the subject itself are never hidden.
  */

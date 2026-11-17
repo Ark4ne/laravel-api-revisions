@@ -5,9 +5,9 @@ includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpat/phpat/extension.neon
     - vendor/spaze/phpstan-disallowed-calls/extension.neon
-    # The package's own extension, checked on the fixtures (US 2.7).
+    # The package's own extension, checked on the fixtures.
     - extension.neon
-    # Empty: never add an entry, fix the cause instead (docs/specs/epics.md §1).
+    # Empty: never add an entry, fix the cause instead.
     - phpstan-baseline.neon
 
 parameters:
@@ -26,7 +26,7 @@ parameters:
     tmpDir: build/phpstan
     excludePaths:
         analyse:
-            # Property hooks parse only on PHP 8.4, the package supports 8.3 (model.md D88).
+            # Property hooks parse only on PHP 8.4, the package supports 8.3.
             - tests/Fixtures/Php84/HookedSubject.php
 
     # Facades, global helpers and the container belong to src/Laravel/ (docs/architecture.md §2).
@@ -49,7 +49,7 @@ parameters:
     disallowedMethodCalls:
         -
             method: 'Ark4ne\ApiRevisions\Schema\Descriptor::inGroup()'
-            message: 'reserved to Schema\Groups: it bypasses the repeated-bound rule (model.md §4.4 rule 5); use Schema::since() / Schema::until()'
+            message: 'reserved to Schema\Groups: it bypasses the repeated-bound rule; use Schema::since() / Schema::until()'
             allowIn:
                 - src/Schema/Groups.php
                 - tests/*

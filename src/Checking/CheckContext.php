@@ -37,8 +37,7 @@ final class CheckContext
      * @param class-string<Revision> $revisions
      * @param class-string<Revisioned>|null $class
      * @param list<class-string<Revisioned>> $classes every class the run checks (the targets after the enum)
-     * @param bool $subset whether `$classes` are only some of the application's (`Checker::forClasses()`, model.md
-     *                     D91): a check needing every class (a locked class gone) skips what it cannot tell
+     * @param bool $subset whether `$classes` are only some of the application's (`Checker::forClasses()`): a check needing every class (a locked class gone) skips what it cannot tell
      */
     public function __construct(
         public readonly string $revisions,
@@ -51,7 +50,7 @@ final class CheckContext
     ) {}
 
     /**
-     * The revisions of the enum, oldest first; for a class, those it exists in (`HasLifetime`, model.md D81).
+     * The revisions of the enum, oldest first; for a class, those it exists in (`HasLifetime`).
      *
      * @return list<Revision>
      */
@@ -119,7 +118,7 @@ final class CheckContext
 
     /**
      * The JSON Schema of the declaration `$kind` of the checked class at `$revision`, exported from the shapes of the
-     * run (US 10.1); `DefinitionException::noShapeForRevisions()` when the target is the enum.
+     * run; `DefinitionException::noShapeForRevisions()` when the target is the enum.
      *
      * @return array<string, mixed>
      */

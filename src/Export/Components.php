@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Export;
 use Ark4ne\ApiRevisions\Exceptions\DefinitionException;
 
 /**
- * The `$defs` of one exported document (model.md D67, D70): its nested resources and its components, each defined
+ * The `$defs` of one exported document: its nested resources and its components, each defined
  * once under its name and referenced `#/$defs/<name>`. A component defined again with another body is a declaration
  * error. Filled by the `JsonSchemaExporter` while it walks one document.
  */

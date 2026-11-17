@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ark4ne\ApiRevisions\Export;
 
 /**
- * The regular expression of a PHP date format whose tokens are all numeric (model.md D67): `d/m/Y` →
+ * The regular expression of a PHP date format whose tokens are all numeric: `d/m/Y` →
  * `^\d{2}/\d{2}/\d{4}$`; `null` as soon as one token is not (`D`, `M`, `l`, `F`, `U`, `e`, `T`…).
  *
- * Public contract for tools (docs/architecture.md §4, model.md D92): the `pattern` `JsonSchemaExporter` writes for a
+ * Public contract for tools (docs/architecture.md §4): the `pattern` `JsonSchemaExporter` writes for a
  * date format JSON Schema does not name (a date other than `Y-m-d`, a date-time other than RFC 3339 and RFC 3339
  * extended; those, and no format, export `format`).
  */

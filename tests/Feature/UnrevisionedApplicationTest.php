@@ -24,7 +24,7 @@ use Test\Fixtures\Unrevisioned\StorePostRequest;
 use Test\TemporaryDirectory;
 
 /**
- * An application installing the library without configuring a revision enum (US 12.2, model.md D80): it renders,
+ * An application installing the library without configuring a revision enum: it renders,
  * validates and runs every command on the implicit revision, and stays invisible to its clients.
  */
 final class UnrevisionedApplicationTest extends FeatureTestCase

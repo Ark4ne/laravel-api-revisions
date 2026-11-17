@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 /*
- * The benchmark gate (docs/specs/epics.md US 5.4): renders a collection of 1 000 orders of the reference scenario at
- * the head and at the oldest revision through a `RevisionedResource` (US 8.5; one plan per render since US 12.8; a bare
+ * The benchmark gate: renders a collection of 1 000 orders of the reference scenario at
+ * the head and at the oldest revision through a `RevisionedResource` (one plan per render; a bare
  * container holds the services the provider binds), and a collection of a plain `JsonResource` as baseline. Each projection is
  * compared with the baseline as a ratio (time and peak memory), so the gate holds on any machine; a ratio beyond the
- * reference by more than its tolerance fails. The `lookup` scenario (US 12.7, model.md D85) loads a compiled file of
+ * reference by more than its tolerance fails. The `lookup` scenario loads a compiled file of
  * the reference declarations and reads every shape twice through a fresh `Shapes`, against the `require` and the
  * `unserialize()` of the same entries: its gate keeps the load at the `require` and `Shapes::for()` on a cached class
  * at one array read and one `unserialize()`. That a lookup loads no descriptor nor declaring class is asserted in a

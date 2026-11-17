@@ -6,7 +6,7 @@ namespace Ark4ne\ApiRevisions\Definition;
 
 /**
  * The way a value travels between revisions: `Down` from a newer shape to an older one (responses), `Up` from an
- * older shape to a newer one (requests). One direction per declaration kind (model.md D27).
+ * older shape to a newer one (requests). One direction per declaration kind.
  */
 enum Direction: string
 {

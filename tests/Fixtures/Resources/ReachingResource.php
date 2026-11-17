@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Test\Fixtures\Eloquent\Order;
 
 /**
- * Closures of `toArray()` reaching the model three ways (model.md §6.6), and the peeked `$value` of a source closure.
+ * Closures of `toArray()` reaching the model three ways, and the peeked `$value` of a source closure.
  *
  * @mixin Order
  *

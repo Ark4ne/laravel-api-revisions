@@ -8,7 +8,7 @@ use Ark4ne\ApiRevisions\Checking\Check;
 use Ark4ne\ApiRevisions\Checking\CheckContext;
 
 /**
- * An error per case of the revision enum absent from `order()` (model.md §9).
+ * An error per case of the revision enum absent from `order()`.
  */
 final readonly class OrderMissingCase implements Check
 {

@@ -11,7 +11,7 @@ use BackedEnum;
 
 /**
  * string or int → backed enum: the value read as the backing type when lossless, then `::from()`; an unknown
- * value throws `ConversionException::invalidEnumValue()` (model.md D41).
+ * value throws `ConversionException::invalidEnumValue()`.
  */
 final class BackedToEnum implements Converter
 {

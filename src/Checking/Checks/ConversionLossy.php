@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Conversion\StepKind;
 
 /**
  * A warning per automatic conversion step whose converter may lose information (`Converter::lossless()` false), declared
- * without `down:` / `up:` (model.md §5, D25), once per field and `was()`.
+ * without `down:` / `up:`, once per field and `was()`.
  */
 final readonly class ConversionLossy implements Check
 {

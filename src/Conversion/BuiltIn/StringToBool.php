@@ -7,7 +7,7 @@ namespace Ark4ne\ApiRevisions\Conversion\BuiltIn;
 use Ark4ne\ApiRevisions\Conversion\Converter;
 
 /**
- * string → bool as `filter_var(FILTER_VALIDATE_BOOLEAN)`, any other string `true` (model.md D40): lossy.
+ * string → bool as `filter_var(FILTER_VALIDATE_BOOLEAN)`, any other string `true`: lossy.
  */
 final class StringToBool implements Converter
 {

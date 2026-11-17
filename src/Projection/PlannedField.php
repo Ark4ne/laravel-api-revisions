@@ -11,7 +11,7 @@ use Ark4ne\ApiRevisions\Schema\Revisioned;
 use Closure;
 
 /**
- * One field (or item) of a `ProjectionPlan` (model.md D86): what the pipeline of `Projector` decides from the shape and
+ * One field (or item) of a `ProjectionPlan`: what the pipeline of `Projector` decides from the shape and
  * the descriptor, resolved once per render — its presences, its source, its conditions, its bound chain, its
  * configured serializer and its nested plan.
  *
@@ -28,7 +28,7 @@ final readonly class PlannedField
      * @param non-empty-list<string>|null $path the path read on the subject; `null` without closure: the subject itself
      * @param list<Closure> $conditions the `when()` conditions, called `($subject, $attribute)` before the source
      * @param string $attribute the key read, given to the conditions: the source key or path, else the declared key
-     *                          (`*` for an item, model.md D93)
+     *                          (`*` for an item)
      * @param ConversionChain|null $chain the down chain bound to its converters; `null` when empty
      * @param list<PlannedField>|null $children the children of an object
      * @param class-string<Revisioned>|null $resource the class of a nested resource

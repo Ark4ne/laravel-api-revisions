@@ -9,7 +9,7 @@ use Ark4ne\ApiRevisions\Definition\TypeDefinition;
 use Ark4ne\ApiRevisions\Exceptions\ConversionException;
 
 /**
- * The conversions of one field at one revision in one direction (model.md §4.5, §5): the steps between consecutive
+ * The conversions of one field at one revision in one direction (§5): the steps between consecutive
  * shapes, in the order they apply (down: from the head to the oldest shape; up: from the client's shape to the head).
  * Planned once at compilation from types and references only, so it serializes; `bind()` attaches the converters at
  * run time. Immutable.
@@ -36,7 +36,7 @@ final readonly class ConversionChain
      * Appends the step from `$from` to `$to`, the types of two consecutive shapes in the direction of the chain. With
      * an explicit converter (`$explicit`: the `was()` at `$change` declares `down:` / `up:` for this direction) the
      * step is explicit, whatever the types. Otherwise two types holding the same values add no step (same kind, enum
-     * class, custom name and fragment, or any fragment of a name `Converters::identity()` declares, D82, items and
+     * class, custom name and fragment, or any fragment of a name `Converters::identity()` declares, items and
      * children: constraints, formats and documentation never convert a value); else the registry's converter, or a
      * missing step when it has none.
      *
@@ -79,11 +79,11 @@ final readonly class ConversionChain
     }
 
     /**
-     * Runs every step on the value, `$subject` passed to the closures: the down side (model.md §6.5), whose closures
+     * Runs every step on the value, `$subject` passed to the closures: the down side, whose closures
      * all receive the projected subject. `null` is returned as it is (the pipeline handles it). Throws
      * `ConversionException::missing()` on a step without converter (missing, or not bound). The upgrader runs an up
      * chain step by step instead (`stepOf()`): it normalizes the value to each shape and passes each step its own
-     * snapshot (model.md §7.1).
+     * snapshot.
      *
      * @param mixed $value a normalized value of the first step's source type
      */
@@ -114,7 +114,7 @@ final readonly class ConversionChain
     }
 
     /**
-     * The steps without converter in the registry or the history (reported by `conversion-missing`, US 9.2).
+     * The steps without converter in the registry or the history (reported by `conversion-missing`).
      *
      * @return list<ConversionStep>
      */

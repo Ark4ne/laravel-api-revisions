@@ -9,7 +9,7 @@ use Closure;
 
 /**
  * The fluent methods a consumer adds to every descriptor (`Schema::string()->whenInFields('title')`), registered by
- * name at boot and served by `Descriptor::__call()` (model.md D87). Static on purpose, like `TypeRegistry`: one of the
+ * name at boot and served by `Descriptor::__call()`. Static on purpose, like `TypeRegistry`: one of the
  * allowed global states (docs/architecture.md §16); the registrations carry no volatile data, `flush()` empties it for
  * tests only.
  */
