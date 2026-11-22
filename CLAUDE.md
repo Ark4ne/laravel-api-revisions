@@ -42,6 +42,8 @@ vendor/bin/phpunit --filter test_name
 - A behaviour the guide does not describe, or contradicting it: stop and ask the maintainer **before** coding it.
 - Every public change in `CHANGELOG.md` (`[Unreleased]`, breaking ones in `UPGRADE.md` too); every new rule or pattern
   in `docs/architecture.md`; every public type or method in `skills/laravel-api-revisions/reference.md` (`SkillTest`).
+- Every public change updates `docs/site/` (the portal documentation) in the same change; `pnpm check
+  ../laravel-api-revisions` in the docs portal (`ark4ne/docs`) must pass.
 - `phpstan-baseline.neon` stays empty: never add an entry, fix the cause.
 - One change per branch, small commits, imperative English messages.
 

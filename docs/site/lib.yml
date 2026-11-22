@@ -1,0 +1,12 @@
+# Identity of the library in the ark4ne documentation portal (see the ark4ne-docs skill of the portal).
+name: Laravel API Revisions
+package: ark4ne/laravel-api-revisions
+tagline: Typed schemas for Laravel resources and form requests, evolved through dated API revisions, Stripe-style.
+icon: i-lucide-git-branch
+color: amber
+order: 20
+compatibility:
+  - { version: '1.x', php: '^8.3', laravel: '^12.46 || ^13.0', status: active }
+related: [laravel-json-api, laravel-openapi-generator]
+links:
+  - { label: Agent skill, to: 'https://github.com/Ark4ne/laravel-api-revisions/tree/main/skills/laravel-api-revisions', icon: i-lucide-bot }
